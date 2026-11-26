@@ -20,8 +20,8 @@ Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then r
 | Tactical bands | 4H `k=2` fractal pivots, width `0.35 × ATR(14) 1D`, merged up to 1.6 widths |
 | Sweep detector | last 6 **closed** 1H bars, newest first: macro levels (2+ touches) checked before tactical bands; a reclaim of a macro level reads **MACRO BULLISH/BEARISH SWEEP** |
 | Macro S/R | 500 closed 1D bars, `k=2` pivots, 1% clustering, **nearest 3 by distance** each side (clusters within 0.25% of spot excluded as "at price") |
-| Liq ladder [MODELED] | levels exact: `price × (1 ± 1/leverage)`; $ per tier = OI$ × **10x 40% / 25x 30% / 50x 20% / 100x 10%** |
-| Liq overlay | a cluster within **0.5%** of a band or macro level is appended to that level as `[+$X M Shorts/Longs]` |
+| Liq ladder [MODELED] | levels exact: `price × (1 ± 1/leverage)`; $ per tier = OI$ × **10x 8% / 25x 6% / 50x 4% / 100x 2%** (= 20% of OI in total; the rest assumed cross-margin or lower leverage) |
+| Liq overlay | at most one tag per level: the **single nearest** cluster, only if it is **25x or higher**, within **0.5%** — rendered `[+$X M 25x Shorts]` |
 | Volume nodes | 30D, 7D and 4H profiles; **nearest HVN** = nearest bin holding ≥60% of the POC's volume |
 | CVD | `Σ (2 × takerBuyBase − volume)` over the last 1/4/24 **closed** 1H bars, spot and perp separately |
 | Venue tags | every derivative value carries `[BIN]` or `[OKX]`; the venue is part of the number, not a footnote |
