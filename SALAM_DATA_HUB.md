@@ -1,31 +1,32 @@
-# SALAM PROTOCOL DATA HUB v1.2
-**Timestamp:** 2026-11-26 03:08:09 UTC | **Spot Price:** $60,700.01 [BIN]
+# SALAM PROTOCOL DATA HUB v1.3
+**Timestamp:** 2026-11-26 03:27:19 UTC | **Spot Price:** $60,776.14 [BIN]
+> ⚠️ **CI HOST DETECTED: PERP CVD UNAVAILABLE.** Binance Futures refuses this host (HTTP 451). Run locally for execution-grade order flow.
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,700 (1D SMA200 72,088)
+*   **Current Price:** $60,776 (1D SMA200 72,088)
 *   **Tactical Bands:**
     *   Upper: $62,800 - $64,441 (Conf: 3/10)
     *   Lower: $58,232 - $59,305 (Conf: 10/10)
     *   Price is inside $59,850 - $61,532
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $61,031 (2x) [+$38M 100x Shorts], $62,338 (8x), $63,065 (2x) [+$114M 25x Shorts]
-    *   Support: $60,000 (1x) [+$38M 100x Longs], $59,131 (1x), $57,958 (2x)
+    *   Resistance: $61,031 (2x), $62,338 (8x), $63,065 (2x) [+$115M 25x Shorts]
+    *   Support: $60,000 (1x), $59,131 (1x), $57,958 (2x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 62,288
     *   4H (last 30 bars): VAH 60,498 · POC 57,261 · VAL 57,183
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,770 ($152.2M) / 25x $63,128 ($114.1M) / 50x $61,914 ($76.1M) / 100x $61,307 ($38.0M)
-*   **Lower Longs:** 10x $54,630 ($152.2M) / 25x $58,272 ($114.1M) / 50x $59,486 ($76.1M) / 100x $60,093 ($38.0M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,902.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.55 [OKX]
+*   **Upper Shorts:** 10x $66,854 ($152.9M) / 25x $63,207 ($114.6M) / 50x $61,992 ($76.4M) / 100x $61,384 ($38.2M)
+*   **Lower Longs:** 10x $54,699 ($152.9M) / 25x $58,345 ($114.6M) / 50x $59,561 ($76.4M) / 100x $60,168 ($38.2M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,910.7M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.54 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot [BIN] / Perp [OKX]):** 1H: 100.4 / UNAVAILABLE | 4H: 396.5 / UNAVAILABLE | 24H: 419.7 / UNAVAILABLE
-*   **Open Interest:** 31,336 BTC [OKX] | 4H Change: 0.27% | 24H Change: 2.86%
+*   **Open Interest:** 31,439 BTC [OKX] | 4H Change: 0.27% | 24H Change: 2.86%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0097% per 8H [OKX] | percentile (100 pts): 72
+*   **Funding:** 0.0096% per 8H [OKX] | percentile (100 pts): 72
 *   **ATR 1H:** 654 (Rail B stop distance = 1.5 x this = 981)
 
 ## 4. THE TRIGGER
@@ -45,7 +46,7 @@
 *   lsr HTTP 451
 *   perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host
 
-### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.2
+### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.3
 **Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory (50/50 BTC/USDT) strategy.
 **Primary Directive:** Analyze this data packet using S/R-First logic.
 
