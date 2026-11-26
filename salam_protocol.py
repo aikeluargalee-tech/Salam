@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 
 SPOT = "https://data-api.binance.vision/api/v3"
 FAPI = "https://fapi.binance.com"
+BYBIT = "https://api.bybit.com"
 FARSIDE = "https://farside.co.uk/bitcoin-etf-flow-all-data/"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
@@ -318,24 +319,76 @@ def collect() -> tuple[dict, list[str]]:
             if err:
                 problems.append(err)
 
-    data = {"now": datetime.now(timezone.utc), "problems": problems}
+    # Binance Futures blocks CI runner IPs (HTTP 451 "Unavailable For Legal Reasons").
+    # Fall back per field to Bybit, and say so in the packet.
+    fb: dict = {}
+    deriv_src = "BINANCE"
+    if any(raw.get(k) is None for k in ("funding", "oi", "oi_hist", "lsr")):
+        jobs2 = {
+            "bt": f"{BYBIT}/v5/market/tickers?category=linear&symbol=BTCUSDT",
+            "boi": f"{BYBIT}/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=4h&limit=7",
+            "blsr": f"{BYBIT}/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=4h&limit=1",
+            "bfh": f"{BYBIT}/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=200",
+        }
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futs = {k: pool.submit(safe, (lambda u=u: get_json(u)), f"bybit:{k}") for k, u in jobs2.items()}
+            for k, f in futs.items():
+                val, err = f.result()
+                fb[k] = val
+                if err:
+                    problems.append(err)
+        if any(fb.get(k) for k in ("bt", "boi", "blsr", "bfh")):
+            deriv_src = "BYBIT"
+
+    def bybit_list(key):
+        return (((fb.get(key) or {}).get("result") or {}).get("list")) or []
+
+    data = {"now": datetime.now(timezone.utc), "problems": problems, "deriv_src": deriv_src}
     for key in ("d1", "h4", "h1", "fd1", "fh1"):
         data[key] = closed(to_bars(raw[key]), now_ms) if raw.get(key) else []
     data["price"] = float(raw["px"]["price"]) if raw.get("px") else (
         data["d1"][-1]["c"] if data["d1"] else None)
-    data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100 if raw.get("funding") else None
-    data["mark"] = float(raw["funding"]["markPrice"]) if raw.get("funding") else None
-    data["oi_btc"] = float(raw["oi"]["openInterest"]) if raw.get("oi") else None
+    bt = (bybit_list("bt") or [{}])[0]
+    if raw.get("funding"):
+        data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100
+        data["mark"] = float(raw["funding"]["markPrice"])
+    elif bt.get("fundingRate") not in (None, ""):
+        data["funding"] = float(bt["fundingRate"]) * 100
+        data["mark"] = float(bt.get("markPrice") or 0) or None
+    else:
+        data["funding"] = data["mark"] = None
+
+    if raw.get("oi"):
+        data["oi_btc"] = float(raw["oi"]["openInterest"])
+    elif bt.get("openInterest") not in (None, ""):
+        data["oi_btc"] = float(bt["openInterest"])
+    else:
+        data["oi_btc"] = None
+
     hist = raw.get("oi_hist") or []
+    if not hist:
+        bh = list(reversed(bybit_list("boi")))          # Bybit returns newest first
+        hist = [{"sumOpenInterest": h.get("openInterest")} for h in bh]
     data["oi_4h_chg"] = (float(hist[-1]["sumOpenInterest"]) / float(hist[-2]["sumOpenInterest"]) - 1) * 100 \
         if len(hist) >= 2 else None
     data["oi_24h_chg"] = (float(hist[-1]["sumOpenInterest"]) / float(hist[-7]["sumOpenInterest"]) - 1) * 100 \
         if len(hist) >= 7 else None
     fh = [float(r["fundingRate"]) * 100 for r in (raw.get("funding_hist") or [])]
+    if not fh:
+        fh = [float(r["fundingRate"]) * 100 for r in bybit_list("bfh")
+              if r.get("fundingRate") not in (None, "")]
     data["funding_pct90"] = percentile(fh, data["funding"]) if (fh and data["funding"] is not None) else None
     lsr = raw.get("lsr") or []
-    data["ls_ratio"] = float(lsr[0]["longShortRatio"]) if lsr else None
+    if lsr:
+        data["ls_ratio"] = float(lsr[0]["longShortRatio"])
+    else:
+        blsr = bybit_list("blsr")
+        buy, sell = (blsr[0].get("buyRatio"), blsr[0].get("sellRatio")) if blsr else (None, None)
+        data["ls_ratio"] = (float(buy) / float(sell)) if (buy and sell and float(sell)) else None
     data["etf"] = raw.get("etf")
+    if not data["fh1"]:
+        problems.append("perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no "
+                        "taker split, so perp CVD needs a Binance-reachable host")
     return data, problems
 
 
@@ -461,6 +514,9 @@ def render(a: dict) -> str:
              f" | 24H: {f(cs.get('24h'), 1)} / {f(cp.get('24h'), 1)}")
     L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC"
              f" | 4H Change: {f(a.get('oi_4h_chg'), 2)}% | 24H Change: {f(a.get('oi_24h_chg'), 2)}%")
+    if a.get("deriv_src") == "BYBIT":
+        L.append("*   **Derivatives source:** [BYBIT fallback] Binance Futures refused this "
+                 "runner (HTTP 451, geo-block). OI, funding and L/S are Bybit's BTC perp.")
     L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H"
              f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}")
     L.append("")
