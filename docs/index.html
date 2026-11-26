@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Salam Protocol — data packet</title>
+<style>
+ body{margin:0;background:#0b0e11;color:#d6dde5;font:13px/1.6 ui-monospace,Menlo,monospace;padding:16px 14px 40px}
+ h1{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#79838f;margin:0 0 8px}
+ #age{display:inline-block;padding:2px 8px;border-radius:3px;background:#1b2430;color:#4ea1ff;font-size:12px;margin-bottom:12px}
+ #age.warn{background:#2e2410;color:#ffb020}#age.bad{background:#301616;color:#ff5d5d}
+ pre{white-space:pre-wrap;word-break:break-word;margin:0 0 14px}
+ a{color:#4ea1ff;text-decoration:none}
+ button{background:#1b2430;color:#d6dde5;border:1px solid #24303d;border-radius:4px;padding:6px 12px;font:inherit}
+</style></head><body>
+<h1>Salam Protocol v1.0 · data packet</h1>
+<div id="age">loading…</div>
+<pre id="out"></pre>
+<button onclick="load()">refresh</button>
+<a href="SALAM_DATA_HUB.md" style="margin-left:12px">raw .md</a>
+<script>
+const out=document.getElementById('out'), ageEl=document.getElementById('age');
+let ts=null;
+function paint(){ if(!ts) return; const m=(Date.now()-ts)/60000;
+  ageEl.textContent = m<60?Math.round(m)+' min old':(m/60).toFixed(1)+' h old';
+  ageEl.className = m>360?'bad':m>90?'warn':''; }
+async function load(){
+  try{ const t=await (await fetch('SALAM_DATA_HUB.md?t='+Date.now(),{cache:'no-store'})).text();
+    out.textContent=t;
+    const m=t.match(/Timestamp:\*\*\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/);
+    if(m){ ts=new Date(m[1]+'T'+m[2]+'Z'); paint(); }
+  }catch(e){ out.textContent='fetch failed: '+e.message; ageEl.textContent='no data'; ageEl.className='bad'; }
+}
+setInterval(paint,30000); load();
+</script></body></html>
