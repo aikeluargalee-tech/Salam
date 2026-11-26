@@ -1,40 +1,40 @@
 # SALAM PROTOCOL DATA HUB v1.6
-**Timestamp:** 2026-11-26 14:51:49 UTC / 2026-11-26 22:51:49 SGT (UTC+8) | **Spot Price:** $60,780.01 [BIN]
+**Timestamp:** 2026-11-26 15:00:49 UTC / 2026-11-26 23:00:49 SGT (UTC+8) | **Spot Price:** $60,674.01 [BIN]
 > ✅ **FULL ORDER FLOW — perp CVD is OKX's measured taker volume, spot is Binance.** Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,780 (1D SMA200 72,088)
+*   **Current Price:** $60,674 (1D SMA200 72,088)
 *   **Tactical Bands:**
     *   Upper: $62,800 - $64,441 (Conf: 3/10)
     *   Lower: $58,232 - $59,305 (Conf: 10/10)
     *   Price is inside $59,850 - $61,532
 *   **Macro S/R (Nearest 3):**
     *   Resistance: $61,031 (2x), $62,338 (8x), $63,065 (2x) [+$117M 25x Shorts]
-    *   Support: $60,000 (1x), $59,131 (1x), $57,958 (2x)
+    *   Support: $60,000 (1x) [+$39M 100x Longs], $59,131 (1x), $57,958 (2x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 62,288
     *   4H (last 30 bars): VAH 64,603 · POC 60,526 · VAL 59,613
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,858 ($156.1M) / 25x $63,211 ($117.0M) / 50x $61,996 ($78.0M) / 100x $61,388 ($39.0M)
-*   **Lower Longs:** 10x $54,702 ($156.1M) / 25x $58,349 ($117.0M) / 50x $59,564 ($78.0M) / 100x $60,172 ($39.0M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,950.7M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.23 [OKX]
+*   **Upper Shorts:** 10x $66,741 ($155.7M) / 25x $63,101 ($116.8M) / 50x $61,887 ($77.9M) / 100x $61,281 ($38.9M)
+*   **Lower Longs:** 10x $54,607 ($155.7M) / 25x $58,247 ($116.8M) / 50x $59,461 ($77.9M) / 100x $60,067 ($38.9M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,946.9M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.22 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 2.1 / -190.8 | 4H: 129.0 / 232.5 | 24H: 1,025.1 / 4,086.0
-*   **Open Interest:** 32,094 BTC [OKX] | 4H Change: 0.63% | 24H Change: 3.25%
+*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: -74.7 / -13.4 | 4H: 40.2 / -213.8 | 24H: 994.1 / 3,799.9
+*   **Open Interest:** 32,087 BTC [OKX] | 4H Change: 0.63% | 24H Change: 3.25%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0049% per 8H [OKX] | percentile (100 pts): 47
-*   **ATR 1H:** 482 (Rail B stop distance = 1.5 x this = 724)
+*   **Funding:** 0.0048% per 8H [OKX] | percentile (100 pts): 45
+*   **ATR 1H:** 467 (Rail B stop distance = 1.5 x this = 700)
 
 ## 4. THE TRIGGER
-*   **Sweep Status:** MACRO BEARISH SWEEP at $61,031 (2x level) · 2026-11-26 08:00Z / 2026-11-26 16:00 SGT
+*   **Sweep Status:** NONE (no closed 1H bar beyond a level that closed back inside)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-453.0M (25 Nov 2026, settled) | 5D: $-2,505.6M
-*   **Funding percentile:** 47 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 45 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
