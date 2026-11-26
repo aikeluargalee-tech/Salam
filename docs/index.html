@@ -1,33 +1,320 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Salam Protocol — data packet</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SALAM · BTC spot data packet</title>
 <style>
- body{margin:0;background:#0b0e11;color:#d6dde5;font:13px/1.6 ui-monospace,Menlo,monospace;padding:16px 14px 40px}
- h1{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#79838f;margin:0 0 8px}
- #age{display:inline-block;padding:2px 8px;border-radius:3px;background:#1b2430;color:#4ea1ff;font-size:12px;margin-bottom:12px}
- #age.warn{background:#2e2410;color:#ffb020}#age.bad{background:#301616;color:#ff5d5d}
- pre{white-space:pre-wrap;word-break:break-word;margin:0 0 14px}
- a{color:#4ea1ff;text-decoration:none}
- button{background:#1b2430;color:#d6dde5;border:1px solid #24303d;border-radius:4px;padding:6px 12px;font:inherit}
-</style></head><body>
-<h1>Salam Protocol v1.0 · data packet</h1>
-<div id="age">loading…</div>
-<pre id="out"></pre>
-<button onclick="load()">refresh</button>
-<a href="SALAM_DATA_HUB.md" style="margin-left:12px">raw .md</a>
+  :root{
+    --bg:#0b0e11; --panel:#10161d; --line:#1c2530; --fg:#d6dde5; --dim:#79838f;
+    --up:#3ddc84; --dn:#ff5d5d; --warn:#ffb020; --acc:#4ea1ff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono);padding:0 0 48px}
+  a{color:var(--acc);text-decoration:none}
+  header{position:sticky;top:0;z-index:9;background:rgba(11,14,17,.96);border-bottom:1px solid var(--line);
+         padding:12px 14px 10px;backdrop-filter:blur(6px)}
+  .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .ver{color:var(--acc);letter-spacing:.04em}
+  .spacer{flex:1}
+  #price{font-size:26px;font-weight:600;letter-spacing:-.5px}
+  #age{padding:1px 7px;border-radius:3px;background:#16202b;color:var(--acc);font-size:11px}
+  #age.warn{background:#2e2410;color:var(--warn)}
+  #age.bad{background:#301616;color:var(--dn)}
+  .ts{color:var(--dim);font-size:11px}
+  #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;border:1px solid}
+  #state.ok{background:#0d2418;border-color:#1d5c3a;color:#9ff0c2}
+  #state.warn{background:#2a2008;border-color:#6b5312;color:#ffd98a}
+  #state.bad{background:#2a0f0f;border-color:#6b1f1f;color:#ffb3b3}
+  main{padding:14px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px}
+  .stat .k{color:var(--dim);font-size:10px;letter-spacing:.07em;text-transform:uppercase}
+  .stat .v{font-size:15px;margin-top:2px}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
+  .card h2{margin:0 0 9px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .wide{grid-column:1/-1}
+  .lvl{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed #161e27}
+  .lvl:last-child{border-bottom:0}
+  .lvl .nm{width:52px;color:var(--dim);font-size:11px}
+  .lvl .px{min-width:112px}
+  .bar{flex:1;height:7px;background:#16202b;border-radius:3px;overflow:hidden;min-width:44px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#2b6cb0,#4ea1ff)}
+  .bar.liq i{background:linear-gradient(90deg,#6b5312,#ffb020)}
+  .chip{font-size:10px;padding:1px 5px;border-radius:3px;border:1px solid #24303d;color:var(--dim);white-space:nowrap}
+  .chip.short{color:#ffc08a;border-color:#5c3a1d}
+  .chip.long{color:#9ff0c2;border-color:#1d5c3a}
+  .chip.ok{color:#9ff0c2;border-color:#1d5c3a}
+  .tiers{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:560px){.tiers{grid-template-columns:1fr 1fr}}
+  .up{color:var(--up)} .dn{color:var(--dn)} .dimv{color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{color:var(--dim);font-weight:500;text-align:right;padding:2px 4px;font-size:10px;letter-spacing:.06em}
+  th:first-child{text-align:left}
+  td{padding:3px 4px;text-align:right;border-top:1px solid #161e27}
+  td:first-child{text-align:left;color:var(--dim)}
+  #sweep{padding:8px 10px;border-radius:5px;border:1px solid var(--line);background:#141b23;font-size:12px}
+  #sweep.hit{border-color:#6b5312;background:#2a2008}
+  .note{color:var(--dim);font-size:11px;margin-top:8px;line-height:1.5}
+  footer{padding:16px 14px 0;color:var(--dim);font-size:11px;line-height:1.6}
+  footer a{margin-right:10px}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--dim)}
+  code{color:#b9c4cf}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <span class="brand">SALAM<span class="ver" id="ver"></span></span>
+    <span id="age">loading…</span>
+    <span class="ts" id="ts"></span>
+    <span class="spacer"></span>
+    <span id="price">—</span>
+  </div>
+  <div id="state" class="ok">connecting…</div>
+</header>
+
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="grid">
+    <section class="card wide">
+      <h2>Tactical bands <span class="chip" id="insidechip"></span></h2>
+      <div id="bands"></div>
+      <div class="note" id="bandsnote"></div>
+    </section>
+
+    <section class="card">
+      <h2>Macro S/R · nearest 3</h2>
+      <div id="macro"></div>
+    </section>
+
+    <section class="card">
+      <h2>Order flow · spot / perp</h2>
+      <div id="cvd"></div>
+      <div class="note" id="cvdnote"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Liquidation ladder <span class="chip">MODELED</span></h2>
+      <div class="tiers">
+        <div><div class="k dimv" style="font-size:10px;letter-spacing:.07em;margin-bottom:4px">UPPER · SHORTS</div><div id="liqUp"></div></div>
+        <div><div class="k dimv" style="font-size:10px;letter-spacing:.07em;margin-bottom:4px">LOWER · LONGS</div><div id="liqDn"></div></div>
+      </div>
+      <div class="note" id="liqnote"></div>
+    </section>
+
+    <section class="card">
+      <h2>The trigger</h2>
+      <div id="sweep">—</div>
+    </section>
+
+    <section class="card">
+      <h2>Volume nodes</h2>
+      <div id="vp"></div>
+    </section>
+  </div>
+
+  <footer>
+    <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a>
+    <a id="ljson" href="SALAM_DATA_HUB.json">json</a>
+    <div class="note" style="margin-top:10px">
+      Standard library only · closed bars only · no state · gaps print UNAVAILABLE rather than a
+      guess. Liquidation dollars are OI × assumed tier weights, never observed clusters.
+    </div>
+    <details id="probs"><summary>data notes</summary><div id="probsBody" class="note"></div></details>
+  </footer>
+</main>
+
 <script>
-const out=document.getElementById('out'), ageEl=document.getElementById('age');
-let ts=null;
-function paint(){ if(!ts) return; const m=(Date.now()-ts)/60000;
-  ageEl.textContent = m<60?Math.round(m)+' min old':(m/60).toFixed(1)+' h old';
-  ageEl.className = m>360?'bad':m>90?'warn':''; }
-async function load(){
-  try{ const t=await (await fetch('SALAM_DATA_HUB.md?t='+Date.now(),{cache:'no-store'})).text();
-    out.textContent=t;
-    const m=t.match(/Timestamp:\*\*\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/);
-    if(m){ ts=new Date(m[1]+'T'+m[2]+'Z'); paint(); }
-  }catch(e){ out.textContent='fetch failed: '+e.message; ageEl.textContent='no data'; ageEl.className='bad'; }
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v))
+  ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+const money = (v, d = 0) => (v === null || v === undefined) ? '—' : '$' + fmt(v, d);
+const signed = (v, d = 1) => (v === null || v === undefined) ? '—'
+  : (v > 0 ? '+' : '') + fmt(v, d);
+const cls = v => (v === null || v === undefined) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
+let generated = null;
+
+const TAGS = ['10x','25x','50x','100x'];
+
+function stat(k, v, extra) {
+  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}${extra ? ' ' + extra : ''}</div></div>`;
 }
-setInterval(paint,30000); load();
-</script></body></html>
+
+function bandRow(label, b, price) {
+  if (!b) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">—</span></div>`;
+  const score = b.score ?? 0;
+  const lo = Math.min(b.low, b.high), hi = Math.max(b.low, b.high);
+  const dist = price ? ((lo + hi) / 2 / price - 1) * 100 : null;
+  const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}x ${b.liq[0]} ${money(b.liq[1])}M</span>` : '';
+  return `<div class="lvl">
+    <span class="nm">${label}</span>
+    <span class="px">${fmt(lo)}–${fmt(hi)}</span>
+    <span class="bar" title="confluence ${score}/10"><i style="width:${score * 10}%"></i></span>
+    <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10</span>
+    <span class="chip">${dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
+    ${liq}
+  </div>`;
+}
+
+function macroRow(c) {
+  const liq = c.liq ? `<span class="chip ${c.liq[0] === 'Shorts' ? 'short' : 'long'}">${c.liq[2]}x ${money(c.liq[1])}M</span>` : '';
+  return `<div class="lvl"><span class="px" style="min-width:96px">${fmt(c.center)}</span>
+    <span class="chip">${c.touches}x</span>${liq}</div>`;
+}
+
+function liqRows(list, maxUsd) {
+  if (!list || !list.length) return '<div class="dimv">UNAVAILABLE</div>';
+  return list.map(c => `<div class="lvl">
+    <span class="nm">${c.lev}x</span>
+    <span class="px">${fmt(c.price)}</span>
+    <span class="bar liq"><i style="width:${Math.max(4, (c.usd_m / maxUsd) * 100)}%"></i></span>
+    <span class="chip">${money(c.usd_m, 0)}M</span>
+  </div>`).join('');
+}
+
+function cvdRow(label, s, p, maxAbs) {
+  const w = v => v === null || v === undefined ? 0 : Math.min(100, Math.abs(v) / maxAbs * 100);
+  return `<div class="lvl"><span class="nm">${label}</span>
+    <span class="px ${cls(s)}" style="min-width:74px">${signed(s)}</span>
+    <span class="px ${cls(p)}" style="min-width:74px">${signed(p)}</span>
+    <span class="bar"><i style="width:${w(s)}%"></i></span>
+    <span class="bar liq"><i style="width:${w(p)}%"></i></span>
+  </div>`;
+}
+
+function render(d) {
+  generated = new Date(d.generated_at_utc || d.generated || Date.now());
+  const price = d.price ?? null;
+  $('price').textContent = price ? '$' + fmt(price) : '—';
+  $('ts').textContent = isNaN(generated) ? '' : generated.toISOString().replace('T', ' ').slice(0, 16) + 'Z';
+
+  const state = d.exec_state || (d.perp_cvd_ok ? 'FULL' : 'PARTIAL');
+  const st = $('state');
+  st.className = state === 'FULL' ? 'ok' : (state === 'MANUAL' ? 'warn' : state === 'PARTIAL' ? 'warn' : 'bad');
+  const perpSrc = d.perp_src === 'OKX-RUBIK' ? '[OKX-RUBIK]' : d.perp_src === 'BINANCE' ? '[BIN]' : '[—]';
+  st.innerHTML = state === 'FULL'
+    ? `✅ <b>FULL ORDER FLOW</b> — spot [BIN] · perp ${perpSrc}. Execution-grade.`
+    : state === 'MANUAL'
+      ? `✅ <b>FULL ORDER FLOW — MANUAL @ ${d.manual_at || '—'}</b> — perp CVD typed in from a screenshot, not machine-verified.`
+      : state === 'PARTIAL'
+        ? `⚠️ <b>PARTIAL ORDER FLOW</b> — perp CVD is the archive${d.perp_dump ? ' for ' + d.perp_dump.date : ''} (T+1). Levels are live, flow is a day old. <b>Execution rules withheld.</b>`
+        : `⛔ <b>PERP CVD UNAVAILABLE</b> — this packet is a levels map, not an execution packet.`;
+
+  // stats
+  const sma = d.sma200, dist = (price && sma) ? (price / sma - 1) * 100 : null;
+  const etf = d.etf || {};
+  $('stats').innerHTML = [
+    stat('200 SMA', sma ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
+    stat('funding 8h', d.funding === null || d.funding === undefined ? '—' : d.funding.toFixed(4) + '%',
+         d.funding_pct90 === null || d.funding_pct90 === undefined ? '' : `<span class="dimv">p${Math.round(d.funding_pct90)}</span>`),
+    stat('open interest', d.oi_btc ? fmt(d.oi_btc) : '—', d.oi_btc ? `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>` : ''),
+    stat('ATR 1H', d.atr1h ? fmt(d.atr1h) : '—'),
+    stat('L/S', d.ls_ratio ? d.ls_ratio.toFixed(2) : '—'),
+    stat('ETF 1D', etf.one_day_m === undefined ? '—' : money(etf.one_day_m, 1) + 'M',
+         etf.five_day_m === undefined ? '' : `<span class="dimv">5D ${money(etf.five_day_m, 0)}M</span>`)
+  ].join('');
+
+  // bands
+  $('bands').innerHTML = bandRow('upper', d.res_band, price) + bandRow('lower', d.sup_band, price);
+  $('insidechip').textContent = d.inside_band
+    ? `inside ${fmt(Math.min(d.inside_band.low, d.inside_band.high))}–${fmt(Math.max(d.inside_band.low, d.inside_band.high))}`
+    : 'between bands';
+
+  // macro
+  const res = d.macro_res || [], sup = d.macro_sup || [];
+  $('macro').innerHTML =
+    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:2px 0 3px">RESISTANCE</div>` +
+    (res.length ? res.map(macroRow).join('') : '<div class="dimv">—</div>') +
+    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:9px 0 3px">SUPPORT</div>` +
+    (sup.length ? sup.map(macroRow).join('') : '<div class="dimv">—</div>');
+
+  // cvd
+  const cs = d.cvd_spot || {}, cp = d.cvd_perp || {};
+  const vals = [cs['1h'], cs['4h'], cs['24h'], cp['1h'], cp['4h'], cp['24h']]
+    .filter(v => v !== null && v !== undefined).map(Math.abs);
+  const maxAbs = Math.max(1, ...vals);
+  $('cvd').innerHTML =
+    `<div class="lvl"><span class="nm"></span><span class="px dimv" style="font-size:10px">SPOT</span>
+       <span class="px dimv" style="font-size:10px">PERP</span></div>` +
+    cvdRow('1H', cs['1h'], cp['1h'], maxAbs) +
+    cvdRow('4H', cs['4h'], cp['4h'], maxAbs) +
+    cvdRow('24H', cs['24h'], cp['24h'], maxAbs);
+  const ratio = (cs['24h'] && cp['24h']) ? Math.abs(cp['24h'] / cs['24h']) : null;
+  $('cvdnote').innerHTML = ratio === null ? ''
+    : `perp:spot 24H ratio <b>${ratio.toFixed(1)}×</b> — above 3× means the move is futures-led, not spot accumulation.`;
+
+  // liq ladder
+  const up = d.liq_upper || [], dn = d.liq_lower || [];
+  const maxLiq = Math.max(1, ...[...up, ...dn].map(c => c.usd_m));
+  $('liqUp').innerHTML = liqRows(up, maxLiq);
+  $('liqDn').innerHTML = liqRows(dn, maxLiq);
+  $('liqnote').textContent = d.oi_usd_m
+    ? `OI ${money(d.oi_usd_m, 0)}M × 8/6/4/2% assumed tier weights. Levels are exact leverage arithmetic; the dollars are not observed.`
+    : 'No open interest — ladder unavailable.';
+
+  // sweep
+  const sw = d.sweep || {};
+  const sweepEl = $('sweep');
+  if (sw.flag && sw.flag !== 'NONE' && sw.flag !== 'UNAVAILABLE') {
+    sweepEl.className = 'hit';
+    sweepEl.innerHTML = `<b>${sw.flag}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${sw.at || ''}</div>`;
+  } else {
+    sweepEl.className = '';
+    sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
+      ? '<span class="dimv">UNAVAILABLE — no 1H bars</span>'
+      : '<span class="dimv">NONE — no closed 1H bar beyond a level that closed back inside</span>';
+  }
+
+  // volume nodes
+  const v7 = d.vp7 || {}, v30 = d.vp30 || {}, v4 = d.vp4h || {}, hv = d.hvn7 || {};
+  $('vp').innerHTML = `
+    <div class="lvl"><span class="nm">7D</span><span class="px" style="min-width:0">VAH ${fmt(v7.vah)} · POC ${fmt(v7.poc)} · VAL ${fmt(v7.val)}</span></div>
+    <div class="lvl"><span class="nm">30D</span><span class="px dimv" style="min-width:0">VAH ${fmt(v30.vah)} · POC ${fmt(v30.poc)} · VAL ${fmt(v30.val)}</span></div>
+    <div class="lvl"><span class="nm">4H</span><span class="px" style="min-width:0">VAH ${fmt(v4.vah)} · POC ${fmt(v4.poc)} · VAL ${fmt(v4.val)}</span></div>
+    <div class="lvl"><span class="nm">HVN</span><span class="px" style="min-width:0">${hv.above ? 'above ' + fmt(hv.above) : ''}${hv.above && hv.below ? ' · ' : ''}${hv.below ? 'below ' + fmt(hv.below) : ''}</span></div>`;
+
+  // problems
+  const probs = d.problems || [];
+  $('probsBody').innerHTML = probs.length
+    ? probs.map(p => `<div>· ${p}</div>`).join('')
+    : '<div>none</div>';
+
+  paintAge();
+}
+
+function paintAge() {
+  if (!generated || isNaN(generated)) return;
+  const mins = (Date.now() - generated.getTime()) / 60000;
+  const h = mins / 60;
+  const el = $('age');
+  el.textContent = h < 1 ? `${Math.round(mins)} min old` : `${h.toFixed(1)} h old`;
+  el.className = h > 6 ? 'bad' : h > 1.5 ? 'warn' : '';
+}
+
+async function load() {
+  try {
+    const r = await fetch('SALAM_DATA_HUB.json?t=' + Date.now(), {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    render(await r.json());
+    $('lmd').href = 'SALAM_DATA_HUB.md?t=' + Date.now();
+    $('ljson').href = 'SALAM_DATA_HUB.json?t=' + Date.now();
+  } catch (e) {
+    $('state').className = 'bad';
+    $('state').textContent = 'fetch failed: ' + e.message + ' — showing nothing rather than a guess';
+    $('age').textContent = 'no data';
+    $('age').className = 'bad';
+  }
+}
+$('ver').textContent = ' v1.6';
+setInterval(paintAge, 15000);
+setInterval(load, 60000);
+load();
+</script>
+</body>
+</html>

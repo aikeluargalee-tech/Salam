@@ -992,6 +992,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not problems else 1
 
     a = analyse(data)
+    a["generated_at_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     man, man_ok = parse_manual(args.manual)
     a["manual"], a["manual_ok"], a["manual_at"] = (man or None), man_ok, man.get("at")
     if a.get("perp_cvd_ok"):
