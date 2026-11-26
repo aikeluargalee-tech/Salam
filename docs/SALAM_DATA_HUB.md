@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 01:29:26 UTC | **Spot Price:** $60,746.00
+**Timestamp:** 2026-11-26 02:11:29 UTC | **Spot Price:** $60,870.53
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
@@ -12,7 +12,7 @@
 *   **Lower Longs:** UNAVAILABLE (no open interest)
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot/Perp):** 1H: 180.1 / UNAVAILABLE | 4H: 261.9 / UNAVAILABLE | 24H: 260.4 / UNAVAILABLE
+*   **CVD (Spot/Perp):** 1H: 77.0 / UNAVAILABLE | 4H: 255.8 / UNAVAILABLE | 24H: 373.1 / UNAVAILABLE
 *   **Open Interest:** UNAVAILABLE BTC | 4H Change: UNAVAILABLE% | 24H Change: UNAVAILABLE%
 *   **Funding:** UNAVAILABLE% per 8H | 90-day percentile: UNAVAILABLE
 
@@ -20,7 +20,7 @@
 *   **Sweep Status:** NONE (last 6 closed 1H bars stayed inside the bands)
 
 ## 5. MACRO VETO INPUTS
-*   **ETF Net Flow:** 1D: $-116.8M (25 Nov 2026, settled) | 5D: $-2,169.4M
+*   **ETF Net Flow:** 1D: $-123.3M (25 Nov 2026, settled) | 5D: $-2,175.9M
 *   **Funding percentile:** UNAVAILABLE of 90 days
 
 ## DATA NOTES

@@ -8,7 +8,7 @@
   "oi_hist HTTP 451",
   "lsr HTTP 451"
  ],
- "price": 60746.0,
+ "price": 60870.53,
  "atr1d": 3064.8040793680525,
  "sma200": 72088.27369999998,
  "vp30": {
@@ -284,9 +284,9 @@
   "at": null
  },
  "cvd_spot": {
-  "1h": 180.05924000000005,
-  "4h": 261.9493700000001,
-  "24h": 260.35688999999934
+  "1h": 77.01256000000001,
+  "4h": 255.80475000000007,
+  "24h": 373.11068999999935
  },
  "cvd_perp": {
   "1h": null,
@@ -301,12 +301,12 @@
  "ls_ratio": null,
  "etf": {
   "latest_date": "25 Nov 2026",
-  "one_day_m": -116.8,
+  "one_day_m": -123.3,
   "one_day_settling": false,
   "prev_date": "25 Nov 2026",
-  "prev_day_m": -116.8,
-  "five_day_m": -2169.4,
+  "prev_day_m": -123.3,
+  "five_day_m": -2175.9,
   "five_day_days": 5,
-  "twenty_day_m": -5680.9
+  "twenty_day_m": -5687.4
  }
 }
