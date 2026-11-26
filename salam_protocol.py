@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.6 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.7 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -746,7 +746,7 @@ def render(a: dict) -> str:
     now = (_n.strftime("%Y-%m-%d %H:%M:%S UTC")
            + " / " + (_n + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S SGT (UTC+8)"))
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.6\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.7\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -758,7 +758,7 @@ def render(a: dict) -> str:
     PV = ("[OKX-RUBIK]" if a.get("perp_src") == "OKX-RUBIK" else "[BIN]")
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.6")
+    L.append("# SALAM PROTOCOL DATA HUB v1.7")
     PT = "[BIN-CLOSE 1D]" if a.get("price_src") == "CLOSE-1D" else "[BIN]"
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}")
     dump = a.get("perp_dump")
