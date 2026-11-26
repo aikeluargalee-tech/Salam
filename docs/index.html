@@ -730,9 +730,11 @@ summary {
 }
 }
   .ver{text-transform:none;letter-spacing:.02em}
+  #state .b1{font-size:13px;letter-spacing:.01em}
+  #state .b2{font-size:11.5px;opacity:.82;margin-top:3px;line-height:1.45}
 </style>
 </head>
-<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">UNGRADED — connecting to packet…</div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Position vs levels</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet for AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <button id="refresh" type="button" title="Ask the trigger Worker to build a fresh packet — this starts a GitHub run">
+<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">⏳ <b>CHECKING THE DATA…</b><div class="b2">Nothing is shown until the packet arrives — a page that assumes it is fine is a page that lies.</div></div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Position vs levels</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet for AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <button id="refresh" type="button" title="Ask the trigger Worker to build a fresh packet — this starts a GitHub run">
       <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1"></path><path d="M13.5 2v3.2h-3.2"></path>
       </svg>
@@ -959,15 +961,23 @@ function render(d) {
   const st = $('state');
   st.className = state === 'FULL' ? 'ok' : (state === 'MANUAL' ? 'warn' : state === 'PARTIAL' ? 'warn' : 'bad');
   const perpSrc = d.perp_src === 'OKX-RUBIK' ? '[OKX-RUBIK]' : d.perp_src === 'BINANCE' ? '[BIN]' : '[—]';
-  st.innerHTML = state === 'FULL'
-    ? `✅ <b>FULL ORDER FLOW</b> — spot [BIN] · perp ${perpSrc}. Execution-grade.`
-    : state === 'MANUAL'
-      ? `✅ <b>MANUAL ORDER FLOW @ ${esc(d.manual_at) || '—'}</b> — perp CVD typed in by hand, not machine-verified. Execution rules shown.`
-      : state === 'PARTIAL'
-        ? `⚠️ <b>PARTIAL ORDER FLOW</b> — perp CVD is the archive${d.perp_dump ? ' for ' + esc(d.perp_dump.date) : ''} (T+1). Levels are live, flow is a day old. <b>Execution plans withheld.</b>`
-        : state === 'NONE'
-          ? `⛔ <b>PERP CVD UNAVAILABLE</b> — levels map only, no execution plans.`
-          : `⛔ <b>STATE MISSING OR UNREADABLE</b> (${esc(d.exec_state) || 'no exec_state'}) — the packet cannot be graded, so it reads as suspended.`;
+  // Written for someone who has never heard of a "perp". Line 1 says the verdict, line 2 says
+  // what it means for them — "execution-grade" and "order flow" were my vocabulary, and friends
+  // kept asking what the banner meant, which is the banner failing rather than the friend.
+  const BANNER = {
+    FULL: ['✅ <b>LIVE DATA — plans allowed</b>',
+      'Spot from Binance, buying and selling pressure from OKX — both measured now, not estimated.'],
+    MANUAL: [`✅ <b>HAND-ENTERED DATA @ ${esc(d.manual_at) || '—'} — plans allowed</b>`,
+      'The futures figure was typed in from a screenshot, so you checked it, not the machine.'],
+    PARTIAL: ['⚠️ <b>HALF DATA — no plans today</b>',
+      `The futures flow is yesterday&rsquo;s${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}. Levels are still live, but who was buying and selling is a day old, so this page will not name an entry, a stop or a size.`],
+    NONE: ['⛔ <b>NO FUTURES DATA — map only</b>',
+      'Which side is buying cannot be measured right now, so the levels stand and no plan is published.'],
+    UNKNOWN: [`⛔ <b>CANNOT READ THIS PACKET</b>${d.exec_state ? ' (' + esc(d.exec_state) + ')' : ''}`,
+      'The data arrived without a usable quality flag, so it is treated as untrustworthy: levels shown, plans withheld.'],
+  };
+  const [line1, line2] = BANNER[state];
+  st.innerHTML = `<div class="b1">${line1}</div><div class="b2">${line2}</div>`;
 
   // THE READ — derived strictly from the packet's own rules. No forecast, no opinion:
   // it states which rail is open, what invalidates it, and what the stop arithmetic is.
