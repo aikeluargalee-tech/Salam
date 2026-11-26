@@ -1,0 +1,13 @@
+name: probe3
+on:
+  workflow_dispatch:
+
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set +e
+          echo "RESULT $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://api.coinalyze.net/v1/exchanges") coinalyze-no-key"
+          echo "RESULT $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://api.coinalyze.net/v1/doc/api-spec.json") coinalyze-spec"
+          echo "RESULT $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://coinalyze.net/bitcoin/usdt/binance/btcusdt_perp/price-chart-live/") coinalyze-page"
