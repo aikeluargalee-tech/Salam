@@ -1,9 +1,9 @@
 # SALAM PROTOCOL DATA HUB v1.6
-**Timestamp:** 2026-11-26 17:07:16 UTC / 2026-11-27 01:07:16 SGT (UTC+8) | **Spot Price:** $60,613.34 [BIN]
+**Timestamp:** 2026-11-26 17:10:06 UTC / 2026-11-27 01:10:06 SGT (UTC+8) | **Spot Price:** $60,602.21 [BIN]
 > ✅ **FULL ORDER FLOW — perp CVD is OKX's measured taker volume, spot is Binance.** Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,613 (1D SMA200 72,088)
+*   **Current Price:** $60,602 (1D SMA200 72,088)
 *   **Tactical Bands:**
     *   Upper: $62,800 - $64,441 (Conf: 3/10)
     *   Lower: $58,232 - $59,305 (Conf: 10/10)
@@ -17,14 +17,14 @@
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,675 ($155.5M) / 25x $63,038 ($116.6M) / 50x $61,826 ($77.7M) / 100x $61,219 ($38.9M)
-*   **Lower Longs:** 10x $54,552 ($155.5M) / 25x $58,189 ($116.6M) / 50x $59,401 ($77.7M) / 100x $60,007 ($38.9M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,943.5M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
+*   **Upper Shorts:** 10x $66,662 ($155.5M) / 25x $63,026 ($116.6M) / 50x $61,814 ($77.7M) / 100x $61,208 ($38.9M)
+*   **Lower Longs:** 10x $54,542 ($155.5M) / 25x $58,178 ($116.6M) / 50x $59,390 ($77.7M) / 100x $59,996 ($38.9M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,943.2M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
 *   **Long/Short account ratio (4H):** 2.23 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 33.9 / -26.6 | 4H: -34.6 / -572.7 | 24H: 602.1 / 1,817.8
-*   **Open Interest:** 32,065 BTC [OKX] | 4H Change: 2.48% | 24H Change: 4.83%
+*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 33.9 / -19.8 | 4H: -34.6 / -565.9 | 24H: 602.1 / 1,824.5
+*   **Open Interest:** 32,065 BTC [OKX] | 4H Change: 1.87% | 24H Change: 4.74%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
 *   **Funding:** 0.0052% per 8H [OKX] | percentile (100 pts): 47
 *   **ATR 1H:** 494 (Rail B stop distance = 1.5 x this = 740)
