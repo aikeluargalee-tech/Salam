@@ -27,8 +27,9 @@
   #live{font-size:26px;font-weight:600;letter-spacing:-.5px}
   #live.frozen{color:var(--dim)}
   #pkt{font-size:10px;color:var(--dim);letter-spacing:.02em}
-  .livetag{font-size:9px;letter-spacing:.11em;color:var(--up);border:1px solid #1d5c3a;
-       border-radius:3px;padding:0 4px;margin-right:6px;vertical-align:middle}
+  .livetag{font-size:9px;letter-spacing:.11em;border:1px solid #1d5c3a;border-radius:3px;
+       padding:0 4px;margin-right:6px;vertical-align:middle;color:var(--up)}
+  .livetag.snap{color:var(--warn);border-color:#6b5312}
   #pkt.stale{color:var(--warn)}
   #live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
        background:var(--up);margin-right:6px;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
@@ -44,7 +45,9 @@
   #copyState{font-size:11px;color:var(--up)}
   #loc{margin:8px 0 0;font-size:12.5px;color:var(--fg);line-height:1.5}
   #loc .k{color:var(--dim);letter-spacing:.05em;font-size:11px;text-transform:uppercase;margin-right:6px}
-  #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;border:1px solid}
+  /* unclassed = the script never ran or the state is unknown: must look broken, not calm */
+  #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;
+         border:1px dashed #7d2126;background:#1a0e0f;color:#f0b4b4}
   #state.ok{background:#0d2418;border-color:#1d5c3a;color:#9ff0c2}
   #state.warn{background:#2a2008;border-color:#6b5312;color:#ffd98a}
   #state.bad{background:#2a0f0f;border-color:#6b1f1f;color:#ffb3b3}
@@ -113,7 +116,7 @@
 </head>
 <body>
 <header>
-  <div id="state" class="ok" role="status" aria-live="polite">connecting…</div>
+  <div id="state" role="status" aria-live="polite">waiting for data — nothing verified yet</div>
   <div class="row" style="margin-top:9px">
     <span class="brand">SALAM<span class="ver" id="ver"></span></span>
     <span id="age">loading…</span>
@@ -125,12 +128,6 @@
     </span>
   </div>
   <div id="loc"><span class="k">location</span><span id="locBody">—</span></div>
-  <section class="card" id="alertCard" style="margin-top:12px">
-    <h2>Alert zone <span class="chip">5-minute move</span></h2>
-    <div id="alertBig">—</div>
-    <div class="alertrow" id="alertTiers"></div>
-    <div class="note" id="alertNote"></div>
-  </section>
   <div class="row actions">
     <button id="copy" title="Copy the full markdown packet, ready to paste into any AI">⧉ copy packet for AI</button>
     <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml"
@@ -140,6 +137,13 @@
 </header>
 
 <main>
+  <section class="card" id="alertCard" style="margin-top:12px">
+    <h2>Alert zone <span class="chip">5-minute move</span></h2>
+    <div id="alertBig">—</div>
+    <div class="alertrow" id="alertTiers"></div>
+    <div class="note" id="alertNote"></div>
+  </section>
+
   <section class="card read" id="readCard">
     <h2>The read <span class="chip">rules, not a forecast</span> <span class="chip">mechanical — hand it to a model below</span></h2>
     <div id="read"></div>
@@ -328,8 +332,7 @@ async function tickLive() {
       $('live').textContent = '$' + fmt(p);
       $('live').classList.remove('frozen');
       $('livetag').textContent = 'LIVE';
-      $('livetag').style.color = 'var(--up)';
-      $('livetag').style.borderColor = '#1d5c3a';
+      $('livetag').classList.remove('snap');
       liveOK = true;
       const nowSgt = sgtTime(new Date());
       const drift = (isNum(packetPrice) && packetPrice !== 0) ? (p / packetPrice - 1) * 100 : null;
@@ -358,7 +361,8 @@ function stat(k, v, extra) {
 
 function bandRow(label, b, price) {
   if (!b) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">—</span></div>`;
-  const score = b.score ?? 0;
+  const scoreOk = isNum(b.score);
+  const score = scoreOk ? Math.max(0, Math.min(10, Number(b.score))) : null;
   const lo = Math.min(b.low, b.high), hi = Math.max(b.low, b.high);
   // nearest edge, the level a reader actually meets — same reference as the location line
   const edge = !isNum(price) ? null : (price < lo ? lo : (price > hi ? hi : null));
@@ -368,8 +372,10 @@ function bandRow(label, b, price) {
   return `<div class="lvl">
     <span class="nm">${label}</span>
     <span class="px">${fmt(lo)}–${fmt(hi)}</span>
-    <span class="bar" title="confluence ${score}/10"><i style="width:${score * 10}%"></i></span>
-    <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10</span>
+    ${scoreOk
+      ? `<span class="bar" title="confluence ${score}/10"><i style="width:${score * 10}%"></i></span>
+         <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10</span>`
+      : '<span class="bar na" title="confluence score unavailable"></span><span class="chip">—</span>'}
     <span class="chip">${insideBand ? 'price here' : dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
     ${liq}
   </div>`;
@@ -419,8 +425,7 @@ function render(d) {
     $('live').textContent = price ? '$' + fmt(price) : '—';
     $('live').classList.add('frozen');
     $('livetag').textContent = 'SNAPSHOT';
-    $('livetag').style.color = 'var(--warn)';
-    $('livetag').style.borderColor = '#6b5312';
+    $('livetag').classList.add('snap');
   }
   $('ts').textContent = generated
     ? `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`
@@ -593,7 +598,7 @@ function render(d) {
   // cvd
   const cs = d.cvd_spot || {}, cp = d.cvd_perp || {};
   const vals = [cs['1h'], cs['4h'], cs['24h'], cp['1h'], cp['4h'], cp['24h']]
-    .filter(v => v !== null && v !== undefined).map(Math.abs);
+    .filter(v => isNum(v)).map(v => Math.abs(Number(v)));
   const maxAbs = Math.max(1, ...vals);
   $('cvd').innerHTML =
     `<div class="lvl"><span class="nm"></span><span class="px dimv" style="font-size:10px">SPOT</span>
@@ -626,7 +631,7 @@ function render(d) {
   const sweepEl = $('sweep');
   if (sw.flag && sw.flag !== 'NONE' && sw.flag !== 'UNAVAILABLE') {
     sweepEl.className = 'hit';
-    sweepEl.innerHTML = `<b>${sw.flag}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
+    sweepEl.innerHTML = `<b>${esc(sw.flag)}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
   } else {
     sweepEl.className = '';
     sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
@@ -776,7 +781,6 @@ $('copy2').addEventListener('click', () => copyPacket('card'));
 $('copy').addEventListener('click', () => copyPacket('header'));
 
 setInterval(() => { renderAlert(); paintAge(); }, 15000);
-setInterval(paintAge, 15000);
 setInterval(load, 60000);
 setInterval(tickLive, 15000);
 load().then(tickLive);
