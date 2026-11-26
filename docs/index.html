@@ -90,6 +90,14 @@
   .rrow:last-child{border-bottom:0}
   .rkey{flex:0 0 58px;color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
   .rval{flex:1;font-size:12.5px;line-height:1.5}
+  #alertCard{margin-bottom:12px;transition:border-color .3s}
+  #alertCard.warn{border-color:#6b5312;background:#1c1708}
+  #alertCard.bad{border-color:#6b1f1f;background:#1f0d0d}
+  #alertBig{font-size:20px;font-weight:600;letter-spacing:-.3px}
+  #alertBig.warn{color:var(--warn)} #alertBig.bad{color:var(--dn)}
+  .alertrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:6px}
+  .tier{font-size:11px;color:var(--dim)}
+  .tier b{color:var(--fg);font-weight:500}
   .handoff{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
   .handoff .step{color:var(--dim);font-size:11px;letter-spacing:.04em}
   .chatlink{background:#16202b;border:1px solid #24303d;border-radius:6px;padding:8px 11px;
@@ -117,6 +125,12 @@
     </span>
   </div>
   <div id="loc"><span class="k">location</span><span id="locBody">—</span></div>
+  <section class="card" id="alertCard" style="margin-top:12px">
+    <h2>Alert zone <span class="chip">5-minute move</span></h2>
+    <div id="alertBig">—</div>
+    <div class="alertrow" id="alertTiers"></div>
+    <div class="note" id="alertNote"></div>
+  </section>
   <div class="row actions">
     <button id="copy" title="Copy the full markdown packet, ready to paste into any AI">⧉ copy packet for AI</button>
     <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml"
@@ -220,6 +234,81 @@ const esc = s => String(s === null || s === undefined ? '' : s)
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 let generated = null, packetPrice = null, packetSrc = null, liveOK = false;
 
+// ── 5-minute move alert ─────────────────────────────────────────────────────────────
+// Thresholds are calibrated against measurement, not intuition: over 83 hours of 5-minute bars
+// (Binance, 26 Nov 2026) the median close-to-close move was $61, p99 was $474, and the largest
+// was $2,715. A $5,000 move in five minutes is ~8% — cascade territory that fired zero times in
+// that window. So the $5,000 rule is kept as the top tier, and two tiers below it make the card
+// useful in the meantime.
+const ALERT_TIERS = [
+  {name: 'notable', usd: 500, cls: 'warn'},
+  {name: 'cascade', usd: 1500, cls: 'bad'},
+  {name: 'extreme', usd: 5000, cls: 'bad'},
+];
+let priceHist = [];                       // [{t: ms, p: price}]
+const lastAlert = {};                     // tier -> {t, move}
+
+function histPush(t, p) {
+  if (!isNum(p)) return;
+  priceHist.push({t, p: Number(p)});
+  const cut = Date.now() - 11 * 60_000;
+  priceHist = priceHist.filter(x => x.t >= cut);
+}
+
+async function seedHistory() {
+  try {
+    const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=12',
+                          {cache: 'no-store'});
+    if (!r.ok) return;
+    const rows = await r.json();
+    for (const k of rows) histPush(Number(k[6]), Number(k[4]));   // closeTime, close
+  } catch (e) { /* the alert degrades to "since page opened" */ }
+}
+
+function move5m() {
+  if (priceHist.length < 2) return null;
+  const now = priceHist[priceHist.length - 1];
+  const target = now.t - 5 * 60_000;
+  let ref = null;
+  for (const x of priceHist) if (x.t <= target && (!ref || x.t > ref.t)) ref = x;
+  if (!ref) ref = priceHist[0];           // less than five minutes of history: use the oldest
+  return {move: now.p - ref.p, pct: (now.p / ref.p - 1) * 100, span: (now.t - ref.t) / 60_000,
+          full: ref.t <= target};
+}
+
+function renderAlert() {
+  const m = move5m();
+  const card = $('alertCard'), big = $('alertBig');
+  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${t.name} <b>±${money(t.usd)}</b>`).join(' · ')}</span>`;
+  $('alertTiers').innerHTML = tiers;
+  if (!m) {
+    big.textContent = '—';
+    big.className = '';
+    card.className = 'card';
+    $('alertNote').textContent = 'Waiting for price history…';
+    return;
+  }
+  const abs = Math.abs(m.move);
+  const hit = [...ALERT_TIERS].reverse().find(t => abs >= t.usd) || null;
+  const arrow = m.move >= 0 ? '▲' : '▼';
+  big.textContent = `${arrow} ${m.move >= 0 ? '+' : '−'}${money(abs)} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%) in ${m.full ? '5' : Math.round(m.span)} min`;
+  big.className = hit ? hit.cls : '';
+  card.className = 'card' + (hit ? ' ' + hit.cls : '');
+  if (hit) {
+    lastAlert[hit.name] = {t: Date.now(), move: m.move};
+    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM`;
+  } else if (document.title !== 'SALAM · BTC spot data packet') {
+    document.title = 'SALAM · BTC spot data packet';
+  }
+  const last = ALERT_TIERS.map(t => lastAlert[t.name])
+    .filter(Boolean).sort((a, b) => b.t - a.t)[0];
+  $('alertNote').innerHTML = [
+    m.full ? '' : `<span class="dimv">history is only ${Math.round(m.span)} min old — reads short until it fills</span>`,
+    last ? `last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '−'}${money(Math.abs(last.move))})` : 'no alerts since this page opened',
+    `<span class="dimv">thresholds measured on 83 h of 5-min bars: median $61, p99 $474, max $2,715</span>`,
+  ].filter(Boolean).join(' · ');
+}
+
 // The packet is a snapshot — it only changes when the workflow publishes one. A price that
 // sits still reads as "broken site", so the big number is a live public ticker and the
 // snapshot stays labelled underneath, always with its timestamp.
@@ -234,6 +323,8 @@ async function tickLive() {
       if (!r.ok) continue;
       const {p, src} = pick(await r.json());
       if (!p || !isFinite(p)) continue;
+      histPush(Date.now(), p);
+      renderAlert();
       $('live').textContent = '$' + fmt(p);
       $('live').classList.remove('frozen');
       $('livetag').textContent = 'LIVE';
@@ -684,10 +775,12 @@ async function copyPacket(where) {
 $('copy2').addEventListener('click', () => copyPacket('card'));
 $('copy').addEventListener('click', () => copyPacket('header'));
 
+setInterval(() => { renderAlert(); paintAge(); }, 15000);
 setInterval(paintAge, 15000);
 setInterval(load, 60000);
 setInterval(tickLive, 15000);
 load().then(tickLive);
+seedHistory().then(renderAlert);
 </script>
 </body>
 </html>
