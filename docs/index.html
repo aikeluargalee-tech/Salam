@@ -88,7 +88,7 @@
   .read.armed{border-left-color:#1d5c3a}
   .rrow{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #161e27;align-items:baseline}
   .rrow:last-child{border-bottom:0}
-  .rkey{flex:0 0 74px;color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+  .rkey{flex:0 0 58px;color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
   .rval{flex:1;font-size:12.5px;line-height:1.5}
   .handoff{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
   .handoff .step{color:var(--dim);font-size:11px;letter-spacing:.04em}
@@ -385,16 +385,16 @@ function render(d) {
     rows.push(`<div class="rrow"><span class="rkey">Route</span><span class="rval">${
       below ? `<b>Macro downtrend</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below the 200D SMA`
             : `<b>Above the 200D SMA</b> — the drawdown filter is not active`}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Rail A · trim</span><span class="rval">${
+    rows.push(`<div class="rrow"><span class="rkey">Rail A</span><span class="rval">${
       d.res_band
-        ? `Sell into <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
+        ? `<b>Trim</b> into <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
         : 'No resistance band in this packet — nothing to trim into.'}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Rail B · buy</span><span class="rval">${
+    rows.push(`<div class="rrow"><span class="rkey">Rail B</span><span class="rval">${
       bullSweep
-        ? `<b>Armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
+        ? `<b>Buy · armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
         : bearSweep
-          ? `Shut. The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
-          : `Restricted. No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
+          ? `<b>Buy · shut.</b> The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
+          : `<b>Buy · restricted.</b> No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
     rows.push(`<div class="rrow"><span class="rkey">Risk</span><span class="rval">Stop distance
       <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b>
       · risk 0.75% of portfolio across that stop · skip the trade if the size exceeds 30% of the USDT side.</span></div>`);
