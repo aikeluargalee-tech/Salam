@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.2 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.3 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -36,7 +36,7 @@ MACRO_LOOKBACK = 500       # 1D bars for macro S/R
 MACRO_PIVOT_K = 2          # fractal width for macro pivots
 MACRO_CLUSTER_PCT = 0.01   # 1% clustering width
 LIQ_WEIGHTS = ((10, 0.08), (25, 0.06), (50, 0.04), (100, 0.02))   # [MODELED] 20% of OI in total
-LIQ_OVERLAY_PCT = 0.005    # a liq cluster "overlaps" a level when within 0.5%
+LIQ_OVERLAY_PCT = 0.0025   # a liq cluster "overlaps" a level when within 0.25%
 LIQ_OVERLAY_MIN_LEV = 25   # low-leverage tiers are not explosive enough to tag
 RISK_PCT = 0.0075          # binding arithmetic handed to the execution prompt
 MAX_POS_PCT_OF_USDT = 0.30
@@ -556,7 +556,7 @@ def vp_txt(vp: dict | None, style: str) -> str:
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.2\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.3\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -567,8 +567,13 @@ def render(a: dict) -> str:
     V = tag(a)
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.2")
+    L.append("# SALAM PROTOCOL DATA HUB v1.3")
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
+    if a.get("deriv_src") == "OKX":
+        L.append("> ⚠️ **CI HOST DETECTED: PERP CVD UNAVAILABLE.** Binance Futures refuses this host "
+                 "(HTTP 451). Run locally for execution-grade order flow.")
+    else:
+        L.append("> ✅ **LOCAL HOST: Full Binance data. Execution-grade.**")
     L.append("")
 
     # ── 1. Deep S/R matrix ──
@@ -682,7 +687,7 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.2")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.3")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
