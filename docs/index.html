@@ -28,9 +28,9 @@
   #live.frozen{color:var(--dim)}
   #pkt{font-size:10px;color:var(--dim);letter-spacing:.02em}
   #pkt.stale{color:var(--warn)}
-  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--up);
-       margin-right:5px;animation:pulse 2.4s ease-in-out infinite;vertical-align:middle}
-  .dot.off{background:#3a4a5c;animation:none}
+  #live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+       background:var(--up);margin-right:6px;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
+  #live.frozen::before{background:#3a4a5c;animation:none}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .actions{margin-top:9px;gap:8px;align-items:center}
   button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:5px;
@@ -90,7 +90,7 @@
     <span class="ts" id="ts"></span>
     <span class="spacer"></span>
     <span class="pxwrap">
-      <span id="live"><span class="dot" id="dot"></span>—</span>
+      <span id="live">—</span>
       <div id="pkt">packet loading…</div>
     </span>
   </div>
@@ -180,8 +180,8 @@ async function tickLive() {
       if (!r.ok) continue;
       const {p, src} = pick(await r.json());
       if (!p || !isFinite(p)) continue;
-      $('live').innerHTML = `<span class="dot"></span>$${fmt(p)}`;
-      $('dot').className = 'dot';
+      $('live').textContent = '$' + fmt(p);
+      $('live').classList.remove('frozen');
       liveOK = true;
       const drift = packetPrice ? (p / packetPrice - 1) * 100 : null;
       const stamp = new Date().toISOString().slice(11, 16);
@@ -191,8 +191,8 @@ async function tickLive() {
     } catch (e) { /* next venue */ }
   }
   liveOK = false;
-  $('live').innerHTML = packetPrice ? '$' + fmt(packetPrice) : '—';
-  $('dot').className = 'dot off';
+  $('live').textContent = packetPrice ? '$' + fmt(packetPrice) : '—';
+  $('live').classList.add('frozen');
   $('pkt').textContent = packetPrice ? `packet ${money(packetPrice)} · live ticker unavailable` : 'no data';
 }
 const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
@@ -252,7 +252,7 @@ function render(d) {
   const price = d.price ?? null;
   packetPrice = price;
   $('pkt').textContent = price ? `packet ${money(price)} · ${sgtTime(generated)} SGT` : 'packet —';
-  if (!liveOK) { $('live').innerHTML = (price ? '$' + fmt(price) : '—'); $('dot').className = 'dot off'; }
+  if (!liveOK) { $('live').textContent = price ? '$' + fmt(price) : '—'; $('live').classList.add('frozen'); }
   $('ts').textContent = isNaN(generated) ? '' : `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`;
 
   const state = d.exec_state || (d.perp_cvd_ok ? 'FULL' : 'PARTIAL');
@@ -367,7 +367,7 @@ async function load() {
     $('ljson').href = 'SALAM_DATA_HUB.json?t=' + Date.now();
   } catch (e) {
     $('state').className = 'bad';
-    $('state').textContent = 'fetch failed: ' + e.message + ' — showing nothing rather than a guess';
+    $('state').textContent = 'packet fetch failed: ' + e.message + ' — the board below is the last good read';
     $('age').textContent = 'no data';
     $('age').className = 'bad';
   }
