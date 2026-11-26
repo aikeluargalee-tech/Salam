@@ -49,4 +49,17 @@ jobs:
             exit 0
           fi
           git commit -m "data: salam packet $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push
+          # A push can be rejected when anything else lands on master in the same second —
+          # a hand-pushed commit, or two dispatches racing. Observed on run 45794560094:
+          # "! [rejected] master -> master (fetch first)" and the packet was lost. Rebase and
+          # retry rather than failing the publish.
+          for attempt in 1 2 3 4; do
+            if git pull --rebase --autostash origin master && git push; then
+              echo "published on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt) — retrying after rebase"
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not publish the packet after 4 attempts"
+          exit 1
