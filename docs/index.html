@@ -5,220 +5,733 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SALAM · BTC spot data packet</title>
 <style>
-  :root{
-    --bg:#0b0e11; --panel:#10161d; --line:#1c2530; --fg:#d6dde5; --dim:#8b95a1;
-    --up:#3ddc84; --dn:#ff5d5d; --warn:#ffb020; --acc:#4ea1ff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 var(--mono);padding:0 0 48px}
-  a{color:var(--acc);text-decoration:none}
-  header{position:sticky;top:0;z-index:9;background:rgba(11,14,17,.96);border-bottom:1px solid var(--line);
-         padding:12px 14px 10px;backdrop-filter:blur(6px)}
-  .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-  .brand{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-  .ver{color:var(--acc);letter-spacing:.04em;text-transform:none}
-  .spacer{flex:1}
-  #price{font-size:26px;font-weight:600;letter-spacing:-.5px}
-  #age{padding:1px 7px;border-radius:3px;background:#16202b;color:var(--acc);font-size:11px}
-  #age.warn{background:#2e2410;color:var(--warn)}
-  #age.bad{background:#301616;color:var(--dn)}
-  .ts{color:var(--dim);font-size:11px}
-  .pxwrap{text-align:right;line-height:1.15}
-  #live{font-size:26px;font-weight:600;letter-spacing:-.5px}
-  #live.frozen{color:var(--dim)}
-  #pkt{font-size:10px;color:var(--dim);letter-spacing:.02em}
-  .livetag{font-size:9px;letter-spacing:.11em;border:1px solid #1d5c3a;border-radius:3px;
-       padding:0 4px;margin-right:6px;vertical-align:middle;color:var(--up)}
-  .livetag.snap{color:var(--warn);border-color:#6b5312}
-  #pkt.stale{color:var(--warn)}
-  #live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
-       background:var(--up);margin-right:6px;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
-  #live.frozen::before{background:#3a4a5c;animation:none}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-  @media (prefers-reduced-motion:reduce){#live::before{animation:none}}
-  .actions{margin-top:9px;gap:8px;align-items:center}
-  button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:6px;
-    padding:9px 13px;min-height:42px;font:inherit;font-size:12px;letter-spacing:.04em;cursor:pointer;
-    text-decoration:none;display:inline-flex;align-items:center;line-height:1.3}
-  button:hover,.btn:hover{border-color:#3a4a5c;color:#fff}
-  button:active{transform:translateY(1px)}
-  #copyState{font-size:11px;color:var(--up)}
-  #loc{margin:8px 0 0;font-size:12.5px;color:var(--fg);line-height:1.5}
-  #loc .k{color:var(--dim);letter-spacing:.05em;font-size:11px;text-transform:uppercase;margin-right:6px}
-  /* unclassed = the script never ran or the state is unknown: must look broken, not calm */
-  #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;
-         border:1px dashed #7d2126;background:#1a0e0f;color:#f0b4b4}
-  #state.ok{background:#0d2418;border-color:#1d5c3a;color:#9ff0c2}
-  #state.warn{background:#2a2008;border-color:#6b5312;color:#ffd98a}
-  #state.bad{background:#2a0f0f;border-color:#6b1f1f;color:#ffb3b3}
-  main{padding:14px}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px}
-  .stat .k{color:var(--dim);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
-  .stat .v{font-size:15px;margin-top:2px}
-  .stat .v span.dimv{display:block;white-space:normal;font-size:11px;line-height:1.35;
-       margin-top:1px;overflow-wrap:anywhere}
-  .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
-  .card h2{margin:0 0 9px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
-  .wide{grid-column:1/-1}
-  .lvl{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed #161e27}
-  .lvl:last-child{border-bottom:0}
-  .lvl .nm{width:52px;color:var(--dim);font-size:11px}
-  .lvl .px{min-width:112px}
-  .bar{flex:1;height:7px;background:#16202b;border-radius:3px;overflow:hidden;min-width:44px}
-  .bar i{display:block;height:100%;background:linear-gradient(90deg,#2b6cb0,#4ea1ff)}
-  .bar.liq i{background:linear-gradient(90deg,#6b5312,#ffb020)}
-  .bar.na{background:repeating-linear-gradient(45deg,#141c25,#141c25 4px,#1d2836 4px,#1d2836 8px)}
-  .chip{font-size:10px;padding:1px 5px;border-radius:3px;border:1px solid #24303d;color:var(--dim);white-space:nowrap}
-  .chip.short{color:#ffc08a;border-color:#5c3a1d}
-  .chip.long{color:#9ff0c2;border-color:#1d5c3a}
-  .chip.ok{color:#9ff0c2;border-color:#1d5c3a}
-  .tiers{display:grid;grid-template-columns:1fr;gap:10px}
-  @media(min-width:560px){.tiers{grid-template-columns:1fr 1fr}}
-  .up{color:var(--up)} .dn{color:var(--dn)} .dimv{color:var(--dim)}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th{color:var(--dim);font-weight:500;text-align:right;padding:2px 4px;font-size:10px;letter-spacing:.06em}
-  th:first-child{text-align:left}
-  td{padding:3px 4px;text-align:right;border-top:1px solid #161e27}
-  td:first-child{text-align:left;color:var(--dim)}
-  #sweep{padding:8px 10px;border-radius:5px;border:1px solid var(--line);background:#141b23;font-size:12px}
-  #sweep.hit{border-color:#6b5312;background:#2a2008}
-  .note{color:var(--dim);font-size:11px;margin-top:8px;line-height:1.5}
-  .read{border-left:3px solid var(--line)}
-  .read.suspended{border-left-color:#6b1f1f}
-  .read.armed{border-left-color:#1d5c3a}
-  .rrow{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #161e27;align-items:baseline}
-  .rrow:last-child{border-bottom:0}
-  .rkey{flex:0 0 58px;color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
-  .rval{flex:1;font-size:12.5px;line-height:1.5}
-  #alertCard{margin-bottom:12px;transition:border-color .3s}
-  #alertCard.warn{border-color:#6b5312;background:#1c1708}
-  #alertCard.bad{border-color:#6b1f1f;background:#1f0d0d}
-  #alertBig{font-size:20px;font-weight:600;letter-spacing:-.3px}
-  #alertBig.warn{color:var(--warn)} #alertBig.bad{color:var(--dn)}
-  .alertrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:6px}
-  .tier{font-size:11px;color:var(--dim)}
-  .tier b{color:var(--fg);font-weight:500}
-  .handoff{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
-  .handoff .step{color:var(--dim);font-size:11px;letter-spacing:.04em}
-  .chatlink{background:#16202b;border:1px solid #24303d;border-radius:6px;padding:8px 11px;
-       font-size:12px;color:var(--fg);text-decoration:none;min-height:40px;display:inline-flex;
-       align-items:center}
-  .chatlink:hover{border-color:#3a4a5c;color:#fff}
-  footer{padding:16px 14px 0;color:var(--dim);font-size:11px;line-height:1.6}
-  footer a{margin-right:10px}
-  details{margin-top:10px}
-  summary{cursor:pointer;color:var(--dim);padding:10px 0;min-height:40px;font-size:12px}
-  code{color:#b9c4cf}
+:root {
+  --bg: #090c10;
+  --surface: #0f141b;
+  --surface-2: #151c25;
+  --surface-quiet: #0c1016;
+  --line: #212b38;
+  --line-subtle: #18202b;
+  --fg: #e6edf3;
+  --fg-muted: #9aa7b6;
+  --dim: #6e7d8d;
+  /* Single accent color */ --acc: #4da3ff;
+  --acc-soft: #13253a;
+  /* Semantic status & directional colors only */ --up: #34c77b;
+  --up-bg: #0c1d15;
+  --up-line: #1c4d34;
+  --warn: #e5a00d;
+  --warn-bg: #231a07;
+  --warn-line: #75530c;
+  --dn: #e5484d;
+  --dn-bg: #260e10;
+  --dn-line: #7d2126;
+  /* Neutral secondary data bar (never decorative amber) */ --bar-alt: #6e8196;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 6px;
+  --maxw: 1240px;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+html {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.55 var(--sans);
+  padding-bottom: 56px;
+  overflow-x: hidden;
+}
+a {
+  color: var(--acc);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.num, #live, #alertBig, #age, #ts, #pkt, .stat .v, .px, .chip, #locBody b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+/* ── 1. MAY I ACT: Sticky Status Banner ─────────────────────────────────── */ .status-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 12px;
+}
+/* Default (unclassed) = BROKEN / UNKNOWN / UNGRADED mood. Must look unmistakably wrong rather than calm or healthy. */ #state {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #ffd4d6;
+  background: repeating-linear-gradient( -45deg, #220b10, #220b10 10px, #2d0f16 10px, #2d0f16 20px );
+  border: 2px dashed var(--dn);
+  border-left: 5px solid var(--dn);
+}
+#state.ok {
+  background: var(--up-bg);
+  border: 1px solid var(--up-line);
+  border-left: 4px solid var(--up);
+  color: #c2f5d8;
+}
+#state.warn {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-left: 4px solid var(--warn);
+  color: #ffe099;
+}
+#state.bad {
+  background: var(--dn-bg);
+  border: 1px solid var(--dn-line);
+  border-left: 4px solid var(--dn);
+  color: #ffc7c9;
+}
+#state b {
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+/* ── 2. WHERE IS PRICE & 3. LOCATION: Non-sticky Instrument Header ──────── */ .deck-header {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 14px 12px 0;
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.brand {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.ver {
+  color: var(--acc);
+  font-weight: 500;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+#age {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--acc-soft);
+  color: var(--acc);
+  font-size: 12px;
+  font-weight: 600;
+}
+#age.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-line);
+}
+#age.bad {
+  background: var(--dn-bg);
+  color: var(--dn);
+  border: 1px solid var(--dn-line);
+}
+.ts {
+  color: var(--dim);
+  font-size: 12px;
+}
+.spacer {
+  flex: 1 1 auto;
+}
+.hero-band {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.price-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.livetag {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--up);
+  border: 1px solid var(--up-line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  line-height: 1.2;
+}
+#live {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--fg);
+  display: inline-flex;
+  align-items: center;
+}
+#live::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--up);
+  margin-right: 10px;
+  flex-shrink: 0;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+#live.frozen {
+  color: var(--fg-muted);
+}
+#live.frozen::before {
+  background: var(--dim);
+  animation: none;
+}
+@keyframes pulse {
+  0%, 100% {
+  opacity: 1;
+}
+50% {
+  opacity: .25;
+}
+}
+#pkt {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+#pkt.stale {
+  color: var(--warn);
+}
+/* Location orientation strip */ #loc {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+}
+#loc .k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 3px;
+}
+/* Utility buttons */ .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+button, .btn, .chatlink {
+  background: var(--surface-2);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  min-height: 44px;
+  font: 500 13px/1.2 var(--sans);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: border-color .15s, background-color .15s;
+}
+button:hover, .btn:hover, .chatlink:hover {
+  border-color: var(--acc);
+  color: #fff;
+  text-decoration: none;
+}
+button:active, .btn:active, .chatlink:active {
+  transform: translateY(1px);
+}
+.ico {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: .85;
+}
+#copyState, #copyState2 {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--up);
+}
+/* ── MAIN WORKSPACE ─────────────────────────────────────────────────────── */ main {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 14px 12px 0;
+}
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 22px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-subtle);
+}
+.section-label:first-child {
+  margin-top: 2px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.card h2 {
+  margin: 0 0 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* ── 4. WHAT CHANGED: Alert Zone + Trigger ──────────────────────────────── */ .changes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+/* Quiet by default */ #alertCard {
+  background: var(--surface-quiet);
+  border: 1px solid var(--line-subtle);
+  transition: border-color .2s, background-color .2s;
+}
+#alertCard h2 {
+  color: var(--dim);
+}
+#alertBig {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg-muted);
+  line-height: 1.25;
+}
+/* Fires amber / red only when threshold is crossed */ #alertCard.warn {
+  background: var(--warn-bg);
+  border: 2px solid var(--warn);
+  border-left-width: 5px;
+}
+#alertCard.warn h2 {
+  color: var(--warn);
+}
+#alertBig.warn {
+  color: var(--warn);
+  font-size: 24px;
+}
+#alertCard.bad {
+  background: var(--dn-bg);
+  border: 2px solid var(--dn);
+  border-left-width: 5px;
+}
+#alertCard.bad h2 {
+  color: var(--dn);
+}
+#alertBig.bad {
+  color: var(--dn);
+  font-size: 24px;
+}
+.alertrow {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.tier {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+}
+.tier b {
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+#sweep {
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-subtle);
+  background: var(--surface-quiet);
+  font-size: 14px;
+  line-height: 1.5;
+}
+#sweep.hit {
+  border: 1px solid var(--warn-line);
+  border-left: 4px solid var(--warn);
+  background: var(--warn-bg);
+  color: #ffe099;
+}
+/* ── 5. THE RULES THAT APPLY ────────────────────────────────────────────── */ .read {
+  border-left: 4px solid var(--line);
+}
+.read.armed {
+  border-left-color: var(--up);
+}
+.read.suspended {
+  border-left-color: var(--dn);
+  background: #140d0f;
+}
+.rrow {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-subtle);
+  align-items: baseline;
+}
+.rrow:first-child {
+  padding-top: 2px;
+}
+.rrow:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+.rkey {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.rval {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg);
+}
+.rval b {
+  color: #fff;
+  font-weight: 600;
+}
+/* ── 6. THE EVIDENCE ────────────────────────────────────────────────────── */ .stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.stat .k {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.stat .v {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 4px;
+  color: var(--fg);
+  line-height: 1.25;
+}
+.stat .v .up, .stat .v .dn {
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.stat .v span.dimv {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  margin-top: 3px;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+/* Instrument data rows */ .lvl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.lvl:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.lvl .nm {
+  width: 44px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.lvl .px {
+  font-size: 13.5px;
+  color: var(--fg);
+  min-width: 114px;
+}
+/* Compact CVD rows so two bars never wrap or overflow at 390px */ #cvd .lvl {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+#cvd .lvl .nm {
+  width: 30px;
+}
+#cvd .lvl .px {
+  font-size: 12.5px;
+  min-width: 68px !important;
+  text-align: right;
+}
+#cvd .bar {
+  min-width: 24px;
+}
+#vp .lvl {
+  flex-wrap: nowrap;
+  align-items: baseline;
+}
+#vp .lvl .nm {
+  width: 38px;
+}
+#vp .lvl .px {
+  font-size: 13px;
+  line-height: 1.45;
+}
+/* Data bars — flat fills, no decorative gradients */ .bar {
+  flex: 1 1 48px;
+  height: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 36px;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--acc);
+}
+.bar.liq i {
+  background: var(--bar-alt);
+}
+/* Missing value bar: hatched + dashed border, unmistakably distinct from measured 0 */ .bar.na {
+  border: 1px dashed var(--dim);
+  background: repeating-linear-gradient( -45deg, var(--surface-quiet), var(--surface-quiet) 4px, #1e2733 4px, #1e2733 8px );
+}
+/* Chips */ .chip {
+  font-size: 11.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.chip.ok {
+  color: var(--up);
+  border-color: var(--up-line);
+  background: var(--up-bg);
+}
+.chip.long {
+  color: var(--up);
+  border-color: var(--up-line);
+  background: var(--up-bg);
+}
+.chip.short {
+  color: var(--fg);
+  border-color: var(--line);
+  background: #1b2430;
+}
+.tiers {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.subhead {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.up {
+  color: var(--up);
+}
+.dn {
+  color: var(--dn);
+}
+.dimv {
+  color: var(--dim);
+}
+.note {
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+/* AI Handoff */ .handoff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.handoff .step {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+/* Footer */ footer {
+  max-width: var(--maxw);
+  margin: 24px auto 0;
+  padding: 16px 12px 0;
+  border-top: 1px solid var(--line-subtle);
+  color: var(--dim);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+details {
+  margin-top: 10px;
+}
+summary {
+  cursor: pointer;
+  color: var(--fg-muted);
+  padding: 10px 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+#probsBody {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+/* ── RESPONSIVE BREAKPOINTS (Tablet & 1280px Desktop) ───────────────────── */ @media (min-width: 600px) {
+  .stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tiers {
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+}
+@media (min-width: 900px) {
+  .status-bar, .deck-header, main, footer {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.hero-band {
+  grid-template-columns: minmax(280px, auto) 1fr;
+  align-items: center;
+  gap: 24px;
+}
+#live {
+  font-size: 44px;
+}
+.changes-grid {
+  grid-template-columns: 1.15fr 0.85fr;
+}
+.stats {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+}
+/* ── REDUCED MOTION ─────────────────────────────────────────────────────── */ @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+}
 </style>
 </head>
-<body>
-<header>
-  <div id="state" role="status" aria-live="polite">waiting for data — nothing verified yet</div>
-  <div class="row" style="margin-top:9px">
-    <span class="brand">SALAM<span class="ver" id="ver"></span></span>
-    <span id="age">loading…</span>
-    <span class="ts" id="ts"></span>
-    <span class="spacer"></span>
-    <span class="pxwrap">
-      <div><span class="livetag" id="livetag">LIVE</span><span id="live">—</span></div>
-      <div id="pkt">packet loading…</div>
-    </span>
-  </div>
-  <div id="loc"><span class="k">location</span><span id="locBody">—</span></div>
-  <div class="row actions">
-    <button id="copy" title="Copy the full markdown packet, ready to paste into any AI">⧉ copy packet for AI</button>
-    <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml"
-       target="_blank" rel="noopener" title="Open the workflow page, then Run workflow">▶ run workflow</a>
-    <span id="copyState"></span>
-  </div>
-</header>
-
-<main>
-  <section class="card" id="alertCard" style="margin-top:12px">
-    <h2>Alert zone <span class="chip">5-minute move</span></h2>
-    <div id="alertBig">—</div>
-    <div class="alertrow" id="alertTiers"></div>
-    <div class="note" id="alertNote"></div>
-  </section>
-
-  <section class="card read" id="readCard">
-    <h2>The read <span class="chip">rules, not a forecast</span> <span class="chip">mechanical — hand it to a model below</span></h2>
-    <div id="read"></div>
-  </section>
-
-  <section class="card wide" id="handoffCard">
-    <h2>Deep analysis → hand the packet to a model</h2>
-    <div class="note" style="margin-top:0">
-      The card above is the mechanical read: it applies the packet's rules to the numbers and stops there. A model can weigh how the sweep, open interest, funding and ETF flow interact and write a plan. It reasons over these same numbers — it cannot see more of the market than the packet contains.
-    </div>
-    <div class="handoff">
-      <span class="step">1 · copy</span>
-      <button id="copy2">⧉ copy packet</button>
-      <span class="step">2 · open</span>
-      <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
-      <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
-      <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
-      <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
-      <span id="copyState2" class="dimv" style="font-size:11px"></span>
-    </div>
-    <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div>
-  </section>
-
-  <div class="stats" id="stats"></div>
-
-  <div class="grid">
-    <section class="card wide">
-      <h2>Tactical bands <span class="chip" id="insidechip"></span></h2>
-      <div id="bands"></div>
-      <div class="note" id="bandsnote"></div>
-    </section>
-
-    <section class="card">
-      <h2>Macro S/R · nearest 3</h2>
-      <div id="macro"></div>
-    </section>
-
-    <section class="card">
-      <h2>Order flow · spot / perp</h2>
-      <div id="cvd"></div>
-      <div class="note" id="cvdnote"></div>
-    </section>
-
-    <section class="card wide">
-      <h2>Liquidation ladder <span class="chip">MODELED</span></h2>
-      <div class="tiers">
-        <div><div class="k dimv" style="font-size:10px;letter-spacing:.07em;margin-bottom:4px">UPPER · SHORTS</div><div id="liqUp"></div></div>
-        <div><div class="k dimv" style="font-size:10px;letter-spacing:.07em;margin-bottom:4px">LOWER · LONGS</div><div id="liqDn"></div></div>
-      </div>
-      <div class="note" id="liqnote"></div>
-    </section>
-
-    <section class="card">
-      <h2>The trigger</h2>
-      <div id="sweep">—</div>
-    </section>
-
-    <section class="card">
-      <h2>Volume nodes</h2>
-      <div id="vp"></div>
-    </section>
-  </div>
-
-
-  <footer>
-    <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a>
-    <a id="ljson" href="SALAM_DATA_HUB.json">json</a>
-    <div class="note" style="margin-top:10px">
-      Standard library only · closed bars only · no state · gaps print UNAVAILABLE rather than a
-      guess. Liquidation dollars are OI × assumed tier weights, never observed clusters.
-    </div>
-    <details id="probs"><summary>data notes</summary><div id="probsBody" class="note"></div></details>
-  </footer>
-</main>
-
+<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">UNGRADED — connecting to packet…</div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Position vs levels</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet for AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <span id="copyState" aria-live="polite"></span> </div> </header> <main> <!-- 4. WHAT CHANGED --> <div class="section-label">What changed</div> <div class="changes-grid"> <section class="card" id="alertCard"> <h2>Alert zone <span class="chip">5-minute move</span></h2> <div id="alertBig">—</div> <div class="alertrow" id="alertTiers"></div> <div class="note" id="alertNote"></div> </section> <section class="card"> <h2>The trigger <span class="chip">1H sweep</span></h2> <div id="sweep">—</div> </section> </div> <!-- 5. THE RULES THAT APPLY --> <div class="section-label">The rules that apply</div> <section class="card read" id="readCard"> <h2>The read <span class="chip">rules, not a forecast</span> <span class="chip">mechanical</span></h2> <div id="read"></div> </section> <!-- 6. THE EVIDENCE --> <div class="section-label">The evidence</div> <div class="stats" id="stats"></div> <div class="grid"> <section class="card wide"> <h2>Tactical bands <span class="chip" id="insidechip"></span></h2> <div id="bands"></div> <div class="note" id="bandsnote"></div> </section> <section class="card"> <h2>Macro S/R · nearest 3</h2> <div id="macro"></div> </section> <section class="card"> <h2>Volume nodes</h2> <div id="vp"></div> </section> <section class="card wide"> <h2>Order flow · spot / perp</h2> <div id="cvd"></div> <div class="note" id="cvdnote"></div> </section> <section class="card wide"> <h2>Liquidation ladder <span class="chip">MODELED</span></h2> <div class="tiers"> <div> <div class="subhead">Upper · shorts</div> <div id="liqUp"></div> </div> <div> <div class="subhead">Lower · longs</div> <div id="liqDn"></div> </div> </div> <div class="note" id="liqnote"></div> </section> <section class="card wide" id="handoffCard"> <h2>Deep analysis · hand packet to a model</h2> <div class="note" style="margin-top:0"> The read above is mechanical: it applies the packet's rules to the numbers and stops there. A model can weigh how the sweep, open interest, funding, and ETF flow interact, using only the data contained in this packet. </div> <div class="handoff"> <span class="step">1 · copy</span> <button id="copy2" type="button"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet </button> <span class="step">2 · open</span> <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a> <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a> <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a> <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a> <span id="copyState2" class="dimv" aria-live="polite"></span> </div> <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div> </section> </div> </main> <footer> <div class="footer-links"> <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a> <a id="ljson" href="SALAM_DATA_HUB.json">json</a> </div> <div class="note"> Standard library only · closed bars only · no state · gaps print UNAVAILABLE rather than a guess. Liquidation dollars are OI × assumed tier weights, never observed clusters. </div> <details id="probs"> <summary>Data notes & feed diagnostics</summary> <div id="probsBody" class="note"></div> </details> </footer>
 <script>
 const $ = id => document.getElementById(id);
 // Number.isNaN("abc") is false, so the old guard let the string "NaN" render. A value is
