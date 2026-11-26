@@ -548,21 +548,8 @@ def collect() -> tuple[dict, list[str]]:
         oi_series = [float(r[1]) for r in rows]
         oi_stamps = [int(r[0]) for r in rows]
 
-    def chg(series: list[float], stamps: list[int], hours: int):
-        """Change over `hours`, matched by timestamp. Positional offsets assume the samples are
-        contiguous; one missing hour silently shifts the window. If no sample sits within 30
-        minutes of the requested horizon, the change is unavailable rather than approximate."""
-        if not series or not stamps or len(series) != len(stamps):
-            return None
-        target = stamps[-1] - hours * 3600_000
-        idx = min(range(len(stamps) - 1), key=lambda i: abs(stamps[i] - target))
-        if abs(stamps[idx] - target) > 1800_000:
-            return None
-        a, b = series[idx], series[-1]
-        return (b / a - 1) * 100 if a else None
-
-    data["oi_4h_chg"] = chg(oi_series, oi_stamps, 4)
-    data["oi_24h_chg"] = chg(oi_series, oi_stamps, 24)
+    data["oi_4h_chg"] = oi_change(oi_series, oi_stamps, 4)
+    data["oi_24h_chg"] = oi_change(oi_series, oi_stamps, 24)
     fh = [float(r["fundingRate"]) * 100 for r in (raw.get("funding_hist") or [])]
     if not fh:
         fh = [float(r["fundingRate"]) * 100 for r in okx_data("fund_hist")
@@ -600,6 +587,23 @@ def collect() -> tuple[dict, list[str]]:
 
 
 # ──────────────────────────────── compute ─────────────────────────────────
+def oi_change(series: list[float], stamps: list[int], hours: int) -> float | None:
+    """Percent change over `hours`, matched by timestamp rather than by position.
+
+    A positional offset assumes the samples are contiguous: one missing hour silently shifts
+    the window and reports a different interval as "4H". If no sample sits within 30 minutes of
+    the requested horizon, the change is unavailable rather than approximate.
+    """
+    if not series or not stamps or len(series) != len(stamps):
+        return None
+    target = stamps[-1] - hours * 3600_000
+    idx = min(range(len(stamps) - 1), key=lambda i: abs(stamps[i] - target))
+    if abs(stamps[idx] - target) > 1800_000:
+        return None
+    a, b = series[idx], series[-1]
+    return (b / a - 1) * 100 if a else None
+
+
 def analyse(d: dict) -> dict:
     out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE"),
                  "price_src": d.get("price_src")}
@@ -1022,6 +1026,27 @@ def selftest() -> int:
     split = [{"t": _base_ms + h * 3600_000, "v": 1.0, "taker_buy": 0.6} for h in range(12)] + \
             [{"t": _base_ms + 86_400_000 + h * 3600_000, "v": 1.0, "taker_buy": 0.6}
              for h in range(12)]
+    _h = 3600_000
+    _t0 = 1_700_000_000_000
+    _reg = list(range(0, 24))                      # 24 contiguous hourly samples
+    _treg = [_t0 + h * _h for h in _reg]
+    # index 20 is the 4-hour mark: 90 -> 95 is +5.56%. The first version of this fixture put
+    # 90 at index 21 and asserted against index 20, so the test failed against correct code.
+    # 24 samples, index 23 is newest; the 4H mark is index 19. 90 -> 95 = +5.56%.
+    # Two earlier fixtures put the 90 one or two slots late and asserted against the wrong
+    # index, which failed against correct code — the fixture was wrong, not the function.
+    _sreg = [100.0] * 19 + [90.0, 91.0, 92.0, 93.0, 95.0]
+    check("OI change matches the horizon by timestamp",
+          oi_change(_sreg, _treg, 4) is not None
+          and abs(oi_change(_sreg, _treg, 4) - (95.0 / 90.0 - 1) * 100) < 1e-9,
+          f"{oi_change(_sreg, _treg, 4)}")
+    _gap_t = [t for i, t in enumerate(_treg) if not (19 <= i <= 21)]   # drop 3 hours at the mark
+    _gap_s = [v for i, v in enumerate(_sreg) if not (19 <= i <= 21)]
+    check("a gap at the horizon returns UNAVAILABLE, not a shifted window",
+          oi_change(_gap_s, _gap_t, 4) is None, f"{oi_change(_gap_s, _gap_t, 4)}")
+    check("mismatched series and stamps return UNAVAILABLE",
+          oi_change(_sreg, _treg[:-1], 4) is None)
+
     import io as _io
     import zipfile as _zip
 
