@@ -1,27 +1,29 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 02:19:58 UTC | **Spot Price:** $60,941.67
+**Timestamp:** 2026-11-26 02:21:41 UTC | **Spot Price:** $61,032.85
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
-*   **Macro S/R (500-bar):** 1D Resistance: $62,338 (8x), $65,602 (8x), $79,519 (8x) | 1D Support: $59,131 (1x), $57,958 (2x), $55,130 (1x)
+*   **Macro S/R (500-bar):** 1D Resistance: $62,338 (8x), $65,602 (8x), $79,519 (8x) | 1D Support: $61,031 (2x), $57,958 (2x), $55,130 (1x)
 *   **Volume Profile (30D):** VAH: 81,971 | POC: 77,274 | VAL: 62,288
 *   **200 SMA:** 1D: 72,088
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
-*   **Upper Shorts:** UNAVAILABLE (no open interest)
-*   **Lower Longs:** UNAVAILABLE (no open interest)
+*   **Upper Shorts (10x/25x/50-100x):** 10x $67,136 ($95.7M) / 25x $63,474 ($95.7M) / 50x $62,254 ($95.7M) / 100x $61,643 ($95.7M)
+*   **Lower Longs (10x/25x/50-100x):** 10x $54,930 ($95.7M) / 25x $58,592 ($95.7M) / 50x $59,812 ($95.7M) / 100x $60,423 ($95.7M)
+    *Levels are exact leverage arithmetic; the $M is OI $1913.2M x 5% assumed share per tier — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.59
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot/Perp):** 1H: 77.0 / UNAVAILABLE | 4H: 255.8 / UNAVAILABLE | 24H: 373.1 / UNAVAILABLE
-*   **Open Interest:** UNAVAILABLE BTC | 4H Change: UNAVAILABLE% | 24H Change: UNAVAILABLE%
-*   **Funding:** UNAVAILABLE% per 8H | 90-day percentile: UNAVAILABLE
+*   **Open Interest:** 31,348 BTC | 4H Change: 0.01% | 24H Change: 3.01%
+*   **Funding:** 0.0100% per 8H | 90-day percentile: 100
 
 ## 4. THE TRIGGER
 *   **Sweep Status:** NONE (last 6 closed 1H bars stayed inside the bands)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-123.3M (25 Nov 2026, settled) | 5D: $-2,175.9M
-*   **Funding percentile:** UNAVAILABLE of 90 days
+*   **Funding percentile:** 100 of 90 days  <- tail
 
 ## DATA NOTES
 *   fd1 HTTP 451
@@ -31,10 +33,6 @@
 *   oi HTTP 451
 *   oi_hist HTTP 451
 *   lsr HTTP 451
-*   bybit:bt HTTP 403
-*   bybit:boi HTTP 403
-*   bybit:blsr HTTP 403
-*   bybit:bfh HTTP 403
 *   perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host
 
 ### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.0

@@ -7,13 +7,9 @@
   "oi HTTP 451",
   "oi_hist HTTP 451",
   "lsr HTTP 451",
-  "bybit:bt HTTP 403",
-  "bybit:boi HTTP 403",
-  "bybit:blsr HTTP 403",
-  "bybit:bfh HTTP 403",
   "perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host"
  ],
- "price": 60941.67,
+ "price": 61032.85,
  "atr1d": 3064.8040793680525,
  "sma200": 72088.27369999998,
  "vp30": {
@@ -43,10 +39,10 @@
  ],
  "macro_sup": [
   {
-   "low": 59130.91,
-   "high": 59130.91,
-   "center": 59130.91,
-   "touches": 1
+   "low": 60755.0,
+   "high": 61306.84,
+   "center": 61030.92,
+   "touches": 2
   },
   {
    "low": 57800.19,
@@ -298,12 +294,12 @@
   "4h": null,
   "24h": null
  },
- "oi_btc": null,
- "oi_4h_chg": null,
- "oi_24h_chg": null,
- "funding": null,
- "funding_pct90": null,
- "ls_ratio": null,
+ "oi_btc": 31347.86360000012,
+ "oi_4h_chg": 0.008481608184962575,
+ "oi_24h_chg": 3.005879802859801,
+ "funding": 0.01,
+ "funding_pct90": 100.0,
+ "ls_ratio": 2.588250484183344,
  "etf": {
   "latest_date": "25 Nov 2026",
   "one_day_m": -123.3,
@@ -313,5 +309,50 @@
   "five_day_m": -2175.9,
   "five_day_days": 5,
   "twenty_day_m": -5687.4
- }
+ },
+ "oi_usd_m": 1913.2494569192675,
+ "liq_upper": [
+  {
+   "lev": 10,
+   "price": 67136.13500000001,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 25,
+   "price": 63474.164,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 50,
+   "price": 62253.507,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 100,
+   "price": 61643.1785,
+   "usd_m": 95.66247284596338
+  }
+ ],
+ "liq_lower": [
+  {
+   "lev": 10,
+   "price": 54929.565,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 25,
+   "price": 58591.536,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 50,
+   "price": 59812.193,
+   "usd_m": 95.66247284596338
+  },
+  {
+   "lev": 100,
+   "price": 60422.521499999995,
+   "usd_m": 95.66247284596338
+  }
+ ]
 }
