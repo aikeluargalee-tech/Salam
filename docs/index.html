@@ -83,6 +83,19 @@
   #sweep{padding:8px 10px;border-radius:5px;border:1px solid var(--line);background:#141b23;font-size:12px}
   #sweep.hit{border-color:#6b5312;background:#2a2008}
   .note{color:var(--dim);font-size:11px;margin-top:8px;line-height:1.5}
+  .read{border-left:3px solid var(--line)}
+  .read.suspended{border-left-color:#6b1f1f}
+  .read.armed{border-left-color:#1d5c3a}
+  .rrow{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #161e27;align-items:baseline}
+  .rrow:last-child{border-bottom:0}
+  .rkey{flex:0 0 74px;color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+  .rval{flex:1;font-size:12.5px;line-height:1.5}
+  .handoff{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+  .handoff .step{color:var(--dim);font-size:11px;letter-spacing:.04em}
+  .chatlink{background:#16202b;border:1px solid #24303d;border-radius:6px;padding:8px 11px;
+       font-size:12px;color:var(--fg);text-decoration:none;min-height:40px;display:inline-flex;
+       align-items:center}
+  .chatlink:hover{border-color:#3a4a5c;color:#fff}
   footer{padding:16px 14px 0;color:var(--dim);font-size:11px;line-height:1.6}
   footer a{margin-right:10px}
   details{margin-top:10px}
@@ -113,6 +126,11 @@
 </header>
 
 <main>
+  <section class="card read" id="readCard">
+    <h2>The read <span class="chip">rules, not a forecast</span></h2>
+    <div id="read"></div>
+  </section>
+
   <div class="stats" id="stats"></div>
 
   <div class="grid">
@@ -152,6 +170,25 @@
       <div id="vp"></div>
     </section>
   </div>
+
+  <section class="card wide" id="handoffCard">
+    <h2>Ask a model to read it</h2>
+    <div class="note" style="margin-top:0">
+      The packet carries its own interpretation rules, so any model reads the same numbers the same
+      way. Copy it, open a model, paste.
+    </div>
+    <div class="handoff">
+      <span class="step">1 · copy</span>
+      <button id="copy2">⧉ copy packet</button>
+      <span class="step">2 · open</span>
+      <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
+      <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
+      <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
+      <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
+      <span id="copyState2" class="dimv" style="font-size:11px"></span>
+    </div>
+    <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div>
+  </section>
 
   <footer>
     <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a>
@@ -314,6 +351,55 @@ function render(d) {
         : state === 'NONE'
           ? `⛔ <b>PERP CVD UNAVAILABLE</b> — levels map only, no execution plans.`
           : `⛔ <b>STATE MISSING OR UNREADABLE</b> (${esc(d.exec_state) || 'no exec_state'}) — the packet cannot be graded, so it reads as suspended.`;
+
+  // THE READ — derived strictly from the packet's own rules. No forecast, no opinion:
+  // it states which rail is open, what invalidates it, and what the stop arithmetic is.
+  (() => {
+    const box = $('read'), el = $('readCard');
+    const suspended = !(state === 'FULL' || state === 'MANUAL');
+    el.className = 'card read ' + (suspended ? 'suspended' : 'armed');
+    if (suspended) {
+      box.innerHTML = `<div class="rrow"><span class="rkey">Rails</span><span class="rval">
+        <b>Withheld.</b> Order flow is ${state === 'PARTIAL' ? 'a T+1 archive' : 'unavailable'},
+        so the packet's own rules forbid naming an entry, a stop or a size. Levels above are still
+        the live map; the plans are not published until flow is live again.</span></div>`;
+      return;
+    }
+    const sma200 = d.sma200;                    // read the packet directly: the `sma` const
+    const below = isNum(price) && isNum(sma200) && price < sma200;   // is declared further down
+
+    const atr1h = d.atr1h;
+    const stopD = isNum(atr1h) ? atr1h * 1.5 : null;
+    const invalHigh = d.res_band ? Math.max(d.res_band.low, d.res_band.high) : null;
+    const inval = (isNum(invalHigh) && isNum(atr1h)) ? invalHigh + atr1h : null;
+    const supEdge = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
+    const sw = d.sweep || {};
+    const flag = String(sw.flag || '');
+    const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
+    // Direction matters: a bullish sweep (support taken and reclaimed) arms the buy rail; a
+    // bearish sweep (resistance taken and rejected) confirms selling into strength and leaves
+    // the buy rail shut. Treating either as "armed" is how a card invents a trade.
+    const bullSweep = swept && /BULL/i.test(flag);
+    const bearSweep = swept && /BEAR/i.test(flag);
+    const rows = [];
+    rows.push(`<div class="rrow"><span class="rkey">Route</span><span class="rval">${
+      below ? `<b>Macro downtrend</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below the 200D SMA`
+            : `<b>Above the 200D SMA</b> — the drawdown filter is not active`}</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">Rail A · trim</span><span class="rval">${
+      d.res_band
+        ? `Sell into <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
+        : 'No resistance band in this packet — nothing to trim into.'}</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">Rail B · buy</span><span class="rval">${
+      bullSweep
+        ? `<b>Armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
+        : bearSweep
+          ? `Shut. The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
+          : `Restricted. No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">Risk</span><span class="rval">Stop distance
+      <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b>
+      · risk 0.75% of portfolio across that stop · skip the trade if the size exceeds 30% of the USDT side.</span></div>`);
+    box.innerHTML = rows.join('');
+  })();
 
   // stats
   const sma = d.sma200, dist = (isNum(price) && isNum(sma) && Number(sma) !== 0) ? (price / sma - 1) * 100 : null;
@@ -529,12 +615,18 @@ function flash(msg, bad) {
   clearTimeout(flash._t);
   flash._t = setTimeout(() => { el.textContent = ''; }, 2600);
 }
-$('copy').addEventListener('click', async () => {
+function flash2(msg, bad) {
+  const el = $('copyState2');
+  el.textContent = msg;
+  el.style.color = bad ? 'var(--dn)' : 'var(--up)';
+  clearTimeout(flash2._t);
+  flash2._t = setTimeout(() => { el.textContent = ''; }, 3000);
+}
+async function copyPacket(where) {
   try {
     const t = await packetText();
-    try {
-      await navigator.clipboard.writeText(t);
-    } catch (clipErr) {                      // non-secure context / denied permission
+    try { await navigator.clipboard.writeText(t); }
+    catch (clipErr) {
       const ta = document.createElement('textarea');
       ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
@@ -543,11 +635,15 @@ $('copy').addEventListener('click', async () => {
       if (!ok) throw clipErr;
     }
     const stamp = (t.match(/\*\*Timestamp:\*\*\s*([0-9:\- ]+)UTC/) || [])[1];
-    flash(`copied ${(t.length / 1024).toFixed(1)} KB · packet ${stamp ? stamp.trim() + ' UTC' : '(no stamp in file)'}`);
+    const msg = `copied ${(t.length / 1024).toFixed(1)} KB${stamp ? ' · packet ' + stamp.trim() + ' UTC' : ''}`;
+    if (where === 'card') flash2(msg); else flash(msg);
   } catch (e) {
-    flash('copy failed: ' + e.message, true);
+    if (where === 'card') flash2('copy failed: ' + e.message, true); else flash('copy failed: ' + e.message, true);
   }
-});
+}
+$('copy2').addEventListener('click', () => copyPacket('card'));
+$('copy').addEventListener('click', () => copyPacket('header'));
+
 setInterval(paintAge, 15000);
 setInterval(load, 60000);
 setInterval(tickLive, 15000);
