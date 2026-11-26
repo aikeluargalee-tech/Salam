@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 02:21:41 UTC | **Spot Price:** $61,032.85
+**Timestamp:** 2026-11-26 02:23:51 UTC | **Spot Price:** $61,063.61
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
@@ -8,14 +8,14 @@
 *   **200 SMA:** 1D: 72,088
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
-*   **Upper Shorts (10x/25x/50-100x):** 10x $67,136 ($95.7M) / 25x $63,474 ($95.7M) / 50x $62,254 ($95.7M) / 100x $61,643 ($95.7M)
-*   **Lower Longs (10x/25x/50-100x):** 10x $54,930 ($95.7M) / 25x $58,592 ($95.7M) / 50x $59,812 ($95.7M) / 100x $60,423 ($95.7M)
-    *Levels are exact leverage arithmetic; the $M is OI $1913.2M x 5% assumed share per tier — not observed liquidation data.*
+*   **Upper Shorts (10x/25x/50-100x):** 10x $67,170 ($95.8M) / 25x $63,506 ($95.8M) / 50x $62,285 ($95.8M) / 100x $61,674 ($95.8M)
+*   **Lower Longs (10x/25x/50-100x):** 10x $54,957 ($95.8M) / 25x $58,621 ($95.8M) / 50x $59,842 ($95.8M) / 100x $60,453 ($95.8M)
+    *Levels are exact leverage arithmetic; the $M is OI $1915.8M x 5% assumed share per tier — not observed liquidation data.*
 *   **Long/Short account ratio (4H):** 2.59
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot/Perp):** 1H: 77.0 / UNAVAILABLE | 4H: 255.8 / UNAVAILABLE | 24H: 373.1 / UNAVAILABLE
-*   **Open Interest:** 31,348 BTC | 4H Change: 0.01% | 24H Change: 3.01%
+*   **Open Interest:** 31,374 BTC | 4H Change: 0.01% | 24H Change: 3.01%
 *   **Funding:** 0.0100% per 8H | 90-day percentile: 100
 
 ## 4. THE TRIGGER
