@@ -127,8 +127,26 @@
 
 <main>
   <section class="card read" id="readCard">
-    <h2>The read <span class="chip">rules, not a forecast</span></h2>
+    <h2>The read <span class="chip">rules, not a forecast</span> <span class="chip">mechanical — hand it to a model below</span></h2>
     <div id="read"></div>
+  </section>
+
+  <section class="card wide" id="handoffCard">
+    <h2>Deep analysis → hand the packet to a model</h2>
+    <div class="note" style="margin-top:0">
+      The card above is the mechanical read: it applies the packet's rules to the numbers and stops there. A model can weigh how the sweep, open interest, funding and ETF flow interact and write a plan. It reasons over these same numbers — it cannot see more of the market than the packet contains.
+    </div>
+    <div class="handoff">
+      <span class="step">1 · copy</span>
+      <button id="copy2">⧉ copy packet</button>
+      <span class="step">2 · open</span>
+      <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
+      <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
+      <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
+      <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
+      <span id="copyState2" class="dimv" style="font-size:11px"></span>
+    </div>
+    <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div>
   </section>
 
   <div class="stats" id="stats"></div>
@@ -171,24 +189,6 @@
     </section>
   </div>
 
-  <section class="card wide" id="handoffCard">
-    <h2>Ask a model to read it</h2>
-    <div class="note" style="margin-top:0">
-      The packet carries its own interpretation rules, so any model reads the same numbers the same
-      way. Copy it, open a model, paste.
-    </div>
-    <div class="handoff">
-      <span class="step">1 · copy</span>
-      <button id="copy2">⧉ copy packet</button>
-      <span class="step">2 · open</span>
-      <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
-      <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
-      <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
-      <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
-      <span id="copyState2" class="dimv" style="font-size:11px"></span>
-    </div>
-    <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div>
-  </section>
 
   <footer>
     <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a>
