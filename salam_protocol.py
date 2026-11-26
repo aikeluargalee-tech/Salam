@@ -114,7 +114,7 @@ def dump_day_problem(bars: list[dict], day) -> str | None:
     return None
 
 
-def perp_cvd_from_dump(days_back: int = 3):
+def perp_cvd_from_dump(days_back: int = 3, fetch=None):
     """Perp CVD from Binance's public daily archive (no API, no geo-block, T+1 lag).
 
     The 1h files carry 12 columns; column 9 is takerBuyBaseVolume — the field the live
@@ -124,13 +124,14 @@ def perp_cvd_from_dump(days_back: int = 3):
     import zipfile
     from datetime import timedelta
 
+    fetch = fetch or get_bytes
     today = datetime.now(timezone.utc).date()
     last_err = "no published daily dump in the last %d days" % days_back
     for back in range(1, days_back + 1):
         d = today - timedelta(days=back)
         url = f"{DUMP}/BTCUSDT/1h/BTCUSDT-1h-{d.isoformat()}.zip"
         try:
-            blob = get_bytes(url)
+            blob = fetch(url)
             z = zipfile.ZipFile(io.BytesIO(blob))
             bars = dump_bars(z.read(z.namelist()[0]).decode().strip().splitlines())
             if len(bars) < 24:
@@ -1021,6 +1022,24 @@ def selftest() -> int:
     split = [{"t": _base_ms + h * 3600_000, "v": 1.0, "taker_buy": 0.6} for h in range(12)] + \
             [{"t": _base_ms + 86_400_000 + h * 3600_000, "v": 1.0, "taker_buy": 0.6}
              for h in range(12)]
+    import io as _io
+    import zipfile as _zip
+
+    def _z(rows):
+        buf = _io.BytesIO()
+        with _zip.ZipFile(buf, "w") as z:
+            z.writestr("BTCUSDT-1h.csv", "\n".join(rows))
+        return buf.getvalue()
+
+    _yday = _dt.datetime.now(timezone.utc).date() - _dt.timedelta(days=1)
+    _b = int(_dt.datetime(_yday.year, _yday.month, _yday.day, tzinfo=timezone.utc).timestamp() * 1000)
+    _real = [f"{_b + h * 3600000},1,1,1,1,1.0,0,0,1,0.6,0,0" for h in range(24)]
+    _d, _e = perp_cvd_from_dump(1, fetch=lambda _u: _z(_real))
+    check("the loader accepts a genuine 24-hour dump", _d is not None, str(_e))
+    _d2, _e2 = perp_cvd_from_dump(1, fetch=lambda _u: _z([_real[0]] * 24))
+    check("the loader refuses 24 copies of one hour",
+          _d2 is None and "unusable" in (_e2 or ""), str(_e2))
+
     check("a complete 24-hour archive day is accepted", dump_day_problem(good, _day) is None)
     check("24 copies of one hour are rejected", dump_day_problem(dup, _day) is not None,
           str(dump_day_problem(dup, _day)))

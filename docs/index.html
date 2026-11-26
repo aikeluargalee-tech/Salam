@@ -92,7 +92,7 @@
 </head>
 <body>
 <header>
-  <div id="state" class="ok">connecting…</div>
+  <div id="state" class="ok" role="status" aria-live="polite">connecting…</div>
   <div class="row" style="margin-top:9px">
     <span class="brand">SALAM<span class="ver" id="ver"></span></span>
     <span id="age">loading…</span>
@@ -232,14 +232,17 @@ function bandRow(label, b, price) {
   if (!b) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">—</span></div>`;
   const score = b.score ?? 0;
   const lo = Math.min(b.low, b.high), hi = Math.max(b.low, b.high);
-  const dist = price ? ((lo + hi) / 2 / price - 1) * 100 : null;
+  // nearest edge, the level a reader actually meets — same reference as the location line
+  const edge = !isNum(price) ? null : (price < lo ? lo : (price > hi ? hi : null));
+  const dist = isNum(edge) ? (edge / price - 1) * 100 : null;
+  const insideBand = isNum(price) && price >= lo && price <= hi;
   const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}x ${b.liq[0]} ${money(b.liq[1])}M</span>` : '';
   return `<div class="lvl">
     <span class="nm">${label}</span>
     <span class="px">${fmt(lo)}–${fmt(hi)}</span>
     <span class="bar" title="confluence ${score}/10"><i style="width:${score * 10}%"></i></span>
     <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10</span>
-    <span class="chip">${dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
+    <span class="chip">${insideBand ? 'price here' : dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
     ${liq}
   </div>`;
 }
@@ -329,18 +332,30 @@ function render(d) {
   ].join('');
 
   // one line of orientation: where the packet's price sits against the packet's own levels
+  // the edge price reaches FIRST: top of the support band, bottom of the resistance band
+  const supLo = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
+  const resHi = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
+  const containment = (() => {
+    if (d.inside_band) {
+      const lo = Math.min(d.inside_band.low, d.inside_band.high);
+      const hi = Math.max(d.inside_band.low, d.inside_band.high);
+      return `inside ${fmt(lo)}–${fmt(hi)}`;
+    }
+    // If the packet omitted the field, only claim "between bands" when price and both bands
+    // actually prove it. Absence of data is not evidence of a position.
+    if (isNum(price) && isNum(supLo) && isNum(resHi) && price > supLo && price < resHi) {
+      return 'between bands';
+    }
+    return '<span class="dimv">containment unknown</span>';
+  })();
+
   (() => {
-    const inside = d.inside_band;
-    // the edge price reaches FIRST: top of the support band, bottom of the resistance band
-    const supLo = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
-    const resHi = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
     const pct = lvl => (isNum(price) && isNum(lvl) && Number(price) !== 0)
       ? (() => { const d = (lvl / price - 1) * 100;
           return `<span class="${d < 0 ? 'dn' : 'up'}">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`; })() : '';
     const bits = [];
     bits.push(isNum(price) ? `<b>${money(price)}</b>` : '<span class="dimv">price unavailable</span>');
-    if (inside) bits.push(`inside ${fmt(Math.min(inside.low, inside.high))}–${fmt(Math.max(inside.low, inside.high))}`);
-    else bits.push('<span class="dimv">between bands</span>');
+    bits.push(containment);
     if (isNum(supLo)) bits.push(`↓ ${fmt(supLo)} ${pct(supLo)}`);
     if (isNum(resHi)) bits.push(`↑ ${fmt(resHi)} ${pct(resHi)}`);
     $('locBody').innerHTML = bits.join(' · ');
@@ -348,9 +363,7 @@ function render(d) {
 
   // bands
   $('bands').innerHTML = bandRow('upper', d.res_band, price) + bandRow('lower', d.sup_band, price);
-  $('insidechip').textContent = d.inside_band
-    ? `inside ${fmt(Math.min(d.inside_band.low, d.inside_band.high))}–${fmt(Math.max(d.inside_band.low, d.inside_band.high))}`
-    : 'between bands';
+  $('insidechip').innerHTML = containment;
 
   // macro
   const res = d.macro_res || [], sup = d.macro_sup || [];
@@ -422,7 +435,11 @@ function render(d) {
 }
 
 function paintAge() {
-  if (!generated || isNaN(generated)) return;
+  if (!generated || isNaN(generated)) {
+    $('age').textContent = 'no timestamp';
+    $('age').className = 'bad';
+    return;
+  }
   const mins = (Date.now() - generated.getTime()) / 60000;
   const h = mins / 60;
   const el = $('age');
@@ -480,17 +497,30 @@ $('ver').textContent = ' v1.6';
 // copy the canonical packet, not the rendered page: one paste block for any model,
 // and it can never drift from what the script actually published
 async function packetText() {
+  // Fetch every mirror's markdown, read the timestamp inside each, and hand back the one that
+  // matches the packet currently rendered. Falling back to "the first that answers" is how the
+  // paste block silently drifts a few minutes behind the screen.
   const md = [
     'https://raw.githubusercontent.com/aikeluargalee-tech/Salam/master/SALAM_DATA_HUB.md',
     'SALAM_DATA_HUB.md'
   ];
+  const want = generated ? generated.getTime() : null;
+  const got = [];
   for (const u of md) {
     try {
       const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'now=' + Date.now(), {cache: 'no-store'});
-      if (r.ok) return await r.text();
+      if (!r.ok) continue;
+      const text = await r.text();
+      const m = text.match(/\*\*Timestamp:\*\*\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC/);
+      const ts = m ? Date.parse(m[1] + 'T' + m[2] + 'Z') : NaN;
+      got.push({text, ts});
+      if (Number.isFinite(ts) && want && Math.abs(ts - want) < 90_000) return text;   // same packet
     } catch (e) { /* next mirror */ }
   }
-  throw new Error('no mirror served the packet');
+  if (!got.length) throw new Error('no mirror served the packet');
+  const newest = got.filter(g => Number.isFinite(g.ts)).sort((a, b) => b.ts - a.ts)[0];
+  if (newest) return newest.text;            // closest available, and the flash names its stamp
+  return got[0].text;
 }
 function flash(msg, bad) {
   const el = $('copyState');
