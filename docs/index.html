@@ -23,6 +23,15 @@
   #age.warn{background:#2e2410;color:var(--warn)}
   #age.bad{background:#301616;color:var(--dn)}
   .ts{color:var(--dim);font-size:11px}
+  .pxwrap{text-align:right;line-height:1.15}
+  #live{font-size:26px;font-weight:600;letter-spacing:-.5px}
+  #live.frozen{color:var(--dim)}
+  #pkt{font-size:10px;color:var(--dim);letter-spacing:.02em}
+  #pkt.stale{color:var(--warn)}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--up);
+       margin-right:5px;animation:pulse 2.4s ease-in-out infinite;vertical-align:middle}
+  .dot.off{background:#3a4a5c;animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .actions{margin-top:9px;gap:8px;align-items:center}
   button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:5px;
     padding:5px 10px;font:inherit;font-size:11px;letter-spacing:.04em;cursor:pointer;
@@ -80,7 +89,10 @@
     <span id="age">loading…</span>
     <span class="ts" id="ts"></span>
     <span class="spacer"></span>
-    <span id="price">—</span>
+    <span class="pxwrap">
+      <span id="live"><span class="dot" id="dot"></span>—</span>
+      <div id="pkt">packet loading…</div>
+    </span>
   </div>
   <div id="state" class="ok">connecting…</div>
   <div class="row actions">
@@ -152,7 +164,37 @@ const money = (v, d = 0) => (v === null || v === undefined) ? '—'
 const signed = (v, d = 1) => (v === null || v === undefined) ? '—'
   : (v > 0 ? '+' : '') + fmt(v, d);
 const cls = v => (v === null || v === undefined) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
-let generated = null;
+let generated = null, packetPrice = null, liveOK = false;
+
+// The packet is a snapshot — it only changes when the workflow publishes one. A price that
+// sits still reads as "broken site", so the big number is a live public ticker and the
+// snapshot stays labelled underneath, always with its timestamp.
+async function tickLive() {
+  const tries = [
+    ['https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', j => ({p: +j.price, src: 'BIN'})],
+    ['https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT', j => ({p: +j.data[0].last, src: 'OKX'})],
+  ];
+  for (const [url, pick] of tries) {
+    try {
+      const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), {cache: 'no-store'});
+      if (!r.ok) continue;
+      const {p, src} = pick(await r.json());
+      if (!p || !isFinite(p)) continue;
+      $('live').innerHTML = `<span class="dot"></span>$${fmt(p)}`;
+      $('dot').className = 'dot';
+      liveOK = true;
+      const drift = packetPrice ? (p / packetPrice - 1) * 100 : null;
+      const stamp = new Date().toISOString().slice(11, 16);
+      $('pkt').innerHTML = `live ${stamp}Z ${src}${packetPrice ? ` · packet ${money(packetPrice)} @ ${sgtTime(generated)} SGT` : ''}`;
+      $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
+      return;
+    } catch (e) { /* next venue */ }
+  }
+  liveOK = false;
+  $('live').innerHTML = packetPrice ? '$' + fmt(packetPrice) : '—';
+  $('dot').className = 'dot off';
+  $('pkt').textContent = packetPrice ? `packet ${money(packetPrice)} · live ticker unavailable` : 'no data';
+}
 const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
 const parseStamp = s => { const d = new Date(String(s).trim().replace(' ', 'T').replace(/Z$/, 'Z')); return isNaN(d) ? null : d; };
 const stampDual = s => { const d = parseStamp(s); return d ? `${String(s).replace('Z','')} UTC · ${sgtTime(d)} SGT` : String(s || ''); };
@@ -208,7 +250,9 @@ function cvdRow(label, s, p, maxAbs) {
 function render(d) {
   generated = new Date(d.generated_at_utc || d.generated || Date.now());
   const price = d.price ?? null;
-  $('price').textContent = price ? '$' + fmt(price) : '—';
+  packetPrice = price;
+  $('pkt').textContent = price ? `packet ${money(price)} · ${sgtTime(generated)} SGT` : 'packet —';
+  if (!liveOK) { $('live').innerHTML = (price ? '$' + fmt(price) : '—'); $('dot').className = 'dot off'; }
   $('ts').textContent = isNaN(generated) ? '' : `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`;
 
   const state = d.exec_state || (d.perp_cvd_ok ? 'FULL' : 'PARTIAL');
@@ -364,7 +408,8 @@ $('copy').addEventListener('click', async () => {
 });
 setInterval(paintAge, 15000);
 setInterval(load, 60000);
-load();
+setInterval(tickLive, 15000);
+load().then(tickLive);
 </script>
 </body>
 </html>
