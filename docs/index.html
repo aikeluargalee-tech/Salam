@@ -358,11 +358,31 @@ function paintAge() {
   el.className = h > 6 ? 'bad' : h > 1.5 ? 'warn' : '';
 }
 
+// GitHub Pages serves a 10-minute-old copy from its CDN even with a cache-busting query.
+// So read three mirrors concurrently and take whichever carries the newest generated_at —
+// never the first that answers, which is how a stale packet sneaks through.
+const SOURCES = [
+  'https://raw.githubusercontent.com/aikeluargalee-tech/Salam/master/SALAM_DATA_HUB.json',
+  'https://cdn.jsdelivr.net/gh/aikeluargalee-tech/Salam@master/SALAM_DATA_HUB.json',
+  'SALAM_DATA_HUB.json'
+];
+async function freshestJSON() {
+  const tries = SOURCES.map(async u => {
+    const sep = u.includes('?') ? '&' : '?';
+    const r = await fetch(u + sep + 'now=' + Date.now(), {cache: 'no-store'});
+    if (!r.ok) throw new Error(u + ' HTTP ' + r.status);
+    const j = await r.json();
+    if (!j.generated_at_utc) throw new Error(u + ' has no timestamp');
+    return {j, ts: Date.parse(j.generated_at_utc)};
+  });
+  const settled = await Promise.allSettled(tries);
+  const ok = settled.filter(x => x.status === 'fulfilled').map(x => x.value).sort((a, b) => b.ts - a.ts);
+  if (!ok.length) throw new Error('all mirrors failed');
+  return ok[0].j;
+}
 async function load() {
   try {
-    const r = await fetch('SALAM_DATA_HUB.json?t=' + Date.now(), {cache: 'no-store'});
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    render(await r.json());
+    render(await freshestJSON());
     $('lmd').href = 'SALAM_DATA_HUB.md?t=' + Date.now();
     $('ljson').href = 'SALAM_DATA_HUB.json?t=' + Date.now();
   } catch (e) {
@@ -377,9 +397,17 @@ $('ver').textContent = ' v1.6';
 // copy the canonical packet, not the rendered page: one paste block for any model,
 // and it can never drift from what the script actually published
 async function packetText() {
-  const r = await fetch('SALAM_DATA_HUB.md?t=' + Date.now(), {cache: 'no-store'});
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return await r.text();
+  const md = [
+    'https://raw.githubusercontent.com/aikeluargalee-tech/Salam/master/SALAM_DATA_HUB.md',
+    'SALAM_DATA_HUB.md'
+  ];
+  for (const u of md) {
+    try {
+      const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'now=' + Date.now(), {cache: 'no-store'});
+      if (r.ok) return await r.text();
+    } catch (e) { /* next mirror */ }
+  }
+  throw new Error('no mirror served the packet');
 }
 function flash(msg, bad) {
   const el = $('copyState');
