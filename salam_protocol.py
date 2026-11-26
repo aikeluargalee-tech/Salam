@@ -409,7 +409,7 @@ def collect() -> tuple[dict, list[str]]:
 
 # ──────────────────────────────── compute ─────────────────────────────────
 def analyse(d: dict) -> dict:
-    out: dict = {"problems": d["problems"]}
+    out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE")}
     price = d["price"]
     out["price"] = price
     if not d["d1"] or price is None:
@@ -534,7 +534,9 @@ def render(a: dict) -> str:
                  "Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the "
                  "funding percentile uses OKX's last 100 readings (~33 days), not 90.")
     L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H"
-             f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}")
+             + (f" | percentile (100 pts): {f(a.get('funding_pct90'), 0)}"
+                if a.get("deriv_src") == "OKX"
+                else f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}"))
     L.append("")
 
     L.append("## 4. THE TRIGGER")
@@ -552,8 +554,10 @@ def render(a: dict) -> str:
                  f" | 5D: ${etf['five_day_m']:,.1f}M")
     else:
         L.append("*   **ETF Net Flow:** UNAVAILABLE (Farside unreachable or no settled row)")
-    L.append(f"*   **Funding percentile:** {f(a.get('funding_pct90'), 0)} of 90 days"
-             + ("  <- tail" if (a.get("funding_pct90") or 0) >= 95 else ""))
+    okx_src = a.get("deriv_src") == "OKX"
+    L.append(f"*   **Funding percentile:** {f(a.get('funding_pct90'), 0)}"
+             + (" of the last 100 readings (~33 days, OKX)" if okx_src else " of 90 days")
+             + ("  <- tail" if ((a.get("funding_pct90") or 0) >= 95 and not okx_src) else ""))
     L.append("")
 
     if a["problems"]:
