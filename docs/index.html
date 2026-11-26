@@ -382,19 +382,29 @@ function render(d) {
     const bullSweep = swept && /BULL/i.test(flag);
     const bearSweep = swept && /BEAR/i.test(flag);
     const rows = [];
+    const trimEdge = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
+    const gap = (isNum(price) && isNum(trimEdge)) ? (trimEdge / price - 1) * 100 : null;
+    rows.push(`<div class="rrow"><span class="rkey">Now</span><span class="rval">${
+      bullSweep
+        ? '<b>A buy setup is armed</b> — see Rail B below.'
+        : (gap !== null && gap <= 0)
+          ? `<b>Price is inside the trim zone</b> (${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}) — this is where Rail A sells. Buying still needs a sweep that closes back inside first.`
+          : `Nothing to do at ${money(price)}. ${
+              gap === null ? 'No trim zone in this packet.'
+                : `Selling needs price <b>${gap.toFixed(1)}% higher</b>, at ${fmt(trimEdge)}.`} Buying needs a sweep that closes back inside first.`}</span></div>`);
     rows.push(`<div class="rrow"><span class="rkey">Route</span><span class="rval">${
       below ? `<b>Macro downtrend</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below the 200D SMA`
             : `<b>Above the 200D SMA</b> — the drawdown filter is not active`}</span></div>`);
     rows.push(`<div class="rrow"><span class="rkey">Rail A</span><span class="rval">${
       d.res_band
-        ? `<b>Trim</b> into <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
+        ? `<b>Sell BTC into USDT</b> at <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
         : 'No resistance band in this packet — nothing to trim into.'}</span></div>`);
     rows.push(`<div class="rrow"><span class="rkey">Rail B</span><span class="rval">${
       bullSweep
-        ? `<b>Buy · armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
+        ? `<b>Buy BTC with USDT · armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
         : bearSweep
-          ? `<b>Buy · shut.</b> The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
-          : `<b>Buy · restricted.</b> No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
+          ? `<b>Buy BTC with USDT · shut.</b> The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
+          : `<b>Buy BTC with USDT · restricted.</b> No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
     rows.push(`<div class="rrow"><span class="rkey">Risk</span><span class="rval">Stop distance
       <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b>
       · risk 0.75% of portfolio across that stop · skip the trade if the size exceeds 30% of the USDT side.</span></div>`);
