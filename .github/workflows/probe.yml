@@ -1,26 +1,25 @@
-name: probe (temporary)
-on: workflow_dispatch:
+name: probe
+on:
+  workflow_dispatch:
+
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: which endpoints answer from a US runner
+      - name: reachability
         run: |
-          for u in \
-            "https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT" \
-            "https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT" \
-            "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT" \
-            "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP" \
-            "https://api.deribit.com/api/v2/public/get_index_price?index_name=btc_usd" \
-            "https://api.coingecko.com/api/v3/derivatives" \
-            "https://api.kraken.com/0/public/Ticker?pair=XBTUSD" \
-            "https://futures.kraken.com/derivatives/api/v3/tickers" \
-            "https://api.hyperliquid.xyz/info" \
-            "https://api.bitget.com/api/v2/mix/market/ticker?symbol=BTCUSDT&productType=usdt-futures" \
-            "https://api.gateio.ws/api/v4/futures/usdt/contracts/BTC_USDT" \
-            "https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&count=1&reverse=true" \
-            "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/derivatives?slug=bitcoin" \
-            ; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "$u")
-            echo "$code  $u"
-          done
+          set +e
+          probe () { code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "$1"); echo "RESULT $code $2"; }
+          probe "https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT" "binance-spot"
+          probe "https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT" "binance-futures"
+          probe "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT" "bybit"
+          probe "https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP" "okx"
+          probe "https://api.deribit.com/api/v2/public/get_index_price?index_name=btc_usd" "deribit"
+          probe "https://api.coingecko.com/api/v3/derivatives" "coingecko-derivatives"
+          probe "https://api.kraken.com/0/public/Ticker?pair=XBTUSD" "kraken-spot"
+          probe "https://futures.kraken.com/derivatives/api/v3/tickers" "kraken-futures"
+          probe "https://api.bitget.com/api/v2/mix/market/ticker?symbol=BTCUSDT&productType=usdt-futures" "bitget"
+          probe "https://api.gateio.ws/api/v4/futures/usdt/contracts/BTC_USDT" "gateio"
+          probe "https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&count=1&reverse=true" "bitmex"
+          probe "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/derivatives?slug=bitcoin" "cmc-derivatives"
+          probe "https://api.hyperliquid.xyz/info" "hyperliquid"
