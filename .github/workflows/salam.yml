@@ -25,6 +25,9 @@ jobs:
           python-version: '3.11'
 
       # No pip install: the script is standard library only.
+      - name: Self-tests (maths + cross-venue agreement)
+        run: python3 salam_protocol.py --selftest
+
       - name: Build the Salam packet
         run: python3 salam_protocol.py --json
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.0 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.1 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -35,7 +35,10 @@ BAND_WIDTH_ATR = 0.35      # tactical band width, in 1D ATR
 MACRO_LOOKBACK = 500       # 1D bars for macro S/R
 MACRO_PIVOT_K = 2          # fractal width for macro pivots
 MACRO_CLUSTER_PCT = 0.01   # 1% clustering width
-LIQ_SHARE = 0.05           # [MODELED] assumed share of OI sitting in one leverage cluster
+LIQ_WEIGHTS = ((10, 0.40), (25, 0.30), (50, 0.20), (100, 0.10))   # [MODELED] OI share per tier
+LIQ_OVERLAY_PCT = 0.005    # a liq cluster "overlaps" a level when within 0.5%
+RISK_PCT = 0.0075          # binding arithmetic handed to the execution prompt
+MAX_POS_PCT_OF_USDT = 0.30
 
 
 # ─────────────────────────────── transport ────────────────────────────────
@@ -151,9 +154,22 @@ def volume_profile(bars: list[dict], bins: int = 60, value_area: float = 0.70) -
         else:
             span[0] -= 1
             covered += left
+    centers = [lo + (i + 0.5) * step for i in range(bins)]
     return {"poc": lo + (poc_i + 0.5) * step,
             "val": lo + span[0] * step,
-            "vah": lo + (span[1] + 1) * step}
+            "vah": lo + (span[1] + 1) * step,
+            "hist": hist, "centers": centers, "peak": max(hist), "bars": len(bars)}
+
+
+def hvn_nearest(vp: dict | None, price: float, share: float = 0.60):
+    """Nearest high-volume node: a bin holding >= share of the POC's volume."""
+    if not vp or not vp.get("peak"):
+        return None
+    hits = [c for c, h in zip(vp["centers"], vp["hist"]) if h >= share * vp["peak"]]
+    above = [c for c in hits if c > price]
+    below = [c for c in hits if c < price]
+    return {"above": min(above) if above else None,
+            "below": max(below) if below else None}
 
 
 def tactical_bands(h4: list[dict], atr1d: float, price: float) -> tuple[list[dict], dict | None]:
@@ -179,7 +195,7 @@ def tactical_bands(h4: list[dict], atr1d: float, price: float) -> tuple[list[dic
 
 
 def confluence(band: dict, vp: dict | None) -> tuple[int, list[str]]:
-    """Max 10: +4 POC, +3 VAH or VAL, +3 round-1000 level."""
+    """Max 10: +4 POC, +3 VAH or VAL, +3 round-1000 level. vp must be the 7D profile."""
     score, why = 0, []
     if vp:
         if band["low"] <= vp["poc"] <= band["high"]:
@@ -201,18 +217,31 @@ def cvd(bars: list[dict], n_bars: int) -> float | None:
     return sum(2 * b["taker_buy"] - b["v"] for b in bars[-n_bars:])
 
 
-def sweep(h1: list[dict], support: dict | None, resistance: dict | None) -> dict:
-    """Last 6 closed 1H bars against the nearest band on each side."""
-    recent = h1[-6:]
-    for b in reversed(recent):
+def sweep(h1: list[dict], support: dict | None, resistance: dict | None,
+          macro_sup: list | None = None, macro_res: list | None = None) -> dict:
+    """Last 6 closed 1H bars, newest first: macro levels are checked before tactical bands."""
+    def stamp(b):
+        return datetime.fromtimestamp(b["open_time"] / 1000, timezone.utc).strftime("%Y-%m-%d %H:%MZ")
+
+    for b in reversed(h1[-6:]):
+        for c in (macro_sup or []):                       # macro support swept and reclaimed
+            if c["touches"] < 2:
+                continue
+            lv = c["center"]
+            if b["l"] < lv and b["c"] > lv:
+                return {"flag": "MACRO BULLISH SWEEP", "level": lv, "at": stamp(b),
+                        "touches": c["touches"]}
+        for c in (macro_res or []):
+            if c["touches"] < 2:
+                continue
+            lv = c["center"]
+            if b["h"] > lv and b["c"] < lv:
+                return {"flag": "MACRO BEARISH SWEEP", "level": lv, "at": stamp(b),
+                        "touches": c["touches"]}
         if support and b["l"] < support["low"] and b["c"] > support["low"]:
-            return {"flag": "BULLISH SWEEP", "level": support["low"],
-                    "at": datetime.fromtimestamp(b["open_time"] / 1000, timezone.utc)
-                            .strftime("%Y-%m-%d %H:%MZ")}
+            return {"flag": "BULLISH SWEEP", "level": support["low"], "at": stamp(b)}
         if resistance and b["h"] > resistance["high"] and b["c"] < resistance["high"]:
-            return {"flag": "BEARISH SWEEP", "level": resistance["high"],
-                    "at": datetime.fromtimestamp(b["open_time"] / 1000, timezone.utc)
-                            .strftime("%Y-%m-%d %H:%MZ")}
+            return {"flag": "BEARISH SWEEP", "level": resistance["high"], "at": stamp(b)}
     return {"flag": "NONE", "level": None, "at": None}
 
 
@@ -421,13 +450,19 @@ def analyse(d: dict) -> dict:
     out["atr1d"] = atr1d
     out["sma200"] = sma(closes, 200)
     out["vp30"] = volume_profile(d["d1"][-30:])
+    out["vp7"] = volume_profile(d["d1"][-7:])
+    out["vp4h"] = volume_profile(d["h4"][-30:]) if len(d["h4"]) >= 30 else None
+    out["hvn7"] = hvn_nearest(out["vp7"], price)
+    out["atr1h"] = atr_wilder(d["h1"], 14) if len(d["h1"]) > 16 else None
 
     highs, lows = pivots(d["d1"], MACRO_PIVOT_K)
     clusters = cluster(highs + lows, MACRO_CLUSTER_PCT)
-    res = sorted([c for c in clusters if c["center"] > price], key=lambda c: -c["touches"])[:3]
-    sup = sorted([c for c in clusters if c["center"] < price], key=lambda c: -c["touches"])[:3]
-    out["macro_res"] = sorted(res, key=lambda c: c["center"])
-    out["macro_sup"] = sorted(sup, key=lambda c: -c["center"])
+    # nearest 3 by distance — touch count is kept as context but no longer ranks the list
+    noise = price * 0.0025          # a cluster this close is "at price", not a level to trade
+    out["macro_res"] = sorted([c for c in clusters if c["center"] > price + noise],
+                              key=lambda c: c["center"])[:3]
+    out["macro_sup"] = sorted([c for c in clusters if c["center"] < price - noise],
+                              key=lambda c: -c["center"])[:3]
 
     bands, inside = tactical_bands(d["h4"], atr1d, price) if (d["h4"] and atr1d) else ([], None)
     if inside:                      # never offer a "next" band that overlaps the one we are in
@@ -440,11 +475,12 @@ def analyse(d: dict) -> dict:
     res_band = min(above, key=lambda b: b["low"]) if above else None
     for b in (sup_band, res_band):
         if b:
-            b["score"], b["why"] = confluence(b, out["vp30"])
+            b["score"], b["why"] = confluence(b, out["vp7"])
     out["sup_band"], out["res_band"], out["inside_band"] = sup_band, res_band, inside
     out["bands"] = bands
 
-    out["sweep"] = sweep(d["h1"], sup_band, res_band) if d["h1"] else {"flag": "UNAVAILABLE"}
+    out["sweep"] = sweep(d["h1"], sup_band, res_band, out["macro_sup"], out["macro_res"]) \
+        if d["h1"] else {"flag": "UNAVAILABLE"}
 
     out["cvd_spot"] = {"1h": cvd(d["h1"], 1), "4h": cvd(d["h1"], 4), "24h": cvd(d["h1"], 24)}
     out["cvd_perp"] = {"1h": cvd(d["fh1"], 1), "4h": cvd(d["fh1"], 4), "24h": cvd(d["fh1"], 24)}
@@ -452,14 +488,31 @@ def analyse(d: dict) -> dict:
     out["funding"], out["funding_pct90"], out["ls_ratio"] = d["funding"], d["funding_pct90"], d["ls_ratio"]
     out["etf"] = d["etf"]
 
+    if d.get("liq_upper") is not None:
+        pass
+
     if d["oi_btc"] and price:
         oi_usd_m = d["oi_btc"] * price / 1e6
-        pool = oi_usd_m * LIQ_SHARE
         out["oi_usd_m"] = oi_usd_m
-        out["liq_upper"] = [{"lev": lev, "price": price * (1 + 1 / lev), "usd_m": pool}
-                            for lev in (10, 25, 50, 100)]
-        out["liq_lower"] = [{"lev": lev, "price": price * (1 - 1 / lev), "usd_m": pool}
-                            for lev in (10, 25, 50, 100)]
+        out["liq_upper"] = [{"lev": lev, "price": price * (1 + 1 / lev), "usd_m": oi_usd_m * w}
+                            for lev, w in LIQ_WEIGHTS]
+        out["liq_lower"] = [{"lev": lev, "price": price * (1 - 1 / lev), "usd_m": oi_usd_m * w}
+                            for lev, w in LIQ_WEIGHTS]
+    # ── layer 4: liquidation overlay on every level we publish ──
+    def overlay(target: float):
+        for c in out.get("liq_upper") or []:
+            if target and abs(c["price"] - target) / target <= LIQ_OVERLAY_PCT:
+                return ("Shorts", c["usd_m"])
+        for c in out.get("liq_lower") or []:
+            if target and abs(c["price"] - target) / target <= LIQ_OVERLAY_PCT:
+                return ("Longs", c["usd_m"])
+        return None
+
+    for b in (out.get("sup_band"), out.get("res_band")):
+        if b:
+            b["liq"] = overlay(b["center"])
+    for c in out.get("macro_res", []) + out.get("macro_sup", []):
+        c["liq"] = overlay(c["center"])
     return out
 
 
@@ -474,80 +527,133 @@ def band_txt(b: dict | None) -> str:
     return f"{b['low']:,.0f}-{b['high']:,.0f}"
 
 
+def tag(a: dict) -> str:
+    return "[OKX]" if a.get("deriv_src") == "OKX" else "[BIN]"
+
+
+def liq_txt(x) -> str:
+    if not x:
+        return ""
+    side, usd = x
+    return f" [+${usd:,.0f}M {side}]"
+
+
+def vp_txt(vp: dict | None, style: str) -> str:
+    if not vp:
+        return "UNAVAILABLE"
+    if style == "full":
+        return f"VAH {vp['vah']:,.0f} · POC {vp['poc']:,.0f} · VAL {vp['val']:,.0f}"
+    return f"VAH: {vp['vah']:,.0f} | POC: {vp['poc']:,.0f} | VAL: {vp['val']:,.0f}"
+
+
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.0\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.1\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
+    inside = a.get("inside_band")
     sw = a.get("sweep") or {}
-    vp = a.get("vp30") or {}
     etf = a.get("etf") or {}
     up, lo = a.get("liq_upper") or [], a.get("liq_lower") or []
+    hvn = a.get("hvn7") or {}
+    V = tag(a)
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.0")
-    L.append(f"**Timestamp:** {now} | **Spot Price:** ${f(p)}")
+    L.append("# SALAM PROTOCOL DATA HUB v1.1")
+    L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
     L.append("")
 
-    L.append("## 1. THE ANCHOR (S/R & Volume)")
-    inside = a.get("inside_band")
-    L.append("*   **Tactical Bands:** Current: "
-             + (f"inside {band_txt(inside)}" if inside else "between bands")
-             + f" | Next Upper: {band_txt(rb)} (Conf: {rb['score'] if rb else 'UNAVAILABLE'})"
-             + f" | Next Lower: {band_txt(sb)} (Conf: {sb['score'] if sb else 'UNAVAILABLE'})")
-    mr = a.get("macro_res") or []
-    ms = a.get("macro_sup") or []
-    L.append("*   **Macro S/R (500-bar):** 1D Resistance: "
-             + (", ".join(f"${c['center']:,.0f} ({c['touches']}x)" for c in mr) or "UNAVAILABLE")
-             + " | 1D Support: "
-             + (", ".join(f"${c['center']:,.0f} ({c['touches']}x)" for c in ms) or "UNAVAILABLE"))
-    L.append(f"*   **Volume Profile (30D):** VAH: {f(vp.get('vah'), 0)} | POC: {f(vp.get('poc'), 0)}"
-             f" | VAL: {f(vp.get('val'), 0)}")
-    L.append(f"*   **200 SMA:** 1D: {f(a.get('sma200'), 0)}")
+    # ── 1. Deep S/R matrix ──
+    L.append("## 1. THE ANCHOR (Deep S/R Matrix)")
+    L.append(f"*   **Current Price:** ${p:,.0f} (1D SMA200 {f(a.get('sma200'), 0)})")
+    L.append("*   **Tactical Bands:**")
+    if rb:
+        L.append(f"    *   Upper: ${rb['low']:,.0f} - ${rb['high']:,.0f} "
+                 f"(Conf: {rb.get('score', 0)}/10){liq_txt(rb.get('liq'))}")
+    else:
+        L.append("    *   Upper: UNAVAILABLE")
+    if sb:
+        L.append(f"    *   Lower: ${sb['low']:,.0f} - ${sb['high']:,.0f} "
+                 f"(Conf: {sb.get('score', 0)}/10){liq_txt(sb.get('liq'))}")
+    else:
+        L.append("    *   Lower: UNAVAILABLE")
+    if inside:
+        L.append(f"    *   Price is inside ${inside['low']:,.0f} - ${inside['high']:,.0f}"
+                 f"{liq_txt(inside.get('liq'))}")
+
+    L.append("*   **Macro S/R (Nearest 3):**")
+    mr, ms = a.get("macro_res") or [], a.get("macro_sup") or []
+    L.append("    *   Resistance: " + (", ".join(
+        f"${c['center']:,.0f} ({c['touches']}x){liq_txt(c.get('liq'))}" for c in mr) or "UNAVAILABLE"))
+    L.append("    *   Support: " + (", ".join(
+        f"${c['center']:,.0f} ({c['touches']}x){liq_txt(c.get('liq'))}" for c in ms) or "UNAVAILABLE"))
+
+    hvn_bit = "UNAVAILABLE"
+    if hvn.get("above") or hvn.get("below"):
+        parts = []
+        if hvn.get("below"):
+            parts.append(f"${hvn['below']:,.0f} below")
+        if hvn.get("above"):
+            parts.append(f"${hvn['above']:,.0f} above")
+        hvn_bit = " · ".join(parts)
+    L.append(f"*   **Volume Nodes (7D):** {vp_txt(a.get('vp7'), 'inline')} | Nearest HVN: {hvn_bit}")
+    L.append(f"*   **Volume Profile (MTF):** 30D {vp_txt(a.get('vp30'), 'full')}")
+    L.append(f"    *   4H (last 30 bars): {vp_txt(a.get('vp4h'), 'full')}")
     L.append("")
 
+    # ── 2. Liq magnets, weighted tiers ──
     L.append("## 2. THE FUEL (Liquidation Magnets) [MODELED]")
     if up and lo:
-        L.append("*   **Upper Shorts (10x/25x/50-100x):** "
-                 + " / ".join(f"{c['lev']}x ${c['price']:,.0f} (${c['usd_m']:.1f}M)" for c in up))
-        L.append("*   **Lower Longs (10x/25x/50-100x):** "
-                 + " / ".join(f"{c['lev']}x ${c['price']:,.0f} (${c['usd_m']:.1f}M)" for c in lo))
-        L.append(f"    *Levels are exact leverage arithmetic; the $M is OI ${a['oi_usd_m']:.1f}M "
-                 f"x {LIQ_SHARE:.0%} assumed share per tier — not observed liquidation data.*")
+        wdesc = " / ".join(f"{lev}x {w:.0%}" for lev, w in LIQ_WEIGHTS)
+        L.append(f"*   **OI weighting (assumed):** {wdesc} of open interest")
+        L.append("*   **Upper Shorts:** " + " / ".join(
+            f"{c['lev']}x ${c['price']:,.0f} (${c['usd_m']:,.1f}M)" for c in up))
+        L.append("*   **Lower Longs:** " + " / ".join(
+            f"{c['lev']}x ${c['price']:,.0f} (${c['usd_m']:,.1f}M)" for c in lo))
+        L.append(f"    *Levels are exact leverage arithmetic. The $ per tier is OI "
+                 f"${a['oi_usd_m']:,.1f}M x the weights above, which assumes the whole open "
+                 f"interest sits in these four tiers — not observed liquidation data.*")
     else:
         L.append("*   **Upper Shorts:** UNAVAILABLE (no open interest)")
         L.append("*   **Lower Longs:** UNAVAILABLE (no open interest)")
     if a.get("ls_ratio") is not None:
-        L.append(f"*   **Long/Short account ratio (4H):** {a['ls_ratio']:.2f}")
+        L.append(f"*   **Long/Short account ratio (4H):** {a['ls_ratio']:.2f} {V}")
     L.append("")
 
+    # ── 3. Order flow ──
     L.append("## 3. THE TRUTH (Order Flow)")
     cs, cp = a.get("cvd_spot") or {}, a.get("cvd_perp") or {}
-    L.append(f"*   **CVD (Spot/Perp):** 1H: {f(cs.get('1h'), 1)} / {f(cp.get('1h'), 1)}"
+    L.append(f"*   **CVD (Spot [BIN] / Perp {V}):** "
+             f"1H: {f(cs.get('1h'), 1)} / {f(cp.get('1h'), 1)}"
              f" | 4H: {f(cs.get('4h'), 1)} / {f(cp.get('4h'), 1)}"
              f" | 24H: {f(cs.get('24h'), 1)} / {f(cp.get('24h'), 1)}")
-    L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC"
+    L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC {V}"
              f" | 4H Change: {f(a.get('oi_4h_chg'), 2)}% | 24H Change: {f(a.get('oi_24h_chg'), 2)}%")
     if a.get("deriv_src") == "OKX":
         L.append("*   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and "
                  "Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the "
-                 "funding percentile uses OKX's last 100 readings (~33 days), not 90.")
-    L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H"
+                 "funding percentile uses its last 100 readings (~33 days), not 90.")
+    L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H {V}"
              + (f" | percentile (100 pts): {f(a.get('funding_pct90'), 0)}"
                 if a.get("deriv_src") == "OKX"
                 else f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}"))
+    L.append(f"*   **ATR 1H:** {f(a.get('atr1h'), 0)} (Rail B stop distance = 1.5 x this = "
+             f"{f((a.get('atr1h') or 0) * 1.5, 0)})")
     L.append("")
 
+    # ── 4. Trigger ──
     L.append("## 4. THE TRIGGER")
     if sw.get("flag") == "NONE":
-        L.append("*   **Sweep Status:** NONE (last 6 closed 1H bars stayed inside the bands)")
+        L.append("*   **Sweep Status:** NONE (no closed 1H bar beyond a level that closed back inside)")
     elif sw.get("flag") == "UNAVAILABLE":
         L.append("*   **Sweep Status:** UNAVAILABLE (no 1H bars)")
     else:
-        L.append(f"*   **Sweep Status:** {sw['flag']} at ${sw['level']:,.0f} ({sw['at']})")
+        extra = f" ({sw['touches']}x level)" if sw.get("touches") else ""
+        L.append(f"*   **Sweep Status:** {sw['flag']} at ${sw['level']:,.0f}{extra} ({sw['at']})")
     L.append("")
 
+    # ── 5. Macro veto ──
     L.append("## 5. MACRO VETO INPUTS")
     if etf:
         L.append(f"*   **ETF Net Flow:** 1D: ${etf['one_day_m']:,.1f}M ({etf['latest_date']}, settled)"
@@ -566,24 +672,34 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.0")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.1")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
     L.append("")
     L.append("**Core Methodology:**")
-    L.append("1. **The Anchor (S/R):** Extract tactical bands, Confluence Scores, and Macro S/R.")
-    L.append("2. **The Fuel (Liquidity):** Extract liquidation magnets. Overlap with S/R bands.")
-    L.append("3. **The Trigger (Order Flow):** Confirm trades using Spot vs Perp CVD, OI, and the "
-             "Sweep Detector.")
+    L.append("1. **The Anchor (S/R):** Extract tactical bands, Confluence Scores, Macro S/R and the "
+             "7D volume nodes. A level with a [+$ Shor/ Longs] overlay is where fuel sits.")
+    L.append("2. **The Fuel (Liquidity):** Overlap liquidation magnets with the levels above.")
+    L.append("3. **The Trigger (Order Flow):** Confirm with Spot vs Perp CVD, OI and the Sweep "
+             "Detector. A MACRO sweep outranks a tactical sweep.")
+    L.append("")
+    L.append("**Binding Arithmetic (not optional):**")
+    L.append(f"*   **Rail B stop loss = Entry - (1.5 x ATR 1H).** ATR 1H is printed in section 3; "
+             f"use it, do not invent a stop.")
+    L.append(f"*   **Risk per trade = {RISK_PCT:.2%} of portfolio.** Position size = "
+             f"(portfolio x {RISK_PCT:.2%}) / (entry - stop).")
+    L.append(f"*   **If that size exceeds {MAX_POS_PCT_OF_USDT:.0%} of the USDT inventory, skip the trade.**")
+    L.append("*   Rail A invalidation = the resistance band is closed above "
+             "(1 x ATR 1H beyond its high); never trim without one.")
     L.append("")
     L.append("**Execution Rules:**")
     L.append("*   **Rail B (USDT -> BTC):** Wait for price to sweep a Lower Long Liquidation Cluster "
-             "that overlaps with a Major Support Band. Confirm with a BULLISH SWEEP flag and positive "
-             "Spot CVD. Enter on the reclaim.")
+             "that overlaps with a Major Support level. Confirm with a BULLISH or MACRO BULLISH SWEEP "
+             "flag and positive Spot CVD. Enter on the reclaim.")
     L.append("*   **Rail A (BTC -> USDT):** Wait for price to rally into an Upper Short Liquidation "
-             "Cluster that overlaps with a Major Resistance Band. Confirm with a BEARISH SWEEP flag and "
-             "flat/negative Spot CVD. Trim BTC into USDT.")
+             "Cluster that overlaps with a Major Resistance level. Confirm with a BEARISH or MACRO "
+             "BEARISH SWEEP flag and flat/negative Spot CVD. Trim BTC into USDT.")
     L.append("")
     L.append("**Required Output Format:**")
     L.append("1. **Current Market State**")
@@ -599,13 +715,74 @@ def render(a: dict) -> str:
 
 
 # ────────────────────────────────── main ──────────────────────────────────
+def selftest() -> int:
+    """Offline maths assertions + one live cross-venue consistency check."""
+    fails: list[str] = []
+
+    def check(name: str, cond: bool, detail: str = ""):
+        print(("  PASS  " if cond else "  FAIL  ") + name + (f"  ({detail})" if detail else ""))
+        if not cond:
+            fails.append(name)
+
+    now = datetime.now(timezone.utc).timestamp() * 1000
+    bars = []
+    for i in range(60):                       # zig-zag so pivots exist, base near a round 1000
+        c = 1000.0 + i + (14.0 if i % 4 == 2 else -9.0 if i % 4 == 0 else 0.0)
+        bars.append({"open_time": int(now) - (40 - i) * 3_600_000, "o": c - 0.5, "h": c + 1.0,
+                     "l": c - 1.0, "c": c, "v": 10.0, "close_time": int(now) - (39 - i) * 3_600_000,
+                     "taker_buy": 6.0})
+    print("offline")
+    check("ATR is positive", (atr_wilder(bars, 14) or 0) > 0)
+    check("CVD = sum(2*taker_buy - volume)",
+          abs((cvd(bars, 4) or 0) - 4 * (2 * 6.0 - 10.0)) < 1e-9, f"{cvd(bars, 4)}")
+    vp = volume_profile(bars)
+    check("volume profile has POC/VAH/VAL", bool(vp) and vp["val"] <= vp["poc"] <= vp["vah"])
+    check("HVN returns a level", hvn_nearest(vp, vp["poc"]) is not None)
+    band = {"low": min(b["l"] for b in bars) - 5, "high": max(b["h"] for b in bars) + 5,
+            "center": vp["poc"]}
+    check("confluence maxes at 10 with POC+VA+round", confluence(band, vp)[0] == 10,
+          f"{confluence(band, vp)}")
+    cl = cluster([100.0, 100.5, 130.0], 0.01)
+    check("clustering merges within 1%", len(cl) == 2, f"{len(cl)} clusters")
+    hi, lo_ = pivots(bars, 2)
+    check("pivots found", len(hi) >= 1 and len(lo_) >= 1, f"{len(hi)} highs / {len(lo_)} lows")
+
+    print("live")
+    try:
+        binance = float(get_json(f"{SPOT}/ticker/price?symbol=BTCUSDT")["price"])
+        okx = float(get_json(f"{OKX}/api/v5/market/ticker?instId=BTC-USDT")["data"][0]["last"])
+        div = abs(binance - okx) / binance * 100
+        check("spot BIN vs OKX within 0.50%", div <= 0.5,
+              f"{binance:,.1f} vs {okx:,.1f} = {div:.3f}%")
+    except Exception as e:                                     # noqa: BLE001
+        print(f"  SKIP  spot cross-venue ({type(e).__name__})")
+
+    try:
+        oi, err = safe(lambda: float(get_json(
+            f"{FAPI}/fapi/v1/openInterest?symbol=BTCUSDT")["openInterest"]), "oi")
+        if err:
+            oi, err = safe(lambda: float(get_json(
+                f"{OKX}/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP"
+            )["data"][0]["oiCcy"]), "okx_oi")
+        check("open interest > 0", bool(oi) and oi > 0, f"{oi or 0:,.0f} BTC")
+    except Exception as e:                                     # noqa: BLE001
+        print(f"  SKIP  open interest ({type(e).__name__})")
+
+    print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED: ' + ', '.join(fails)}")
+    return 0 if not fails else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Salam Data Packet Protocol v1.0")
     ap.add_argument("--out", default=".", help="output directory (default: current)")
     ap.add_argument("--stdout", action="store_true", help="print instead of writing")
     ap.add_argument("--json", action="store_true", help="also write SALAM_DATA_HUB.json")
     ap.add_argument("--check", action="store_true", help="endpoint health only")
+    ap.add_argument("--selftest", action="store_true", help="assert maths + cross-venue agreement")
     args = ap.parse_args(argv)
+
+    if args.selftest:
+        return selftest()
 
     data, problems = collect()
     if args.check:

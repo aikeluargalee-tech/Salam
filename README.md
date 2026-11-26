@@ -12,7 +12,33 @@ python3 salam_protocol.py --check    # endpoint health only
 Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then read
 `SALAM_DATA_HUB.md` (or the Pages copy) on your phone.
 
-## Pinned definitions
+## Pinned definitions (v1.1)
+
+| Item | Definition |
+|---|---|
+| Confluence score (max 10) | scored on the **7D** profile: +4 if 7D POC inside the band · +3 if 7D VAH or VAL inside · +3 if a round-1000 level inside |
+| Tactical bands | 4H `k=2` fractal pivots, width `0.35 × ATR(14) 1D`, merged up to 1.6 widths |
+| Sweep detector | last 6 **closed** 1H bars, newest first: macro levels (2+ touches) checked before tactical bands; a reclaim of a macro level reads **MACRO BULLISH/BEARISH SWEEP** |
+| Macro S/R | 500 closed 1D bars, `k=2` pivots, 1% clustering, **nearest 3 by distance** each side (clusters within 0.25% of spot excluded as "at price") |
+| Liq ladder [MODELED] | levels exact: `price × (1 ± 1/leverage)`; $ per tier = OI$ × **10x 40% / 25x 30% / 50x 20% / 100x 10%** |
+| Liq overlay | a cluster within **0.5%** of a band or macro level is appended to that level as `[+$X M Shorts/Longs]` |
+| Volume nodes | 30D, 7D and 4H profiles; **nearest HVN** = nearest bin holding ≥60% of the POC's volume |
+| CVD | `Σ (2 × takerBuyBase − volume)` over the last 1/4/24 **closed** 1H bars, spot and perp separately |
+| Venue tags | every derivative value carries `[BIN]` or `[OKX]`; the venue is part of the number, not a footnote |
+| ETF flows | Farside table; a day counts only when its Total cell parses as a number |
+| Binding arithmetic | Rail B stop = entry − 1.5 × ATR 1H · risk 0.75% of portfolio · skip if size > 30% of USDT inventory |
+
+## Tests
+
+```bash
+python3 salam_protocol.py --selftest
+```
+
+Seven offline assertions (ATR, CVD formula, POC/VAH/VAL ordering, HVN, confluence = 10, 1%
+clustering, pivot detection) plus two live ones: **Binance vs OKX spot must agree within 0.50%**,
+and **open interest must be > 0**. Runs on every workflow dispatch before the packet is built.
+
+## Older definitions (v1.0, kept for reference)
 
 | Item | Definition |
 |---|---|
