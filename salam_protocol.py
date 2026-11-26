@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.5 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.5.1 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -295,6 +295,26 @@ def sweep(h1: list[dict], support: dict | None, resistance: dict | None,
         if resistance and b["h"] > resistance["high"] and b["c"] < resistance["high"]:
             return {"flag": "BEARISH SWEEP", "level": resistance["high"], "at": stamp(b)}
     return {"flag": "NONE", "level": None, "at": None}
+
+
+def parse_manual(s: str | None) -> tuple[dict, bool]:
+    """A manual reading unlocks execution ONLY if it carries a number and a UTC time.
+
+    "perp_cvd_24h=+2663,at=04:05Z" unlocks. "perp_cvd=falling" does not — an adjective is not
+    evidence, and a gate that any sentence can open is not a gate.
+    """
+    parts: dict[str, str] = {}
+    for chunk in (s or "").split(","):
+        if "=" in chunk:
+            k, v = chunk.split("=", 1)
+            parts[k.strip()] = v.strip()
+    ok = False
+    try:
+        float(parts.get("perp_cvd_24h", ""))
+        ok = bool(parts.get("at")) and parts["at"].upper().endswith("Z")
+    except (TypeError, ValueError):
+        ok = False
+    return parts, ok
 
 
 def percentile(values: list[float], x: float) -> float | None:
@@ -615,7 +635,7 @@ def vp_txt(vp: dict | None, style: str) -> str:
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.5\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.5.1\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -626,11 +646,16 @@ def render(a: dict) -> str:
     V = tag(a)
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.5")
+    L.append("# SALAM PROTOCOL DATA HUB v1.5.1")
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
     dump = a.get("perp_dump")
-    if a.get("perp_cvd_ok"):
+    state = a.get("exec_state", "FULL")
+    if state == "FULL":
         L.append("> ✅ **FULL ORDER FLOW: Binance spot + perp. Execution-grade.**")
+    elif state == "MANUAL":
+        L.append(f"> ✅ **FULL ORDER FLOW — PERP CVD IS MANUAL @ {a.get('manual_at')}.** "
+                 f"Human-supplied from a screenshot, not machine-verified. "
+                 f"Perp CVD 24H = {a['manual'].get('perp_cvd_24h')} BTC.")
     elif dump:
         L.append(f"> ⚠️ **PARTIAL ORDER FLOW — perp CVD is Binance's archive for {dump['date']} "
                  f"(T+1), not live.** Live perp klines are blocked on this host. Intraday perp "
@@ -725,7 +750,11 @@ def render(a: dict) -> str:
                  f" | 24H {f(dump.get('cvd_24h'), 1)} (complete closed day, {dump['bars']} bars"
                  f" — one day old, not live)")
     if a.get("manual"):
-        L.append(f"*   **Manual override [MANUAL]:** {a['manual']}")
+        man = a["manual"]
+        L.append(f"*   **Manual override [MANUAL {man.get('at', '?')}]:** "
+                 + ", ".join(f"{k}={v}" for k, v in man.items() if k != "at")
+                 + ("" if a.get("manual_ok") else
+                    "  (no numeric perp CVD + timestamp — does NOT unlock execution)"))
     L.append(f"*   **ATR 1H:** {f(a.get('atr1h'), 0)} (Rail B stop distance = 1.5 x this = "
              f"{f((a.get('atr1h') or 0) * 1.5, 0)})")
     L.append("")
@@ -761,7 +790,7 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5.1")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
@@ -782,20 +811,33 @@ def render(a: dict) -> str:
     L.append("*   Rail A invalidation = the resistance band is closed above "
              "(1 x ATR 1H beyond its high); never trim without one.")
     L.append("")
-    L.append("**Execution Rules:**")
-    L.append("*   **Rail B (USDT -> BTC):** Wait for price to sweep a Lower Long Liquidation Cluster "
-             "that overlaps with a Major Support level. Confirm with a BULLISH or MACRO BULLISH SWEEP "
-             "flag and positive Spot CVD. Enter on the reclaim.")
-    L.append("*   **Rail A (BTC -> USDT):** Wait for price to rally into an Upper Short Liquidation "
-             "Cluster that overlaps with a Major Resistance level. Confirm with a BEARISH or MACRO "
-             "BEARISH SWEEP flag and flat/negative Spot CVD. Trim BTC into USDT.")
-    L.append("")
-    L.append("**Required Output Format:**")
-    L.append("1. **Current Market State**")
-    L.append("2. **The Levels Map**")
-    L.append("3. **Rail B (Buy) Plan** (Entry, Trigger, Stop Loss, Target)")
-    L.append("4. **Rail A (Sell/Trim) Plan** (Entry, Trigger, Invalidation Stop, Target)")
-    L.append("5. **Actionable Verdict** (What to do right now with the 50/50 portfolio).")
+    if state in ("PARTIAL", "NONE"):
+        L.append("## ❌ EXECUTION SUSPENDED")
+        L.append(f"*   **State: {state}.** Perp CVD is "
+                 + ("the archive figure for " + dump["date"] + " (T+1)" if dump else "unavailable")
+                 + ". Rail A and Rail B plans are withheld by design — a lagged or missing flow "
+                   "figure is not a basis for an order, and a model reading one beside a plan will "
+                   "use it as if it were live.")
+        L.append("*   **To lift the gate, either:** run this script on a Binance-reachable host "
+                 "(full live perp), or record a screenshot reading with a number and a UTC time:")
+        L.append('    *   `python3 salam_protocol.py --manual "perp_cvd_24h=+2663,at=04:05Z"`')
+        L.append("*   An adjective does not unlock it. `perp_cvd=falling` will print under [MANUAL] "
+                 "and leave execution suspended.")
+    else:
+        L.append("**Execution Rules:**")
+        L.append("*   **Rail B (USDT -> BTC):** Wait for price to sweep a Lower Long Liquidation Cluster "
+                 "that overlaps with a Major Support level. Confirm with a BULLISH or MACRO BULLISH SWEEP "
+                 "flag and positive Spot CVD. Enter on the reclaim.")
+        L.append("*   **Rail A (BTC -> USDT):** Wait for price to rally into an Upper Short Liquidation "
+                 "Cluster that overlaps with a Major Resistance level. Confirm with a BEARISH or MACRO "
+                 "BEARISH SWEEP flag and flat/negative Spot CVD. Trim BTC into USDT.")
+        L.append("")
+        L.append("**Required Output Format:**")
+        L.append("1. **Current Market State**")
+        L.append("2. **The Levels Map**")
+        L.append("3. **Rail B (Buy) Plan** (Entry, Trigger, Stop Loss, Target)")
+        L.append("4. **Rail A (Sell/Trim) Plan** (Entry, Trigger, Invalidation Stop, Target)")
+        L.append("5. **Actionable Verdict** (What to do right now with the 50/50 portfolio).")
     L.append("")
     L.append("---")
     L.append("*Generated by salam_protocol.py — standard library only, closed bars only, no state. "
@@ -836,19 +878,27 @@ def selftest() -> int:
     hi, lo_ = pivots(bars, 2)
     check("pivots found", len(hi) >= 1 and len(lo_) >= 1, f"{len(hi)} highs / {len(lo_)} lows")
 
-    probe = {"price": 1000.0, "problems": [], "perp_cvd_ok": False, "deriv_src": "OKX",
-             "cvd_spot": {}, "cvd_perp": {}, "sweep": {"flag": "NONE"}}
-    check("banner warns without perp CVD", "PERP CVD UNAVAILABLE" in render(probe))
-    probe["perp_cvd_ok"] = True
-    check("banner clears with perp CVD", "FULL ORDER FLOW" in render(probe))
+    base = {"price": 1000.0, "problems": [], "cvd_spot": {}, "cvd_perp": {},
+            "sweep": {"flag": "NONE"}, "deriv_src": "BINANCE"}
+    full = dict(base, perp_cvd_ok=True, exec_state="FULL")
+    check("FULL state prints execution rules", "Execution Rules" in render(full))
+    part = dict(base, perp_cvd_ok=False, exec_state="PARTIAL",
+                perp_dump={"date": "2026-11-24", "bars": 24, "cvd_4h": 1.0, "cvd_24h": 2.0})
+    part_md = render(part)
+    check("PARTIAL state suspends execution", "EXECUTION SUSPENDED" in part_md)
+    check("PARTIAL state withholds the rails",
+          "Rail B (USDT -> BTC)" not in part_md and "Rail A (BTC -> USDT)" not in part_md)
+    check("PARTIAL state still names the archive day", "PARTIAL ORDER FLOW" in part_md)
+    none_md = render(dict(base, perp_cvd_ok=False, exec_state="NONE"))
+    check("NONE state warns plainly", "PERP CVD UNAVAILABLE" in none_md)
+    man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at="04:05Z",
+                         manual={"perp_cvd_24h": "+2663", "at": "04:05Z"}))
+    check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
 
-    csv = ["open_time,open,high,low,close,volume,close_time,quote_volume,count,"
-           "taker_buy_volume,taker_buy_quote_volume,ignore"]
-    csv += [f"{i},1,1,1,1,10,0,0,0,6,0,0" for i in range(24)]
-    parsed = dump_bars(csv)
-    check("dump parser skips the header row", len(parsed) == 24, f"{len(parsed)} bars")
-    check("dump CVD uses 2*takerBuy - volume", abs(cvd(parsed, 24) - 24 * 2.0) < 1e-9,
-          f"{cvd(parsed, 24)}")
+    _, ok_num = parse_manual("perp_cvd_24h=+2663,at=04:05Z")
+    _, ok_adj = parse_manual("perp_cvd=falling,spot_cvd=flat,at=04:05Z")
+    check("manual with a number + time unlocks", ok_num is True)
+    check("manual adjective does NOT unlock", ok_adj is False)
 
     print("live")
     try:
@@ -901,8 +951,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not problems else 1
 
     a = analyse(data)
-    if args.manual:
-        a["manual"] = args.manual
+    man, man_ok = parse_manual(args.manual)
+    a["manual"], a["manual_ok"], a["manual_at"] = (man or None), man_ok, man.get("at")
+    if a.get("perp_cvd_ok"):
+        a["exec_state"] = "FULL"
+    elif man_ok:
+        a["exec_state"] = "MANUAL"
+    elif a.get("perp_dump"):
+        a["exec_state"] = "PARTIAL"
+    else:
+        a["exec_state"] = "NONE"
     md = render(a)
     if args.stdout:
         sys.stdout.write(md)

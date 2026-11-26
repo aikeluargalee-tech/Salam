@@ -31,10 +31,27 @@ Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then r
 ## Order-flow states
 
 ```
-✅ FULL ORDER FLOW      live Binance spot + perp            run on a Binance-reachable host
-⚠️ PARTIAL ORDER FLOW   spot live, perp CVD from the archive for <date>, T+1
-⚠️ PERP CVD UNAVAILABLE archive has not published the day yet, or the host cannot reach it
+✅ FULL       live Binance spot + perp        run on a Binance-reachable host
+✅ MANUAL     perp CVD typed in from a screenshot with a number and a UTC time
+⚠️ PARTIAL    spot live, perp CVD from the archive for <date>, T+1
+⚠️ NONE       archive has not published the day yet, or the host cannot reach it
 ```
+
+**PARTIAL and NONE hard-gate the execution block.** The packet still prints levels, flow and the
+binding arithmetic, but the Rail A / Rail B rules and the required output format are replaced by
+
+```
+## ❌ EXECUTION SUSPENDED
+```
+
+To lift it: run on a Binance-reachable host, or supply a manual reading that carries evidence —
+
+```bash
+python3 salam_protocol.py --manual "perp_cvd_24h=+2663,at=04:05Z"     # unlocks
+python3 salam_protocol.py --manual "perp_cvd=falling"                 # prints, does NOT unlock
+```
+
+An adjective is not a measurement, and a gate any sentence can open is not a gate.
 
 ## Host banner
 
