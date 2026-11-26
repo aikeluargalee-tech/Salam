@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 02:12:34 UTC | **Spot Price:** $60,930.17
+**Timestamp:** 2026-11-26 02:13:39 UTC | **Spot Price:** $60,913.89
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
