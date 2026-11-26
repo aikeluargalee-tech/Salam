@@ -134,7 +134,8 @@
 const $ = id => document.getElementById(id);
 const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v))
   ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
-const money = (v, d = 0) => (v === null || v === undefined) ? '—' : '$' + fmt(v, d);
+const money = (v, d = 0) => (v === null || v === undefined) ? '—'
+  : (v < 0 ? '-$' + fmt(Math.abs(v), d) : '$' + fmt(v, d));
 const signed = (v, d = 1) => (v === null || v === undefined) ? '—'
   : (v > 0 ? '+' : '') + fmt(v, d);
 const cls = v => (v === null || v === undefined) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
