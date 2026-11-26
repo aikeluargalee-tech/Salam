@@ -324,7 +324,7 @@ function render(d) {
     stat('L/S', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—',
          `<span class="dimv">${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
     stat('ETF 1D', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
-         `<span class="dimv">${etf.latest_date ? esc(etf.latest_date) + ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}</span>`)
+         `<span class="dimv">${etf.latest_date ? esc(String(etf.latest_date).replace(/\s+\d{4}$/, '')) + ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}</span>`)
   ].join('');
 
   // one line of orientation: where the packet's price sits against the packet's own levels
