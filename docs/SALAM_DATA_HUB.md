@@ -1,29 +1,30 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 02:23:51 UTC | **Spot Price:** $61,063.61
+**Timestamp:** 2026-11-26 02:25:45 UTC | **Spot Price:** $61,022.99
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
-*   **Macro S/R (500-bar):** 1D Resistance: $62,338 (8x), $65,602 (8x), $79,519 (8x) | 1D Support: $61,031 (2x), $57,958 (2x), $55,130 (1x)
+*   **Macro S/R (500-bar):** 1D Resistance: $62,338 (8x), $65,602 (8x), $79,519 (8x) | 1D Support: $59,131 (1x), $57,958 (2x), $55,130 (1x)
 *   **Volume Profile (30D):** VAH: 81,971 | POC: 77,274 | VAL: 62,288
 *   **200 SMA:** 1D: 72,088
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
-*   **Upper Shorts (10x/25x/50-100x):** 10x $67,170 ($95.8M) / 25x $63,506 ($95.8M) / 50x $62,285 ($95.8M) / 100x $61,674 ($95.8M)
-*   **Lower Longs (10x/25x/50-100x):** 10x $54,957 ($95.8M) / 25x $58,621 ($95.8M) / 50x $59,842 ($95.8M) / 100x $60,453 ($95.8M)
-    *Levels are exact leverage arithmetic; the $M is OI $1915.8M x 5% assumed share per tier — not observed liquidation data.*
+*   **Upper Shorts (10x/25x/50-100x):** 10x $67,125 ($95.6M) / 25x $63,464 ($95.6M) / 50x $62,243 ($95.6M) / 100x $61,633 ($95.6M)
+*   **Lower Longs (10x/25x/50-100x):** 10x $54,921 ($95.6M) / 25x $58,582 ($95.6M) / 50x $59,803 ($95.6M) / 100x $60,413 ($95.6M)
+    *Levels are exact leverage arithmetic; the $M is OI $1911.6M x 5% assumed share per tier — not observed liquidation data.*
 *   **Long/Short account ratio (4H):** 2.59
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot/Perp):** 1H: 77.0 / UNAVAILABLE | 4H: 255.8 / UNAVAILABLE | 24H: 373.1 / UNAVAILABLE
-*   **Open Interest:** 31,374 BTC | 4H Change: 0.01% | 24H Change: 3.01%
-*   **Funding:** 0.0100% per 8H | 90-day percentile: 100
+*   **Open Interest:** 31,327 BTC | 4H Change: 0.01% | 24H Change: 3.01%
+*   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses OKX's last 100 readings (~33 days), not 90.
+*   **Funding:** 0.0100% per 8H | percentile (100 pts): 100
 
 ## 4. THE TRIGGER
 *   **Sweep Status:** NONE (last 6 closed 1H bars stayed inside the bands)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-123.3M (25 Nov 2026, settled) | 5D: $-2,175.9M
-*   **Funding percentile:** 100 of 90 days  <- tail
+*   **Funding percentile:** 100 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
