@@ -569,7 +569,8 @@ def collect() -> tuple[dict, list[str]]:
 
 # ──────────────────────────────── compute ─────────────────────────────────
 def analyse(d: dict) -> dict:
-    out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE")}
+    out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE"),
+                 "price_src": d.get("price_src")}
     price = d["price"]
     out["price"] = price
     if not d["d1"] or price is None:
@@ -977,6 +978,12 @@ def selftest() -> int:
     man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at=fresh,
                          manual={"perp_cvd_24h": "+2663", "at": fresh}))
     check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
+
+    check("a candle-close price is never labelled as a ticker",
+          "[BIN-CLOSE 1D]" in render(dict(base, perp_cvd_ok=True, exec_state="FULL",
+                                          price_src="CLOSE-1D")))
+    check("a ticker price still reads [BIN]",
+          "[BIN]" in render(dict(base, perp_cvd_ok=True, exec_state="FULL", price_src="TICKER")))
 
     okx_md = render(dict(base, perp_cvd_ok=True, exec_state="FULL", perp_src="OKX-RUBIK"))
     check("OKX perp CVD is labelled and still execution-grade",
