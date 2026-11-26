@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 01:28:45 UTC | **Spot Price:** $60,735.23
+**Timestamp:** 2026-11-26 01:29:26 UTC | **Spot Price:** $60,746.00
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
@@ -8,22 +8,29 @@
 *   **200 SMA:** 1D: 72,088
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
-*   **Upper Shorts (10x/25x/50-100x):** 10x $66,809 ($292.1M) / 25x $63,165 ($292.1M) / 50x $61,950 ($292.1M) / 100x $61,343 ($292.1M)
-*   **Lower Longs (10x/25x/50-100x):** 10x $54,662 ($292.1M) / 25x $58,306 ($292.1M) / 50x $59,521 ($292.1M) / 100x $60,128 ($292.1M)
-    *Levels are exact leverage arithmetic; the $M is OI $5841.3M x 5% assumed share per tier — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.82
+*   **Upper Shorts:** UNAVAILABLE (no open interest)
+*   **Lower Longs:** UNAVAILABLE (no open interest)
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot/Perp):** 1H: 180.1 / 1,039.0 | 4H: 261.9 / 902.3 | 24H: 260.4 / 442.9
-*   **Open Interest:** 96,176 BTC | 4H Change: -0.84% | 24H Change: 0.56%
-*   **Funding:** 0.0077% per 8H | 90-day percentile: 70
+*   **CVD (Spot/Perp):** 1H: 180.1 / UNAVAILABLE | 4H: 261.9 / UNAVAILABLE | 24H: 260.4 / UNAVAILABLE
+*   **Open Interest:** UNAVAILABLE BTC | 4H Change: UNAVAILABLE% | 24H Change: UNAVAILABLE%
+*   **Funding:** UNAVAILABLE% per 8H | 90-day percentile: UNAVAILABLE
 
 ## 4. THE TRIGGER
 *   **Sweep Status:** NONE (last 6 closed 1H bars stayed inside the bands)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-116.8M (25 Nov 2026, settled) | 5D: $-2,169.4M
-*   **Funding percentile:** 70 of 90 days
+*   **Funding percentile:** UNAVAILABLE of 90 days
+
+## DATA NOTES
+*   fd1 HTTP 451
+*   fh1 HTTP 451
+*   funding HTTP 451
+*   funding_hist HTTP 451
+*   oi HTTP 451
+*   oi_hist HTTP 451
+*   lsr HTTP 451
 
 ### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.0
 **Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory (50/50 BTC/USDT) strategy.
