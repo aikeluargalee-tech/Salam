@@ -621,8 +621,9 @@ def render(a: dict) -> str:
         L.append("*   **Lower Longs:** " + " / ".join(
             f"{c['lev']}x ${c['price']:,.0f} (${c['usd_m']:,.1f}M)" for c in lo))
         L.append(f"    *Levels are exact leverage arithmetic. The $ per tier is OI "
-                 f"${a['oi_usd_m']:,.1f}M x the weights above, which assumes the whole open "
-                 f"interest sits in these four tiers — not observed liquidation data.*")
+                 f"${a['oi_usd_m']:,.1f}M x the weights above, i.e. an assumed "
+                 f"{sum(w for _, w in LIQ_WEIGHTS):.0%} of open interest across these four tiers "
+                 f"(the rest assumed cross-margin or lower leverage) — not observed liquidation data.*")
     else:
         L.append("*   **Upper Shorts:** UNAVAILABLE (no open interest)")
         L.append("*   **Lower Longs:** UNAVAILABLE (no open interest)")
