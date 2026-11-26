@@ -28,6 +28,14 @@ Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then r
 | ETF flows | Farside table; a day counts only when its Total cell parses as a number |
 | Binding arithmetic | Rail B stop = entry − 1.5 × ATR 1H · risk 0.75% of portfolio · skip if size > 30% of USDT inventory |
 
+## Order-flow states
+
+```
+✅ FULL ORDER FLOW      live Binance spot + perp            run on a Binance-reachable host
+⚠️ PARTIAL ORDER FLOW   spot live, perp CVD from the archive for <date>, T+1
+⚠️ PERP CVD UNAVAILABLE archive has not published the day yet, or the host cannot reach it
+```
+
 ## Host banner
 
 The first line under the timestamp states which host produced the packet:
