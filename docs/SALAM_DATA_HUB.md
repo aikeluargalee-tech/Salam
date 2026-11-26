@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.6
-**Timestamp:** 2026-11-26 09:47:47 UTC / 2026-11-26 17:47:47 SGT (UTC+8) | **Spot Price:** $60,970.90 [BIN]
+**Timestamp:** 2026-11-26 09:47:58 UTC / 2026-11-26 17:47:58 SGT (UTC+8) | **Spot Price:** $60,970.90 [BIN]
 > ✅ **FULL ORDER FLOW — perp CVD is OKX's measured taker volume, spot is Binance.** Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
