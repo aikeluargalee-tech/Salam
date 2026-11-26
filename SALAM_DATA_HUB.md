@@ -1,8 +1,8 @@
 # SALAM PROTOCOL DATA HUB v1.2
-**Timestamp:** 2026-11-26 03:04:22 UTC | **Spot Price:** $60,675.55 [BIN]
+**Timestamp:** 2026-11-26 03:08:09 UTC | **Spot Price:** $60,700.01 [BIN]
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,676 (1D SMA200 72,088)
+*   **Current Price:** $60,700 (1D SMA200 72,088)
 *   **Tactical Bands:**
     *   Upper: $62,800 - $64,441 (Conf: 3/10)
     *   Lower: $58,232 - $59,305 (Conf: 10/10)
@@ -16,14 +16,14 @@
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,743 ($152.1M) / 25x $63,103 ($114.1M) / 50x $61,889 ($76.1M) / 100x $61,282 ($38.0M)
-*   **Lower Longs:** 10x $54,608 ($152.1M) / 25x $58,249 ($114.1M) / 50x $59,462 ($76.1M) / 100x $60,069 ($38.0M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,901.3M x the weights above, which assumes the whole open interest sits in these four tiers — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.56 [OKX]
+*   **Upper Shorts:** 10x $66,770 ($152.2M) / 25x $63,128 ($114.1M) / 50x $61,914 ($76.1M) / 100x $61,307 ($38.0M)
+*   **Lower Longs:** 10x $54,630 ($152.2M) / 25x $58,272 ($114.1M) / 50x $59,486 ($76.1M) / 100x $60,093 ($38.0M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,902.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.55 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot [BIN] / Perp [OKX]):** 1H: 100.4 / UNAVAILABLE | 4H: 396.5 / UNAVAILABLE | 24H: 419.7 / UNAVAILABLE
-*   **Open Interest:** 31,335 BTC [OKX] | 4H Change: 0.01% | 24H Change: 3.01%
+*   **Open Interest:** 31,336 BTC [OKX] | 4H Change: 0.27% | 24H Change: 2.86%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
 *   **Funding:** 0.0097% per 8H [OKX] | percentile (100 pts): 72
 *   **ATR 1H:** 654 (Rail B stop distance = 1.5 x this = 981)
