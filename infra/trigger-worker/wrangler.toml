@@ -1,0 +1,21 @@
+# Cloudflare Worker: name and entry point
+name = "salam-trigger"
+main = "src/index.js"
+compatibility_date = "2026-11-20"
+
+# Cooldown state. Create with:  wrangler kv namespace create SALAM_KV
+[[kv_namespaces]]
+binding = "SALAM_KV"
+id = "PASTE_THE_ID_FROM_wrangler_kv_namespace_create"
+
+[vars]
+REPO = "aikeluargalee-tech/Salam"
+WORKFLOW = "salam.yml"
+REF = "master"
+COOLDOWN_S = "90"          # private route: /s/<TRIGGER_SECRET>
+PUBLIC_COOLDOWN_S = "300"  # public route: /
+FRESH_MIN = "8"            # never spend a run when the packet is already this fresh
+
+# Secrets (never in this file):
+#   wrangler secret put GH_TOKEN          fine-grained PAT, Actions: read+write, this repo only
+#   wrangler secret put TRIGGER_SECRET    long random string used in the private route

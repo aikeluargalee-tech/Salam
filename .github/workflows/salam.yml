@@ -1,9 +1,13 @@
-name: Salam Protocol — On-Demand & Every 4H
+name: Salam Protocol — on demand, 30-min backstop
 
 on:
-  workflow_dispatch:            # "Run workflow" button
+  workflow_dispatch:            # "Run workflow" button AND the trigger Worker
   schedule:
-    - cron: '0 */4 * * *'
+    # Every 30 minutes, knowingly optimistic. GitHub treats `schedule` as best-effort and can
+    # delay or drop it — this repo saw 1 scheduled run in 12 hours on a 4-hourly cron — so the
+    # reliable trigger is infra/trigger-worker (a Cloudflare Worker holding a repo-scoped token).
+    # This cron is the cheap backstop for when nothing external is calling.
+    - cron: '*/30 * * * *'
 
 permissions:
   contents: write
