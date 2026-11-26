@@ -23,6 +23,13 @@
   #age.warn{background:#2e2410;color:var(--warn)}
   #age.bad{background:#301616;color:var(--dn)}
   .ts{color:var(--dim);font-size:11px}
+  .actions{margin-top:9px;gap:8px;align-items:center}
+  button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:5px;
+    padding:5px 10px;font:inherit;font-size:11px;letter-spacing:.04em;cursor:pointer;
+    text-decoration:none;display:inline-block;line-height:1.4}
+  button:hover,.btn:hover{border-color:#3a4a5c;color:#fff}
+  button:active{transform:translateY(1px)}
+  #copyState{font-size:11px;color:var(--up)}
   #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;border:1px solid}
   #state.ok{background:#0d2418;border-color:#1d5c3a;color:#9ff0c2}
   #state.warn{background:#2a2008;border-color:#6b5312;color:#ffd98a}
@@ -76,6 +83,12 @@
     <span id="price">—</span>
   </div>
   <div id="state" class="ok">connecting…</div>
+  <div class="row actions">
+    <button id="copy" title="Copy the full packet as plain text, ready to paste into any AI">⧉ copy packet for AI</button>
+    <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml"
+       target="_blank" rel="noopener" title="Open the workflow page, then Run workflow">▶ run workflow</a>
+    <span id="copyState"></span>
+  </div>
 </header>
 
 <main>
@@ -313,6 +326,39 @@ async function load() {
   }
 }
 $('ver').textContent = ' v1.6';
+
+// copy the canonical packet, not the rendered page: one paste block for any model,
+// and it can never drift from what the script actually published
+async function packetText() {
+  const r = await fetch('SALAM_DATA_HUB.md?t=' + Date.now(), {cache: 'no-store'});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.text();
+}
+function flash(msg, bad) {
+  const el = $('copyState');
+  el.textContent = msg;
+  el.style.color = bad ? 'var(--dn)' : 'var(--up)';
+  clearTimeout(flash._t);
+  flash._t = setTimeout(() => { el.textContent = ''; }, 2600);
+}
+$('copy').addEventListener('click', async () => {
+  try {
+    const t = await packetText();
+    try {
+      await navigator.clipboard.writeText(t);
+    } catch (clipErr) {                      // non-secure context / denied permission
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (!ok) throw clipErr;
+    }
+    flash('copied · ' + (t.length / 1024).toFixed(1) + ' KB · paste into any AI');
+  } catch (e) {
+    flash('copy failed: ' + e.message, true);
+  }
+});
 setInterval(paintAge, 15000);
 setInterval(load, 60000);
 load();
