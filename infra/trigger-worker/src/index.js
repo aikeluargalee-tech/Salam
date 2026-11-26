@@ -34,7 +34,12 @@ function cors(res) {
 /** Age of the published packet in minutes, or null when the mirror is unreachable. */
 async function packetAgeMinutes(repo) {
   try {
-    const r = await fetch(RAW.replace('%REPO%', repo), { cf: { cacheTtl: 0, cacheEverything: false } });
+    // Cloudflare's edge caches raw.githubusercontent responses, and `cacheTtl: 0` is not a valid
+    // value (valid range starts at 1), so it was ignored and the Worker read a ~20-minute-old copy
+    // while the page read the fresh one — the button then said "packet 21 min old" next to a badge
+    // saying "0 min old". A unique query string defeats the edge cache; GitHub raw ignores it.
+    const url = RAW.replace('%REPO%', repo) + '?cb=' + Date.now() + Math.random().toString(36).slice(2, 8);
+    const r = await fetch(url, { cf: { cacheTtl: 1 } });
     if (!r.ok) return null;
     const j = await r.json();
     if (!j.generated_at_utc) return null;
