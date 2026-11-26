@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 
 SPOT = "https://data-api.binance.vision/api/v3"
 FAPI = "https://fapi.binance.com"
-BYBIT = "https://api.bybit.com"
+OKX = "https://www.okx.com"
 FARSIDE = "https://farside.co.uk/bitcoin-etf-flow-all-data/"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
@@ -319,72 +319,87 @@ def collect() -> tuple[dict, list[str]]:
             if err:
                 problems.append(err)
 
-    # Binance Futures blocks CI runner IPs (HTTP 451 "Unavailable For Legal Reasons").
-    # Fall back per field to Bybit, and say so in the packet.
+    # Measured from a US GitHub runner: fapi.binance.com = HTTP 451, api.bybit.com = HTTP 403,
+    # api.deribit.com = unreachable; www.okx.com / bitget / gate.io / kraken / coingecko = 200.
+    # OKX is the one venue that serves both a CI runner and a home machine, so it is the fallback.
     fb: dict = {}
     deriv_src = "BINANCE"
     if any(raw.get(k) is None for k in ("funding", "oi", "oi_hist", "lsr")):
         jobs2 = {
-            "bt": f"{BYBIT}/v5/market/tickers?category=linear&symbol=BTCUSDT",
-            "boi": f"{BYBIT}/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=4h&limit=7",
-            "blsr": f"{BYBIT}/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=4h&limit=1",
-            "bfh": f"{BYBIT}/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=200",
+            "fund": f"{OKX}/api/v5/public/funding-rate?instId=BTC-USDT-SWAP",
+            "oi": f"{OKX}/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP",
+            "oi_hist": f"{OKX}/api/v5/rubik/stat/contracts/open-interest-volume?ccy=BTC&period=1H",
+            "lsr": f"{OKX}/api/v5/rubik/stat/contracts/long-short-account-ratio-contract?instId=BTC-USDT-SWAP&period=4H",
+            "fund_hist": f"{OKX}/api/v5/public/funding-rate-history?instId=BTC-USDT-SWAP&limit=100",
         }
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            futs = {k: pool.submit(safe, (lambda u=u: get_json(u)), f"bybit:{k}") for k, u in jobs2.items()}
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futs = {k: pool.submit(safe, (lambda u=u: get_json(u)), f"okx:{k}") for k, u in jobs2.items()}
             for k, f in futs.items():
                 val, err = f.result()
                 fb[k] = val
                 if err:
                     problems.append(err)
-        if any(fb.get(k) for k in ("bt", "boi", "blsr", "bfh")):
-            deriv_src = "BYBIT"
+        if any(fb.get(k) for k in ("fund", "oi", "oi_hist", "lsr")):
+            deriv_src = "OKX"
 
-    def bybit_list(key):
-        return (((fb.get(key) or {}).get("result") or {}).get("list")) or []
+    def okx_data(key):
+        return ((fb.get(key) or {}).get("data")) or []
 
     data = {"now": datetime.now(timezone.utc), "problems": problems, "deriv_src": deriv_src}
     for key in ("d1", "h4", "h1", "fd1", "fh1"):
         data[key] = closed(to_bars(raw[key]), now_ms) if raw.get(key) else []
     data["price"] = float(raw["px"]["price"]) if raw.get("px") else (
         data["d1"][-1]["c"] if data["d1"] else None)
-    bt = (bybit_list("bt") or [{}])[0]
+    okx_fund = (okx_data("fund") or [{}])[0]
     if raw.get("funding"):
         data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100
         data["mark"] = float(raw["funding"]["markPrice"])
-    elif bt.get("fundingRate") not in (None, ""):
-        data["funding"] = float(bt["fundingRate"]) * 100
-        data["mark"] = float(bt.get("markPrice") or 0) or None
+    elif okx_fund.get("fundingRate") not in (None, ""):
+        data["funding"] = float(okx_fund["fundingRate"]) * 100
+        data["mark"] = None
     else:
         data["funding"] = data["mark"] = None
 
+    okx_oi = (okx_data("oi") or [{}])[0]
     if raw.get("oi"):
         data["oi_btc"] = float(raw["oi"]["openInterest"])
-    elif bt.get("openInterest") not in (None, ""):
-        data["oi_btc"] = float(bt["openInterest"])
+    elif okx_oi.get("oiCcy") not in (None, ""):
+        data["oi_btc"] = float(okx_oi["oiCcy"])
     else:
         data["oi_btc"] = None
 
-    hist = raw.get("oi_hist") or []
-    if not hist:
-        bh = list(reversed(bybit_list("boi")))          # Bybit returns newest first
-        hist = [{"sumOpenInterest": h.get("openInterest")} for h in bh]
-    data["oi_4h_chg"] = (float(hist[-1]["sumOpenInterest"]) / float(hist[-2]["sumOpenInterest"]) - 1) * 100 \
-        if len(hist) >= 2 else None
-    data["oi_24h_chg"] = (float(hist[-1]["sumOpenInterest"]) / float(hist[-7]["sumOpenInterest"]) - 1) * 100 \
-        if len(hist) >= 7 else None
+    oi_series: list[float] = []
+    oi_step_h = None
+    if raw.get("oi_hist"):
+        oi_series = [float(r["sumOpenInterest"]) for r in raw["oi_hist"]]
+        oi_step_h = 4
+    elif okx_data("oi_hist"):
+        rows = okx_data("oi_hist")[:25]                  # hourly, newest first
+        oi_series = [float(r[1]) for r in reversed(rows)]
+        oi_step_h = 1
+
+    def chg(series: list[float], step_h: int | None, hours: int):
+        if not series or not step_h:
+            return None
+        back = hours // step_h
+        if back < 1 or len(series) <= back:
+            return None
+        a, b = series[-1 - back], series[-1]
+        return (b / a - 1) * 100 if a else None
+
+    data["oi_4h_chg"] = chg(oi_series, oi_step_h, 4)
+    data["oi_24h_chg"] = chg(oi_series, oi_step_h, 24)
     fh = [float(r["fundingRate"]) * 100 for r in (raw.get("funding_hist") or [])]
     if not fh:
-        fh = [float(r["fundingRate"]) * 100 for r in bybit_list("bfh")
+        fh = [float(r["fundingRate"]) * 100 for r in okx_data("fund_hist")
               if r.get("fundingRate") not in (None, "")]
     data["funding_pct90"] = percentile(fh, data["funding"]) if (fh and data["funding"] is not None) else None
     lsr = raw.get("lsr") or []
     if lsr:
         data["ls_ratio"] = float(lsr[0]["longShortRatio"])
     else:
-        blsr = bybit_list("blsr")
-        buy, sell = (blsr[0].get("buyRatio"), blsr[0].get("sellRatio")) if blsr else (None, None)
-        data["ls_ratio"] = (float(buy) / float(sell)) if (buy and sell and float(sell)) else None
+        blsr = okx_data("lsr")
+        data["ls_ratio"] = float(blsr[0][1]) if blsr else None
     data["etf"] = raw.get("etf")
     if not data["fh1"]:
         problems.append("perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no "
@@ -514,9 +529,10 @@ def render(a: dict) -> str:
              f" | 24H: {f(cs.get('24h'), 1)} / {f(cp.get('24h'), 1)}")
     L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC"
              f" | 4H Change: {f(a.get('oi_4h_chg'), 2)}% | 24H Change: {f(a.get('oi_24h_chg'), 2)}%")
-    if a.get("deriv_src") == "BYBIT":
-        L.append("*   **Derivatives source:** [BYBIT fallback] Binance Futures refused this "
-                 "runner (HTTP 451, geo-block). OI, funding and L/S are Bybit's BTC perp.")
+    if a.get("deriv_src") == "OKX":
+        L.append("*   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and "
+                 "Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the "
+                 "funding percentile uses OKX's last 100 readings (~33 days), not 90.")
     L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H"
              f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}")
     L.append("")
