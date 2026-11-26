@@ -83,3 +83,19 @@ Consequence: on CI the packet takes **spot from Binance** and **OI / funding / L
 and says so in the packet. **Perp CVD is UNAVAILABLE on CI and cannot be restored** — only Binance
 publishes taker-buy volume inside klines, and its futures API refuses the runner. Run the script
 from a Binance-reachable machine (your own PC, in Malaysia) for the full packet.
+
+## Changelog
+
+```
+v1.0  single-file packet: 4H bands, 4H k=2 pivots, 30D volume profile, 6-bar sweeps,
+      5% flat OI share, no tests
+v1.1  deep S/R matrix: nearest-3 macro by distance, 7D profile drives confluence,
+      MTF profiles + HVN, liq overlay, macro-first sweep, [BIN]/[OKX] tags,
+      binding arithmetic (1.5xATR1H stop, 0.75% risk, 30% cap), --selftest
+v1.2  one overlay tag per level, 25x floor, tier printed, 20% OI weighting (8/6/4/2%)
+v1.3  overlay tolerance 0.25%, host banner under the timestamp
+v1.4  banner keyed on PERP CVD availability rather than the venue — if perp flow is
+      missing for any reason, the packet says it is a levels map, not an execution packet
+```
+
+FINAL. Further change is a new project, not a patch on this one.

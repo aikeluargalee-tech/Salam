@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.3 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.4 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -485,6 +485,7 @@ def analyse(d: dict) -> dict:
 
     out["cvd_spot"] = {"1h": cvd(d["h1"], 1), "4h": cvd(d["h1"], 4), "24h": cvd(d["h1"], 24)}
     out["cvd_perp"] = {"1h": cvd(d["fh1"], 1), "4h": cvd(d["fh1"], 4), "24h": cvd(d["fh1"], 24)}
+    out["perp_cvd_ok"] = all(v is not None for v in out["cvd_perp"].values())
     out["oi_btc"], out["oi_4h_chg"], out["oi_24h_chg"] = d["oi_btc"], d["oi_4h_chg"], d["oi_24h_chg"]
     out["funding"], out["funding_pct90"], out["ls_ratio"] = d["funding"], d["funding_pct90"], d["ls_ratio"]
     out["etf"] = d["etf"]
@@ -556,7 +557,7 @@ def vp_txt(vp: dict | None, style: str) -> str:
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.3\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.4\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -567,13 +568,16 @@ def render(a: dict) -> str:
     V = tag(a)
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.3")
+    L.append("# SALAM PROTOCOL DATA HUB v1.4")
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
-    if a.get("deriv_src") == "OKX":
-        L.append("> ⚠️ **CI HOST DETECTED: PERP CVD UNAVAILABLE.** Binance Futures refuses this host "
-                 "(HTTP 451). Run locally for execution-grade order flow.")
+    if a.get("perp_cvd_ok"):
+        L.append("> ✅ **FULL ORDER FLOW: Binance spot + perp. Execution-grade.**")
     else:
-        L.append("> ✅ **LOCAL HOST: Full Binance data. Execution-grade.**")
+        why = ("CI host: Binance Futures refused this runner (HTTP 451)"
+               if a.get("deriv_src") == "OKX" else
+               "this run produced no usable perp klines")
+        L.append(f"> ⚠️ **PERP CVD UNAVAILABLE — {why}.** This packet is a levels map, "
+                 f"not an execution packet. Run locally before acting.")
     L.append("")
 
     # ── 1. Deep S/R matrix ──
@@ -665,7 +669,8 @@ def render(a: dict) -> str:
         L.append("*   **Sweep Status:** UNAVAILABLE (no 1H bars)")
     else:
         extra = f" ({sw['touches']}x level)" if sw.get("touches") else ""
-        L.append(f"*   **Sweep Status:** {sw['flag']} at ${sw['level']:,.0f}{extra} ({sw['at']})")
+        L.append(f"*   **Sweep Status:** {sw.get('flag', 'UNAVAILABLE')} at "
+                 f"${(sw.get('level') or 0):,.0f}{extra} ({sw.get('at')})")
     L.append("")
 
     # ── 5. Macro veto ──
@@ -687,7 +692,7 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.3")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.4")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
@@ -761,6 +766,12 @@ def selftest() -> int:
     check("clustering merges within 1%", len(cl) == 2, f"{len(cl)} clusters")
     hi, lo_ = pivots(bars, 2)
     check("pivots found", len(hi) >= 1 and len(lo_) >= 1, f"{len(hi)} highs / {len(lo_)} lows")
+
+    probe = {"price": 1000.0, "problems": [], "perp_cvd_ok": False, "deriv_src": "OKX",
+             "cvd_spot": {}, "cvd_perp": {}, "sweep": {"flag": "NONE"}}
+    check("banner warns without perp CVD", "PERP CVD UNAVAILABLE" in render(probe))
+    probe["perp_cvd_ok"] = True
+    check("banner clears with perp CVD", "FULL ORDER FLOW" in render(probe))
 
     print("live")
     try:
