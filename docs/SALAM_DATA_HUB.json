@@ -6,9 +6,14 @@
   "funding_hist HTTP 451",
   "oi HTTP 451",
   "oi_hist HTTP 451",
-  "lsr HTTP 451"
+  "lsr HTTP 451",
+  "bybit:bt HTTP 403",
+  "bybit:boi HTTP 403",
+  "bybit:blsr HTTP 403",
+  "bybit:bfh HTTP 403",
+  "perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host"
  ],
- "price": 60913.89,
+ "price": 60846.86,
  "atr1d": 3064.8040793680525,
  "sma200": 72088.27369999998,
  "vp30": {

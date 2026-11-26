@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.0
-**Timestamp:** 2026-11-26 02:13:39 UTC | **Spot Price:** $60,913.89
+**Timestamp:** 2026-11-26 02:15:05 UTC | **Spot Price:** $60,846.86
 
 ## 1. THE ANCHOR (S/R & Volume)
 *   **Tactical Bands:** Current: inside 59,850-61,532 | Next Upper: 62,800-64,441 (Conf: 3) | Next Lower: 58,232-59,305 (Conf: 3)
@@ -31,6 +31,11 @@
 *   oi HTTP 451
 *   oi_hist HTTP 451
 *   lsr HTTP 451
+*   bybit:bt HTTP 403
+*   bybit:boi HTTP 403
+*   bybit:blsr HTTP 403
+*   bybit:bfh HTTP 403
+*   perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host
 
 ### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.0
 **Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory (50/50 BTC/USDT) strategy.
