@@ -1,39 +1,39 @@
-# SALAM PROTOCOL DATA HUB v1.1
-**Timestamp:** 2026-11-26 02:45:14 UTC | **Spot Price:** $61,027.39 [BIN]
+# SALAM PROTOCOL DATA HUB v1.2
+**Timestamp:** 2026-11-26 03:04:22 UTC | **Spot Price:** $60,675.55 [BIN]
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $61,027 (1D SMA200 72,088)
+*   **Current Price:** $60,676 (1D SMA200 72,088)
 *   **Tactical Bands:**
-    *   Upper: $62,800 - $64,441 (Conf: 3/10) [+$576M Shorts]
-    *   Lower: $58,232 - $59,305 (Conf: 10/10) [+$576M Longs]
+    *   Upper: $62,800 - $64,441 (Conf: 3/10)
+    *   Lower: $58,232 - $59,305 (Conf: 10/10)
     *   Price is inside $59,850 - $61,532
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $62,338 (8x) [+$384M Shorts], $63,065 (2x), $64,584 (7x)
-    *   Support: $60,000 (1x) [+$384M Longs], $59,131 (1x), $57,958 (2x)
+    *   Resistance: $61,031 (2x) [+$38M 100x Shorts], $62,338 (8x), $63,065 (2x) [+$114M 25x Shorts]
+    *   Support: $60,000 (1x) [+$38M 100x Longs], $59,131 (1x), $57,958 (2x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 62,288
     *   4H (last 30 bars): VAH 60,498 · POC 57,261 · VAL 57,183
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
-*   **OI weighting (assumed):** 10x 40% / 25x 30% / 50x 20% / 100x 10% of open interest
-*   **Upper Shorts:** 10x $67,130 ($767.4M) / 25x $63,468 ($575.6M) / 50x $62,248 ($383.7M) / 100x $61,638 ($191.9M)
-*   **Lower Longs:** 10x $54,925 ($767.4M) / 25x $58,586 ($575.6M) / 50x $59,807 ($383.7M) / 100x $60,417 ($191.9M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,918.6M x the weights above, which assumes the whole open interest sits in these four tiers — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.58 [OKX]
+*   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
+*   **Upper Shorts:** 10x $66,743 ($152.1M) / 25x $63,103 ($114.1M) / 50x $61,889 ($76.1M) / 100x $61,282 ($38.0M)
+*   **Lower Longs:** 10x $54,608 ($152.1M) / 25x $58,249 ($114.1M) / 50x $59,462 ($76.1M) / 100x $60,069 ($38.0M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,901.3M x the weights above, which assumes the whole open interest sits in these four tiers — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.56 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot [BIN] / Perp [OKX]):** 1H: 77.0 / UNAVAILABLE | 4H: 255.8 / UNAVAILABLE | 24H: 373.1 / UNAVAILABLE
-*   **Open Interest:** 31,438 BTC [OKX] | 4H Change: 0.01% | 24H Change: 3.01%
+*   **CVD (Spot [BIN] / Perp [OKX]):** 1H: 100.4 / UNAVAILABLE | 4H: 396.5 / UNAVAILABLE | 24H: 419.7 / UNAVAILABLE
+*   **Open Interest:** 31,335 BTC [OKX] | 4H Change: 0.01% | 24H Change: 3.01%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0100% per 8H [OKX] | percentile (100 pts): 100
-*   **ATR 1H:** 667 (Rail B stop distance = 1.5 x this = 1,000)
+*   **Funding:** 0.0097% per 8H [OKX] | percentile (100 pts): 72
+*   **ATR 1H:** 654 (Rail B stop distance = 1.5 x this = 981)
 
 ## 4. THE TRIGGER
-*   **Sweep Status:** NONE (no closed 1H bar beyond a level that closed back inside)
+*   **Sweep Status:** MACRO BEARISH SWEEP at $61,031 (2x level) (2026-11-26 02:00Z)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-123.3M (25 Nov 2026, settled) | 5D: $-2,175.9M
-*   **Funding percentile:** 100 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 72 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
@@ -45,7 +45,7 @@
 *   lsr HTTP 451
 *   perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host
 
-### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.1
+### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.2
 **Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory (50/50 BTC/USDT) strategy.
 **Primary Directive:** Analyze this data packet using S/R-First logic.
 
