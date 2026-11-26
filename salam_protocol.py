@@ -38,6 +38,7 @@ MACRO_PIVOT_K = 2          # fractal width for macro pivots
 MACRO_CLUSTER_PCT = 0.01   # 1% clustering width
 LIQ_WEIGHTS = ((10, 0.08), (25, 0.06), (50, 0.04), (100, 0.02))   # [MODELED] 20% of OI in total
 LIQ_OVERLAY_PCT = 0.0025   # a liq cluster "overlaps" a level when within 0.25%
+MANUAL_MAX_AGE_H = 2
 LIQ_OVERLAY_MIN_LEV = 25   # low-leverage tiers are not explosive enough to tag
 RISK_PCT = 0.0075          # binding arithmetic handed to the execution prompt
 MAX_POS_PCT_OF_USDT = 0.30
@@ -328,7 +329,23 @@ def parse_manual(s: str | None) -> tuple[dict, bool]:
     ok = False
     try:
         float(parts.get("perp_cvd_24h", ""))
-        ok = bool(parts.get("at")) and parts["at"].upper().endswith("Z")
+        at_raw = (parts.get("at") or "").strip().upper()
+        if at_raw.endswith("Z"):
+            when = None
+            for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%H:%M"):
+                try:
+                    when = datetime.strptime(at_raw[:-1].strip(), fmt)
+                    break
+                except ValueError:
+                    continue
+            if when is not None:
+                now = datetime.now(timezone.utc)
+                if when.year == 1900:                      # time-only: anchor to today
+                    when = when.replace(year=now.year, month=now.month, day=now.day)
+                when = when.replace(tzinfo=timezone.utc)
+                if when > now + timedelta(minutes=5):      # 23:50Z typed just after midnight
+                    when -= timedelta(days=1)
+                ok = (now - when) <= timedelta(hours=MANUAL_MAX_AGE_H)
     except (TypeError, ValueError):
         ok = False
     return parts, ok
@@ -466,8 +483,15 @@ def collect() -> tuple[dict, list[str]]:
     data = {"now": datetime.now(timezone.utc), "problems": problems, "deriv_src": deriv_src}
     for key in ("d1", "h4", "h1", "fd1", "fh1"):
         data[key] = closed(to_bars(raw[key]), now_ms) if raw.get(key) else []
-    data["price"] = float(raw["px"]["price"]) if raw.get("px") else (
-        data["d1"][-1]["c"] if data["d1"] else None)
+    if raw.get("px"):
+        data["price"] = float(raw["px"]["price"])
+        data["price_src"] = "TICKER"
+    elif data["d1"]:
+        data["price"] = data["d1"][-1]["c"]
+        data["price_src"] = "CLOSE-1D"          # last closed daily candle, not a live quote
+    else:
+        data["price"] = None
+        data["price_src"] = None
     okx_fund = (okx_data("fund") or [{}])[0]
     if raw.get("funding"):
         data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100
@@ -677,7 +701,11 @@ def vp_txt(vp: dict | None, style: str) -> str:
 
 
 def render(a: dict) -> str:
-    _n = datetime.now(timezone.utc)
+    stamp = a.get("generated_at_utc")
+    if stamp:
+        _n = datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    else:
+        _n = datetime.now(timezone.utc)
     now = (_n.strftime("%Y-%m-%d %H:%M:%S UTC")
            + " / " + (_n + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S SGT (UTC+8)"))
     if a.get("fatal"):
@@ -694,7 +722,8 @@ def render(a: dict) -> str:
 
     L: list[str] = []
     L.append("# SALAM PROTOCOL DATA HUB v1.6")
-    L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
+    PT = "[BIN-CLOSE 1D]" if a.get("price_src") == "CLOSE-1D" else "[BIN]"
+    L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}")
     dump = a.get("perp_dump")
     state = a.get("exec_state", "FULL")
     if state == "FULL" and a.get("perp_src") == "OKX-RUBIK":
@@ -931,6 +960,9 @@ def selftest() -> int:
 
     base = {"price": 1000.0, "problems": [], "cvd_spot": {}, "cvd_perp": {},
             "sweep": {"flag": "NONE"}, "deriv_src": "BINANCE"}
+    _now = datetime.now(timezone.utc)
+    fresh = (_now - timedelta(minutes=4)).strftime("%H:%M") + "Z"
+    stale = (_now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M") + "Z"
     full = dict(base, perp_cvd_ok=True, exec_state="FULL")
     check("FULL state prints execution rules", "Execution Rules" in render(full))
     part = dict(base, perp_cvd_ok=False, exec_state="PARTIAL",
@@ -942,17 +974,23 @@ def selftest() -> int:
     check("PARTIAL state still names the archive day", "PARTIAL ORDER FLOW" in part_md)
     none_md = render(dict(base, perp_cvd_ok=False, exec_state="NONE"))
     check("NONE state warns plainly", "PERP CVD UNAVAILABLE" in none_md)
-    man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at="04:05Z",
-                         manual={"perp_cvd_24h": "+2663", "at": "04:05Z"}))
+    man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at=fresh,
+                         manual={"perp_cvd_24h": "+2663", "at": fresh}))
     check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
 
     okx_md = render(dict(base, perp_cvd_ok=True, exec_state="FULL", perp_src="OKX-RUBIK"))
     check("OKX perp CVD is labelled and still execution-grade",
           "OKX-RUBIK" in okx_md and "Execution Rules" in okx_md)
-    _, ok_num = parse_manual("perp_cvd_24h=+2663,at=04:05Z")
-    _, ok_adj = parse_manual("perp_cvd=falling,spot_cvd=flat,at=04:05Z")
-    check("manual with a number + time unlocks", ok_num is True)
+    _, ok_num = parse_manual(f"perp_cvd_24h=+2663,at={fresh}")
+    _, ok_adj = parse_manual(f"perp_cvd=falling,spot_cvd=flat,at={fresh}")
+    _, ok_junk = parse_manual("perp_cvd_24h=+2663,at=garbageZ")
+    _, ok_stale = parse_manual(f"perp_cvd_24h=+2663,at={stale}")
+    _, ok_noat = parse_manual("perp_cvd_24h=+2663")
+    check("manual with a number + fresh time unlocks", ok_num is True)
     check("manual adjective does NOT unlock", ok_adj is False)
+    check("manual with an unparseable time does NOT unlock", ok_junk is False)
+    check("manual older than the freshness ceiling does NOT unlock", ok_stale is False)
+    check("manual with no time does NOT unlock", ok_noat is False)
 
     print("live")
     try:

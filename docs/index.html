@@ -6,11 +6,11 @@
 <title>SALAM · BTC spot data packet</title>
 <style>
   :root{
-    --bg:#0b0e11; --panel:#10161d; --line:#1c2530; --fg:#d6dde5; --dim:#79838f;
+    --bg:#0b0e11; --panel:#10161d; --line:#1c2530; --fg:#d6dde5; --dim:#8b95a1;
     --up:#3ddc84; --dn:#ff5d5d; --warn:#ffb020; --acc:#4ea1ff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono);padding:0 0 48px}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 var(--mono);padding:0 0 48px}
   a{color:var(--acc);text-decoration:none}
   header{position:sticky;top:0;z-index:9;background:rgba(11,14,17,.96);border-bottom:1px solid var(--line);
          padding:12px 14px 10px;backdrop-filter:blur(6px)}
@@ -32,13 +32,16 @@
        background:var(--up);margin-right:6px;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
   #live.frozen::before{background:#3a4a5c;animation:none}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){#live::before{animation:none}}
   .actions{margin-top:9px;gap:8px;align-items:center}
-  button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:5px;
-    padding:5px 10px;font:inherit;font-size:11px;letter-spacing:.04em;cursor:pointer;
-    text-decoration:none;display:inline-block;line-height:1.4}
+  button,.btn{background:#16202b;color:var(--fg);border:1px solid #24303d;border-radius:6px;
+    padding:9px 13px;min-height:42px;font:inherit;font-size:12px;letter-spacing:.04em;cursor:pointer;
+    text-decoration:none;display:inline-flex;align-items:center;line-height:1.3}
   button:hover,.btn:hover{border-color:#3a4a5c;color:#fff}
   button:active{transform:translateY(1px)}
   #copyState{font-size:11px;color:var(--up)}
+  #loc{margin:8px 0 0;font-size:12.5px;color:var(--fg);line-height:1.5}
+  #loc .k{color:var(--dim);letter-spacing:.05em;font-size:11px;text-transform:uppercase;margin-right:6px}
   #state{margin:10px 0 0;padding:9px 11px;border-radius:5px;font-size:12px;line-height:1.5;border:1px solid}
   #state.ok{background:#0d2418;border-color:#1d5c3a;color:#9ff0c2}
   #state.warn{background:#2a2008;border-color:#6b5312;color:#ffd98a}
@@ -46,12 +49,12 @@
   main{padding:14px}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px}
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px}
-  .stat .k{color:var(--dim);font-size:10px;letter-spacing:.07em;text-transform:uppercase}
+  .stat .k{color:var(--dim);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
   .stat .v{font-size:15px;margin-top:2px}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
-  .card h2{margin:0 0 9px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .card h2{margin:0 0 9px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
   .wide{grid-column:1/-1}
   .lvl{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed #161e27}
   .lvl:last-child{border-bottom:0}
@@ -60,6 +63,7 @@
   .bar{flex:1;height:7px;background:#16202b;border-radius:3px;overflow:hidden;min-width:44px}
   .bar i{display:block;height:100%;background:linear-gradient(90deg,#2b6cb0,#4ea1ff)}
   .bar.liq i{background:linear-gradient(90deg,#6b5312,#ffb020)}
+  .bar.na{background:repeating-linear-gradient(45deg,#141c25,#141c25 4px,#1d2836 4px,#1d2836 8px)}
   .chip{font-size:10px;padding:1px 5px;border-radius:3px;border:1px solid #24303d;color:var(--dim);white-space:nowrap}
   .chip.short{color:#ffc08a;border-color:#5c3a1d}
   .chip.long{color:#9ff0c2;border-color:#1d5c3a}
@@ -78,7 +82,7 @@
   footer{padding:16px 14px 0;color:var(--dim);font-size:11px;line-height:1.6}
   footer a{margin-right:10px}
   details{margin-top:10px}
-  summary{cursor:pointer;color:var(--dim)}
+  summary{cursor:pointer;color:var(--dim);padding:10px 0;min-height:40px;font-size:12px}
   code{color:#b9c4cf}
 </style>
 </head>
@@ -95,8 +99,9 @@
     </span>
   </div>
   <div id="state" class="ok">connecting…</div>
+  <div id="loc"><span class="k">location</span><span id="locBody">—</span></div>
   <div class="row actions">
-    <button id="copy" title="Copy the full packet as plain text, ready to paste into any AI">⧉ copy packet for AI</button>
+    <button id="copy" title="Copy the full markdown packet, ready to paste into any AI">⧉ copy packet for AI</button>
     <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml"
        target="_blank" rel="noopener" title="Open the workflow page, then Run workflow">▶ run workflow</a>
     <span id="copyState"></span>
@@ -157,13 +162,21 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v))
-  ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
-const money = (v, d = 0) => (v === null || v === undefined) ? '—'
+// Number.isNaN("abc") is false, so the old guard let the string "NaN" render. A value is
+// usable only if it coerces to a finite number; anything else prints as an em dash.
+const isNum = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+const fmt = (v, d = 0) => isNum(v)
+  ? Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d})
+  : '—';
+const money = (v, d = 0) => !isNum(v) ? '—'
   : (v < 0 ? '-$' + fmt(Math.abs(v), d) : '$' + fmt(v, d));
-const signed = (v, d = 1) => (v === null || v === undefined) ? '—'
+const signed = (v, d = 1) => !isNum(v) ? '—'
   : (v > 0 ? '+' : '') + fmt(v, d);
-const cls = v => (v === null || v === undefined) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
+const cls = v => !isNum(v) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
+// packet strings are data, never markup
+const esc = s => String(s === null || s === undefined ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 let generated = null, packetPrice = null, liveOK = false;
 
 // The packet is a snapshot — it only changes when the workflow publishes one. A price that
@@ -184,8 +197,9 @@ async function tickLive() {
       $('live').classList.remove('frozen');
       liveOK = true;
       const drift = packetPrice ? (p / packetPrice - 1) * 100 : null;
-      const stamp = new Date().toISOString().slice(11, 16);
-      $('pkt').innerHTML = `live ${stamp}Z ${src}${packetPrice ? ` · packet ${money(packetPrice)} @ ${sgtTime(generated)} SGT` : ''}`;
+      const nowSgt = sgtTime(new Date());
+      $('pkt').textContent = `live ${nowSgt} SGT [${src}]`
+        + (isNum(packetPrice) ? ` · packet ${money(packetPrice)} @ ${generated ? sgtTime(generated) : '—'} SGT` : '');
       $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
       return;
     } catch (e) { /* next venue */ }
@@ -238,48 +252,80 @@ function liqRows(list, maxUsd) {
 }
 
 function cvdRow(label, s, p, maxAbs) {
-  const w = v => v === null || v === undefined ? 0 : Math.min(100, Math.abs(v) / maxAbs * 100);
+  const w = v => Math.min(100, Math.abs(Number(v)) / maxAbs * 100);
+  // a missing reading is hatched: a zero-width bar is indistinguishable from a measured zero
+  const bar = (v, kind) => !isNum(v)
+    ? '<span class="bar na" title="UNAVAILABLE — not measured, not zero"></span>'
+    : `<span class="bar ${kind}"><i style="width:${w(v)}%"></i></span>`;
   return `<div class="lvl"><span class="nm">${label}</span>
     <span class="px ${cls(s)}" style="min-width:74px">${signed(s)}</span>
     <span class="px ${cls(p)}" style="min-width:74px">${signed(p)}</span>
-    <span class="bar"><i style="width:${w(s)}%"></i></span>
-    <span class="bar liq"><i style="width:${w(p)}%"></i></span>
+    ${bar(s, '')}
+    ${bar(p, 'liq')}
   </div>`;
 }
 
 function render(d) {
-  generated = new Date(d.generated_at_utc || d.generated || Date.now());
+  generated = d.generated_at_utc ? new Date(d.generated_at_utc) : null;
+  if (generated && isNaN(generated)) generated = null;   // unknown must not read as brand new
   const price = d.price ?? null;
   packetPrice = price;
-  $('pkt').textContent = price ? `packet ${money(price)} · ${sgtTime(generated)} SGT` : 'packet —';
+  $('pkt').textContent = isNum(price)
+    ? `packet ${money(price)} · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
+    : 'packet —';
   if (!liveOK) { $('live').textContent = price ? '$' + fmt(price) : '—'; $('live').classList.add('frozen'); }
-  $('ts').textContent = isNaN(generated) ? '' : `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`;
+  $('ts').textContent = generated
+    ? `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`
+    : 'packet timestamp missing';
 
-  const state = d.exec_state || (d.perp_cvd_ok ? 'FULL' : 'PARTIAL');
+  // Only the four declared states render as themselves. A missing or invented state shows as
+  // UNKNOWN — never upgraded to FULL on the strength of a different field.
+  const VALID_STATES = ['FULL', 'MANUAL', 'PARTIAL', 'NONE'];
+  const state = VALID_STATES.includes(d.exec_state) ? d.exec_state : 'UNKNOWN';
   const st = $('state');
   st.className = state === 'FULL' ? 'ok' : (state === 'MANUAL' ? 'warn' : state === 'PARTIAL' ? 'warn' : 'bad');
   const perpSrc = d.perp_src === 'OKX-RUBIK' ? '[OKX-RUBIK]' : d.perp_src === 'BINANCE' ? '[BIN]' : '[—]';
   st.innerHTML = state === 'FULL'
     ? `✅ <b>FULL ORDER FLOW</b> — spot [BIN] · perp ${perpSrc}. Execution-grade.`
     : state === 'MANUAL'
-      ? `✅ <b>FULL ORDER FLOW — MANUAL @ ${d.manual_at || '—'}</b> — perp CVD typed in from a screenshot, not machine-verified.`
+      ? `✅ <b>MANUAL ORDER FLOW @ ${esc(d.manual_at) || '—'}</b> — perp CVD typed in by hand, not machine-verified. Execution rules shown.`
       : state === 'PARTIAL'
-        ? `⚠️ <b>PARTIAL ORDER FLOW</b> — perp CVD is the archive${d.perp_dump ? ' for ' + d.perp_dump.date : ''} (T+1). Levels are live, flow is a day old. <b>Execution rules withheld.</b>`
-        : `⛔ <b>PERP CVD UNAVAILABLE</b> — this packet is a levels map, not an execution packet.`;
+        ? `⚠️ <b>PARTIAL ORDER FLOW</b> — perp CVD is the archive${d.perp_dump ? ' for ' + esc(d.perp_dump.date) : ''} (T+1). Levels are live, flow is a day old. <b>Execution plans withheld.</b>`
+        : state === 'NONE'
+          ? `⛔ <b>PERP CVD UNAVAILABLE</b> — levels map only, no execution plans.`
+          : `⛔ <b>STATE MISSING OR UNREADABLE</b> (${esc(d.exec_state) || 'no exec_state'}) — the packet cannot be graded, so it reads as suspended.`;
 
   // stats
-  const sma = d.sma200, dist = (price && sma) ? (price / sma - 1) * 100 : null;
+  const sma = d.sma200, dist = (isNum(price) && isNum(sma) && Number(sma) !== 0) ? (price / sma - 1) * 100 : null;
   const etf = d.etf || {};
   $('stats').innerHTML = [
-    stat('200 SMA', sma ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
-    stat('funding 8h', d.funding === null || d.funding === undefined ? '—' : d.funding.toFixed(4) + '%',
-         d.funding_pct90 === null || d.funding_pct90 === undefined ? '' : `<span class="dimv">p${Math.round(d.funding_pct90)}</span>`),
-    stat('open interest', d.oi_btc ? fmt(d.oi_btc) : '—', d.oi_btc ? `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>` : ''),
-    stat('ATR 1H', d.atr1h ? fmt(d.atr1h) : '—'),
-    stat('L/S', d.ls_ratio ? d.ls_ratio.toFixed(2) : '—'),
-    stat('ETF 1D', etf.one_day_m === undefined ? '—' : money(etf.one_day_m, 1) + 'M',
-         etf.five_day_m === undefined ? '' : `<span class="dimv">5D ${money(etf.five_day_m, 0)}M</span>`)
+    stat('200 SMA', isNum(sma) ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
+    stat('funding 8h', isNum(d.funding) ? d.funding.toFixed(4) + '%' : '—',
+         !isNum(d.funding_pct90) ? '' : `<span class="dimv">p${Math.round(d.funding_pct90)}</span>`),
+    stat('open interest', isNum(d.oi_btc) ? fmt(d.oi_btc) : '—',
+         !isNum(d.oi_btc) ? '' : `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>`),
+    stat('ATR 1H', isNum(d.atr1h) ? fmt(d.atr1h) : '—'),
+    stat('L/S', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—'),
+    stat('ETF 1D', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
+         !isNum(etf.five_day_m) ? '' : `<span class="dimv">5D ${money(etf.five_day_m, 0)}M</span>`)
   ].join('');
+
+  // one line of orientation: where the packet's price sits against the packet's own levels
+  (() => {
+    const inside = d.inside_band;
+    const supLo = d.sup_band ? Math.min(d.sup_band.low, d.sup_band.high) : null;
+    const resHi = d.res_band ? Math.max(d.res_band.low, d.res_band.high) : null;
+    const pct = lvl => (isNum(price) && isNum(lvl) && Number(price) !== 0)
+      ? (() => { const d = (lvl / price - 1) * 100;
+          return `<span class="${d < 0 ? 'dn' : 'up'}">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`; })() : '';
+    const bits = [];
+    bits.push(isNum(price) ? `<b>${money(price)}</b>` : '<span class="dimv">price unavailable</span>');
+    if (inside) bits.push(`inside ${fmt(Math.min(inside.low, inside.high))}–${fmt(Math.max(inside.low, inside.high))}`);
+    else bits.push('<span class="dimv">between bands</span>');
+    if (isNum(supLo)) bits.push(`↓ ${fmt(supLo)} ${pct(supLo)}`);
+    if (isNum(resHi)) bits.push(`↑ ${fmt(resHi)} ${pct(resHi)}`);
+    $('locBody').innerHTML = bits.join(' · ');
+  })();
 
   // bands
   $('bands').innerHTML = bandRow('upper', d.res_band, price) + bandRow('lower', d.sup_band, price);
@@ -306,7 +352,8 @@ function render(d) {
     cvdRow('1H', cs['1h'], cp['1h'], maxAbs) +
     cvdRow('4H', cs['4h'], cp['4h'], maxAbs) +
     cvdRow('24H', cs['24h'], cp['24h'], maxAbs);
-  const ratio = (cs['24h'] && cp['24h']) ? Math.abs(cp['24h'] / cs['24h']) : null;
+  const ratio = (isNum(cs['24h']) && isNum(cp['24h']) && Number(cs['24h']) !== 0)
+    ? Math.abs(cp['24h'] / cs['24h']) : null;
   $('cvdnote').innerHTML = ratio === null ? ''
     : `perp:spot 24H ratio <b>${ratio.toFixed(1)}×</b> — above 3× means the move is futures-led, not spot accumulation.`;
 
@@ -338,12 +385,12 @@ function render(d) {
     <div class="lvl"><span class="nm">7D</span><span class="px" style="min-width:0">VAH ${fmt(v7.vah)} · POC ${fmt(v7.poc)} · VAL ${fmt(v7.val)}</span></div>
     <div class="lvl"><span class="nm">30D</span><span class="px dimv" style="min-width:0">VAH ${fmt(v30.vah)} · POC ${fmt(v30.poc)} · VAL ${fmt(v30.val)}</span></div>
     <div class="lvl"><span class="nm">4H</span><span class="px" style="min-width:0">VAH ${fmt(v4.vah)} · POC ${fmt(v4.poc)} · VAL ${fmt(v4.val)}</span></div>
-    <div class="lvl"><span class="nm">HVN</span><span class="px" style="min-width:0">${hv.above ? 'above ' + fmt(hv.above) : ''}${hv.above && hv.below ? ' · ' : ''}${hv.below ? 'below ' + fmt(hv.below) : ''}</span></div>`;
+    <div class="lvl"><span class="nm">HVN</span><span class="px" style="min-width:0">${isNum(hv.above) ? 'above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' · ' : ''}${isNum(hv.below) ? 'below ' + fmt(hv.below) : ''}</span></div>`;
 
   // problems
   const probs = d.problems || [];
   $('probsBody').innerHTML = probs.length
-    ? probs.map(p => `<div>· ${p}</div>`).join('')
+    ? probs.map(p => `<div>· ${esc(p)}</div>`).join('')
     : '<div>none</div>';
 
   paintAge();
@@ -372,23 +419,34 @@ async function freshestJSON() {
     const r = await fetch(u + sep + 'now=' + Date.now(), {cache: 'no-store'});
     if (!r.ok) throw new Error(u + ' HTTP ' + r.status);
     const j = await r.json();
-    if (!j.generated_at_utc) throw new Error(u + ' has no timestamp');
-    return {j, ts: Date.parse(j.generated_at_utc)};
+    const ts = Date.parse(j.generated_at_utc || '');
+    // a truthy-but-unparseable stamp makes every comparison NaN and "newest" arbitrary
+    if (!Number.isFinite(ts)) throw new Error(u + ' has no usable timestamp');
+    return {j, ts};
   });
-  const settled = await Promise.allSettled(tries);
+  const settle = pr => pr.then(value => ({status: 'fulfilled', value}),
+                               reason => ({status: 'rejected', reason}));
+  const settled = await Promise.all(tries.map(settle));   // no Promise.allSettled requirement
   const ok = settled.filter(x => x.status === 'fulfilled').map(x => x.value).sort((a, b) => b.ts - a.ts);
   if (!ok.length) throw new Error('all mirrors failed');
   return ok[0].j;
 }
+let loadSeq = 0;
 async function load() {
+  const seq = ++loadSeq;
   try {
-    render(await freshestJSON());
+    const j = await freshestJSON();
+    if (seq !== loadSeq) return;          // a newer load already started; drop this result
+    render(j);
     $('lmd').href = 'SALAM_DATA_HUB.md?t=' + Date.now();
     $('ljson').href = 'SALAM_DATA_HUB.json?t=' + Date.now();
   } catch (e) {
+    if (seq !== loadSeq) return;
     $('state').className = 'bad';
-    $('state').textContent = 'packet fetch failed: ' + e.message + ' — the board below is the last good read';
-    $('age').textContent = 'no data';
+    $('state').textContent = generated
+      ? `packet fetch failed (${e.message}) — showing the last good packet from ${sgtTime(generated)} SGT`
+      : 'packet fetch failed: ' + e.message + ' — refusing to invent a packet';
+    $('age').textContent = generated ? 'refresh failed' : 'no data';
     $('age').className = 'bad';
   }
 }
@@ -429,7 +487,8 @@ $('copy').addEventListener('click', async () => {
       ta.remove();
       if (!ok) throw clipErr;
     }
-    flash('copied · ' + (t.length / 1024).toFixed(1) + ' KB · paste into any AI');
+    const stamp = (t.match(/\*\*Timestamp:\*\*\s*([0-9:\- ]+)UTC/) || [])[1];
+    flash(`copied ${(t.length / 1024).toFixed(1)} KB · packet ${stamp ? stamp.trim() + ' UTC' : '(no stamp in file)'}`);
   } catch (e) {
     flash('copy failed: ' + e.message, true);
   }
