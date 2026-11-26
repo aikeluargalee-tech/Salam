@@ -734,14 +734,14 @@ summary {
   #state .b2{font-size:11.5px;opacity:.82;margin-top:3px;line-height:1.45}
 </style>
 </head>
-<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">⏳ <b>CHECKING THE DATA…</b><div class="b2">Nothing is shown until the packet arrives — a page that assumes it is fine is a page that lies.</div></div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Position vs levels</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet for AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <button id="refresh" type="button" title="Ask the trigger Worker to build a fresh packet — this starts a GitHub run">
+<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">⏳ <b>CHECKING THE DATA…</b><div class="b2">Nothing is shown until the packet arrives — a page that assumes it is fine is a page that lies.</div></div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Where price is</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy the data for an AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <button id="refresh" type="button" title="Ask the trigger Worker to build a fresh packet — this starts a GitHub run">
       <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1"></path><path d="M13.5 2v3.2h-3.2"></path>
       </svg>
       Refresh packet
     </button>
     <span id="refreshState" aria-live="polite" class="dimv"></span>
-    <span id="copyState" aria-live="polite"></span> </div> </header> <main> <!-- 4. WHAT CHANGED --> <div class="section-label">What changed</div> <div class="changes-grid"> <section class="card" id="alertCard"> <h2>Alert zone <span class="chip">5-minute move</span></h2> <div id="alertBig">—</div> <div class="alertrow" id="alertTiers"></div> <div class="note" id="alertNote"></div> </section> <section class="card"> <h2>The trigger <span class="chip">1H sweep</span></h2> <div id="sweep">—</div> </section> </div> <!-- 5. THE RULES THAT APPLY --> <div class="section-label">The rules that apply</div> <section class="card read" id="readCard"> <h2>The read <span class="chip">rules, not a forecast</span> <span class="chip">mechanical</span></h2> <div id="read"></div> </section> <!-- 6. THE EVIDENCE --> <div class="section-label">The evidence</div> <div class="stats" id="stats"></div> <div class="grid"> <section class="card wide"> <h2>Tactical bands <span class="chip" id="insidechip"></span></h2> <div id="bands"></div> <div class="note" id="bandsnote"></div> </section> <section class="card"> <h2>Macro S/R · nearest 3</h2> <div id="macro"></div> </section> <section class="card"> <h2>Volume nodes</h2> <div id="vp"></div> </section> <section class="card wide"> <h2>Order flow · spot / perp</h2> <div id="cvd"></div> <div class="note" id="cvdnote"></div> </section> <section class="card wide"> <h2>Liquidation ladder <span class="chip">MODELED</span></h2> <div class="tiers"> <div> <div class="subhead">Upper · shorts</div> <div id="liqUp"></div> </div> <div> <div class="subhead">Lower · longs</div> <div id="liqDn"></div> </div> </div> <div class="note" id="liqnote"></div> </section> <section class="card wide" id="handoffCard"> <h2>Deep analysis · hand packet to a model</h2> <div class="note" style="margin-top:0"> The read above is mechanical: it applies the packet's rules to the numbers and stops there. A model can weigh how the sweep, open interest, funding, and ETF flow interact, using only the data contained in this packet. </div> <div class="handoff"> <span class="step">1 · copy</span> <button id="copy2" type="button"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy packet </button> <span class="step">2 · open</span> <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a> <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a> <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a> <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a> <span id="copyState2" class="dimv" aria-live="polite"></span> </div> <div class="note">3 · paste, then ask: "read this packet and tell me what the rails permit right now".</div> </section> </div> </main> <footer> <div class="footer-links"> <a id="lmd" href="SALAM_DATA_HUB.md">raw .md</a> <a id="ljson" href="SALAM_DATA_HUB.json">json</a> </div> <div class="note"> Standard library only · closed bars only · no state · gaps print UNAVAILABLE rather than a guess. Liquidation dollars are OI × assumed tier weights, never observed clusters. </div> <details id="probs"> <summary>Data notes & feed diagnostics</summary> <div id="probsBody" class="note"></div> </details> </footer>
+    <span id="copyState" aria-live="polite"></span> </div> </header> <main> <!-- 4. WHAT CHANGED --> <div class="section-label">What is moving right now</div> <div class="changes-grid"> <section class="card" id="alertCard"> <h2>Alert zone <span class="chip">5-minute move</span></h2> <div id="alertBig">—</div> <div class="alertrow" id="alertTiers"></div> <div class="note" id="alertNote"></div> </section> <section class="card"> <h2>Last level break <span class="chip">last hour</span></h2> <div id="sweep">—</div> </section> </div> <!-- 5. THE RULES THAT APPLY --> <div class="section-label">The rules that apply</div> <section class="card read" id="readCard"> <h2>What the rules say <span class="chip">rules, not a forecast</span></h2> <div id="read"></div> </section> <!-- 6. THE EVIDENCE --> <div class="section-label">The evidence</div> <div class="stats" id="stats"></div> <div class="grid"> <section class="card wide"> <h2>Price zones <span class="chip" id="insidechip"></span></h2> <div id="bands"></div> <div class="note" id="bandsnote"></div> </section> <section class="card"> <h2>Big levels · nearest 3</h2> <div id="macro"></div> </section> <section class="card"> <h2>Where trading happened</h2> <div id="vp"></div> </section> <section class="card wide"> <h2>Who is buying</h2> <div id="cvd"></div> <div class="note" id="cvdnote"></div> </section> <section class="card wide"> <h2>Where leveraged traders get wiped out <span class="chip">ESTIMATED</span></h2> <div class="tiers"> <div> <div class="subhead">Above · shorts</div> <div id="liqUp"></div> </div> <div> <div class="subhead">Below · longs</div> <div id="liqDn"></div> </div> </div> <div class="note" id="liqnote"></div> </section> <section class="card wide" id="handoffCard"> <h2>Ask an AI to explain it</h2> <div class="note" style="margin-top:0"> The card above applies the rules to the numbers and stops there. An AI can weigh the level break, futures positions, funding and ETF flows together — using only the data in this packet, so it knows no more than the page does. </div> <div class="handoff"> <span class="step">1 · copy</span> <button id="copy2" type="button"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy the data </button> <span class="step">2 · open</span> <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a> <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a> <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a> <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a> <span id="copyState2" class="dimv" aria-live="polite"></span> </div> <div class="note">3 · paste, then ask: "read this and tell me what the rules allow right now".</div> </section> </div> </main> <footer> <div class="footer-links"> <a id="lmd" href="SALAM_DATA_HUB.md">text file</a> <a id="ljson" href="SALAM_DATA_HUB.json">data file</a> </div> <div class="note"> No dependencies. Only completed candles. Anything missing prints UNAVAILABLE instead of a guess. Liquidation amounts are estimated, not measured. </div> <details id="probs"> <summary>What went wrong, if anything</summary> <div id="probsBody" class="note"></div> </details> </footer>
 <script>
 const $ = id => document.getElementById(id);
 // Number.isNaN("abc") is false, so the old guard let the string "NaN" render. A value is
@@ -806,7 +806,8 @@ function move5m() {
 function renderAlert() {
   const m = move5m();
   const card = $('alertCard'), big = $('alertBig');
-  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${t.name} <b>±${money(t.usd)}</b>`).join(' · ')}</span>`;
+  const NAMES = {notable: 'warns', cascade: 'big', extreme: 'extreme'};
+  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name} at <b>±${money(t.usd)}</b>`).join(' · ')}</span>`;
   $('alertTiers').innerHTML = tiers;
   if (!m) {
     big.textContent = '—';
@@ -831,8 +832,8 @@ function renderAlert() {
     .filter(Boolean).sort((a, b) => b.t - a.t)[0];
   $('alertNote').innerHTML = [
     m.full ? '' : `<span class="dimv">history is only ${Math.round(m.span)} min old — reads short until it fills</span>`,
-    last ? `last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '−'}${money(Math.abs(last.move))})` : 'no alerts since this page opened',
-    `<span class="dimv">thresholds measured on 83 h of 5-min bars: median $61, p99 $474, max $2,715</span>`,
+    last ? `last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '−'}${money(Math.abs(last.move))})` : 'no alerts yet on this screen',
+    `<span class="dimv">limits set from 83 hours of history: a normal 5-minute move is $61, the biggest seen was $2,715</span>`,
   ].filter(Boolean).join(' · ');
 }
 
@@ -859,9 +860,9 @@ async function tickLive() {
       liveOK = true;
       const nowSgt = sgtTime(new Date());
       const drift = (isNum(packetPrice) && packetPrice !== 0) ? (p / packetPrice - 1) * 100 : null;
-      $('pkt').textContent = `live ${nowSgt} SGT [${src}]`
-        + (drift === null ? '' : ` ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs packet`)
-        + (isNum(packetPrice) ? ` · packet [${packetSrc}]` : '');
+      $('pkt').textContent = `live ${nowSgt} SGT [${src === 'BIN' ? 'Binance' : 'OKX'}]`
+        + (drift === null ? '' : ` ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs snapshot`)
+        + (isNum(packetPrice) ? ` · snapshot [${packetSrc}]` : '');
       $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
       return;
     } catch (e) { /* next venue */ }
@@ -891,7 +892,7 @@ function bandRow(label, b, price) {
   const edge = !isNum(price) ? null : (price < lo ? lo : (price > hi ? hi : null));
   const dist = isNum(edge) ? (edge / price - 1) * 100 : null;
   const insideBand = isNum(price) && price >= lo && price <= hi;
-  const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}x ${b.liq[0]} ${money(b.liq[1])}M</span>` : '';
+  const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}× ${b.liq[0].toLowerCase()} ${money(b.liq[1])}M</span>` : '';
   return `<div class="lvl">
     <span class="nm">${label}</span>
     <span class="px">${fmt(lo)}–${fmt(hi)}</span>
@@ -907,7 +908,7 @@ function bandRow(label, b, price) {
 function macroRow(c) {
   const liq = c.liq ? `<span class="chip ${c.liq[0] === 'Shorts' ? 'short' : 'long'}">${c.liq[2]}x ${money(c.liq[1])}M</span>` : '';
   return `<div class="lvl"><span class="px" style="min-width:96px">${fmt(c.center)}</span>
-    <span class="chip">${c.touches}x</span>${liq}</div>`;
+    <span class="chip">${c.touches === 1 ? '1 touch' : c.touches + ' touches'}</span>${liq}</div>`;
 }
 
 function liqRows(list, maxUsd) {
@@ -939,11 +940,11 @@ function render(d) {
   if (generated && isNaN(generated)) generated = null;   // unknown must not read as brand new
   const price = d.price ?? null;
   packetPrice = price;
-  packetSrc = d.price_src === 'CLOSE-1D' ? 'BIN-CLOSE 1D'
-    : (d.price_src === 'TICKER' ? 'BIN' : 'src unknown');
+  packetSrc = d.price_src === 'CLOSE-1D' ? 'Binance daily close'
+    : (d.price_src === 'TICKER' ? 'Binance' : 'source unknown');
   $('pkt').textContent = isNum(price)
-    ? `packet ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
-    : 'packet —';
+    ? `snapshot ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
+    : 'snapshot —';
   if (!liveOK) {
     $('live').textContent = price ? '$' + fmt(price) : '—';
     $('live').classList.add('frozen');
@@ -1018,20 +1019,20 @@ function render(d) {
           ? `<b>Price is inside the trim zone</b> (${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}) — this is where Rail A sells. Buying still needs a sweep that closes back inside first.`
           : `Nothing to do at ${money(price)}. ${
               gap === null ? 'No trim zone in this packet.'
-                : `Selling needs price <b>${gap.toFixed(1)}% higher</b>, at ${fmt(trimEdge)}.`} Buying needs a sweep that closes back inside first.`}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Route</span><span class="rval">${
-      below ? `<b>Macro downtrend</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below the 200D SMA`
-            : `<b>Above the 200D SMA</b> — the drawdown filter is not active`}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Rail A</span><span class="rval">${
+                : `Selling needs price <b>${gap.toFixed(1)}% higher</b>, at ${fmt(trimEdge)}.`} Buying needs price to poke below a level and close back above it first.`}</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">Trend</span><span class="rval">${
+      below ? `<b>Down</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below its 200-day average`
+            : `<b>Up</b> — price is above its 200-day average`}</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">Selling</span><span class="rval">${
       d.res_band
-        ? `<b>Sell BTC into USDT</b> at <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b>${bearSweep ? ' — <b>confirmed</b> by the bearish sweep' : ''}. Invalidation: a daily close above <b>${isNum(inval) ? fmt(inval) : '—'}</b> (band high + 1×ATR 1H).`
+        ? `<b>Sell some BTC</b> in the <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b> zone${bearSweep ? ', which the failed push up supports' : ''}. Call it off if a daily candle closes above <b>${isNum(inval) ? fmt(inval) : '—'}</b>.`
         : 'No resistance band in this packet — nothing to trim into.'}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Rail B</span><span class="rval">${
+    rows.push(`<div class="rrow"><span class="rkey">Buying</span><span class="rval">${
       bullSweep
-        ? `<b>Buy BTC with USDT · armed</b> — ${esc(flag)} at ${fmt(sw.level)}. Entry needs the reclaim to hold; stop = entry − 1.5×ATR 1H.`
+        ? `<b>On</b> — price poked below <b>${fmt(sw.level)}</b> and climbed back. Buying only once the recovery holds; stop 1.5× the hourly swing below entry.`
         : bearSweep
-          ? `<b>Buy BTC with USDT · shut.</b> The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
-          : `<b>Buy BTC with USDT · restricted.</b> No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
+          ? `<b>Off.</b> Price pushed above <b>${fmt(sw.level)}</b> and failed, which favours selling into strength rather than buying the dip.`
+          : `<b>Off.</b> Nothing to buy yet${isNum(supEdge) ? ` — price must first dip below <b>${fmt(supEdge)}</b> and close back above it` : ''}.`}</span></div>`);
     // WHY the trim zone sits there: the confluence score says how much independent evidence
     // stacks on the band, and the surrounding fields say what is near it. Three different kinds
     // of evidence are named separately because they are not interchangeable — a volume edge is
@@ -1046,25 +1047,23 @@ function render(d) {
       const near = [];
       const v30val = d.vp30 ? d.vp30.val : null;
       if (isNum(v30val) && Math.abs(v30val / lo - 1) < 0.01) {
-        near.push(`30D VAL <b>${fmt(v30val)}</b> just below — old support, now overhead supply`);
+        near.push(`the 30-day value low <b>${fmt(v30val)}</b> sits just below — an old floor, now overhead selling`);
       }
       const v4vah = d.vp4h ? d.vp4h.vah : null;
       if (isNum(v4vah) && Math.abs(v4vah / hi - 1) < 0.02) {
-        near.push(`4H VAH <b>${fmt(v4vah)}</b> just above`);
+        near.push(`the 4-hour value high <b>${fmt(v4vah)}</b> sits just above`);
       }
       const tier = (d.liq_upper || []).filter(c => isNum(c.price) && c.price >= lo && c.price <= hi && c.lev >= 25)
         .sort((a, b) => b.usd_m - a.usd_m)[0];
       if (tier) {
-        near.push(`${tier.lev}x short cluster <b>${money(tier.usd_m)}M</b> inside at ${fmt(tier.price)} — that is fuel pulling price up into the zone, not a wall`);
+        near.push(`<b>${money(tier.usd_m)}M</b> of ${tier.lev}× shorts sit inside at ${fmt(tier.price)} — that pulls price up into the zone rather than blocking it`);
       }
-      rows.push(`<div class="rrow"><span class="rkey">Why</span><span class="rval">Band scores
-        <b>${isNum(d.res_band.score) ? d.res_band.score : '?'}/10</b> (${esc(factors)}).
-        ${near.length ? near.join('; ') + '.' : 'No volume edge or liquidation cluster within 1% of it — a weak zone.'}</span></div>`);
+      rows.push(`<div class="rrow"><span class="rkey">Why here</span><span class="rval"><b>${isNum(d.res_band.score) ? d.res_band.score : '?'} of 10</b> checks agree (${esc(factors)}).
+        ${near.length ? near.join('; ').replace(/^./, c => c.toUpperCase()) + '.' : 'Nothing else sits within 1% of it — a weak zone.'}</span></div>`);
     }
 
-    rows.push(`<div class="rrow"><span class="rkey">Risk</span><span class="rval">Stop distance
-      <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b>
-      · risk 0.75% of portfolio across that stop · skip the trade if the size exceeds 30% of the USDT side.</span></div>`);
+    rows.push(`<div class="rrow"><span class="rkey">If you buy</span><span class="rval">Stop <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b> below entry.
+      Risk no more than <b>0.75%</b> of your portfolio. Skip the trade if the position would be more than <b>30%</b> of your cash.</span></div>`);
     box.innerHTML = rows.join('');
   })();
 
@@ -1072,15 +1071,15 @@ function render(d) {
   const sma = d.sma200, dist = (isNum(price) && isNum(sma) && Number(sma) !== 0) ? (price / sma - 1) * 100 : null;
   const etf = d.etf || {};
   $('stats').innerHTML = [
-    stat('200 SMA', isNum(sma) ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
-    stat('funding 8h', isNum(d.funding) ? d.funding.toFixed(4) + '%' : '—',
-         `<span class="dimv">${isNum(d.funding_pct90) ? 'p' + Math.round(d.funding_pct90) + ' · ' : ''}${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
-    stat('open interest', isNum(d.oi_btc) ? fmt(d.oi_btc) : '—',
+    stat('200-day average', isNum(sma) ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
+    stat('funding rate', isNum(d.funding) ? d.funding.toFixed(4) + '%' : '—',
+         `<span class="dimv">${isNum(d.funding_pct90) ? Math.round(d.funding_pct90) + 'th percentile · ' : ''}${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
+    stat('futures positions', isNum(d.oi_btc) ? fmt(d.oi_btc) : '—',
          !isNum(d.oi_btc) ? '' : `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>`),
-    stat('ATR 1H', isNum(d.atr1h) ? fmt(d.atr1h) : '—'),
-    stat('L/S', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—',
+    stat('hourly swing', isNum(d.atr1h) ? fmt(d.atr1h) : '—'),
+    stat('buyers vs sellers', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—',
          `<span class="dimv">${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
-    stat('ETF 1D', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
+    stat('ETF flows (1 day)', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
          `<span class="dimv">${etf.latest_date ? esc(String(etf.latest_date).replace(/\s+\d{4}$/, '')) + ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}</span>`)
   ].join('');
 
@@ -1115,15 +1114,15 @@ function render(d) {
   })();
 
   // bands
-  $('bands').innerHTML = bandRow('upper', d.res_band, price) + bandRow('lower', d.sup_band, price);
+  $('bands').innerHTML = bandRow('Zone above', d.res_band, price) + bandRow('Zone below', d.sup_band, price);
   $('insidechip').innerHTML = containment;
 
   // macro
   const res = d.macro_res || [], sup = d.macro_sup || [];
   $('macro').innerHTML =
-    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:2px 0 3px">RESISTANCE</div>` +
+    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:2px 0 3px">ABOVE PRICE</div>` +
     (res.length ? res.map(macroRow).join('') : '<div class="dimv">—</div>') +
-    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:9px 0 3px">SUPPORT</div>` +
+    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:9px 0 3px">BELOW PRICE</div>` +
     (sup.length ? sup.map(macroRow).join('') : '<div class="dimv">—</div>');
 
   // cvd
@@ -1133,7 +1132,7 @@ function render(d) {
   const maxAbs = Math.max(1, ...vals);
   $('cvd').innerHTML =
     `<div class="lvl"><span class="nm"></span><span class="px dimv" style="font-size:10px">SPOT</span>
-       <span class="px dimv" style="font-size:10px">PERP</span></div>` +
+       <span class="px dimv" style="font-size:10px">FUTURES</span></div>` +
     cvdRow('1H', cs['1h'], cp['1h'], maxAbs) +
     cvdRow('4H', cs['4h'], cp['4h'], maxAbs) +
     cvdRow('24H', cs['24h'], cp['24h'], maxAbs);
@@ -1142,9 +1141,9 @@ function render(d) {
   const oiBits = [];
   if (isNum(d.oi_4h_chg)) oiBits.push(`<span class="${cls(d.oi_4h_chg)}">4H ${signed(d.oi_4h_chg, 2)}%</span>`);
   if (isNum(d.oi_24h_chg)) oiBits.push(`<span class="${cls(d.oi_24h_chg)}">24H ${signed(d.oi_24h_chg, 2)}%</span>`);
-  const oiLine = oiBits.length ? `OI change ${oiBits.join(' · ')}` : '';
+  const oiLine = oiBits.length ? `Futures positions ${oiBits.join(' · ')}` : '';
   $('cvdnote').innerHTML = [
-    ratio === null ? '' : `perp:spot 24H ratio <b>${ratio.toFixed(1)}×</b> — above 3× means the move is futures-led, not spot accumulation.`,
+    ratio === null ? '' : `Futures trading is <b>${ratio.toFixed(1)}×</b> the spot trading over 24 hours — above 3× means leveraged traders are driving the move, not people buying coins.`,
     oiLine
   ].filter(Boolean).join('<br>');
 
@@ -1154,7 +1153,7 @@ function render(d) {
   $('liqUp').innerHTML = liqRows(up, maxLiq);
   $('liqDn').innerHTML = liqRows(dn, maxLiq);
   $('liqnote').textContent = d.oi_usd_m
-    ? `OI ${money(d.oi_usd_m, 0)}M × 8/6/4/2% assumed tier weights. Levels are exact leverage arithmetic; the dollars are not observed.`
+    ? `Estimated from ${money(d.oi_usd_m, 0)}M of open futures, split by assumed leverage tiers. The prices are exact arithmetic; the dollar amounts are a guess. 10×–100× is how much borrowed money those traders used.`
     : 'No open interest — ladder unavailable.';
 
   // sweep
@@ -1162,21 +1161,21 @@ function render(d) {
   const sweepEl = $('sweep');
   if (sw.flag && sw.flag !== 'NONE' && sw.flag !== 'UNAVAILABLE') {
     sweepEl.className = 'hit';
-    sweepEl.innerHTML = `<b>${esc(sw.flag)}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
+    sweepEl.innerHTML = `<b>${esc(sw.flag)}</b> at ${fmt(sw.level)}${sw.touches ? ` (touched ${sw.touches === 1 ? 'once' : sw.touches + ' times'})` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
   } else {
     sweepEl.className = '';
     sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
       ? '<span class="dimv">UNAVAILABLE — no 1H bars</span>'
-      : '<span class="dimv">NONE — no closed 1H bar beyond a level that closed back inside</span>';
+      : '<span class="dimv">None — price did not poke through a level and fall back in the last hour</span>';
   }
 
   // volume nodes
   const v7 = d.vp7 || {}, v30 = d.vp30 || {}, v4 = d.vp4h || {}, hv = d.hvn7 || {};
   $('vp').innerHTML = `
-    <div class="lvl"><span class="nm">7D</span><span class="px" style="min-width:0">VAH ${fmt(v7.vah)} · POC ${fmt(v7.poc)} · VAL ${fmt(v7.val)}</span></div>
-    <div class="lvl"><span class="nm">30D</span><span class="px dimv" style="min-width:0">VAH ${fmt(v30.vah)} · POC ${fmt(v30.poc)} · VAL ${fmt(v30.val)}</span></div>
-    <div class="lvl"><span class="nm">4H</span><span class="px" style="min-width:0">VAH ${fmt(v4.vah)} · POC ${fmt(v4.poc)} · VAL ${fmt(v4.val)}</span></div>
-    <div class="lvl"><span class="nm">HVN</span><span class="px" style="min-width:0">${isNum(hv.above) ? 'above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' · ' : ''}${isNum(hv.below) ? 'below ' + fmt(hv.below) : ''}</span></div>`;
+    <div class="lvl"><span class="nm">7 days</span><span class="px" style="min-width:0">high ${fmt(v7.vah)} · busiest ${fmt(v7.poc)} · low ${fmt(v7.val)}</span></div>
+    <div class="lvl"><span class="nm">30 days</span><span class="px dimv" style="min-width:0">high ${fmt(v30.vah)} · busiest ${fmt(v30.poc)} · low ${fmt(v30.val)}</span></div>
+    <div class="lvl"><span class="nm">4 hours</span><span class="px" style="min-width:0">high ${fmt(v4.vah)} · busiest ${fmt(v4.poc)} · low ${fmt(v4.val)}</span></div>
+    <div class="lvl"><span class="nm">busiest</span><span class="px" style="min-width:0">${isNum(hv.above) ? 'above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' · ' : ''}${isNum(hv.below) ? 'below ' + fmt(hv.below) : ''}</span></div>`;
 
   // problems
   const probs = d.problems || [];
