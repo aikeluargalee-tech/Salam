@@ -1,9 +1,9 @@
-# SALAM PROTOCOL DATA HUB v1.5
-**Timestamp:** 2026-11-26 04:15:09 UTC | **Spot Price:** $60,987.89 [BIN]
+# SALAM PROTOCOL DATA HUB v1.5.1
+**Timestamp:** 2026-11-26 04:25:04 UTC | **Spot Price:** $61,006.02 [BIN]
 > ⚠️ **PARTIAL ORDER FLOW — perp CVD is Binance's archive for 2026-11-24 (T+1), not live.** Live perp klines are blocked on this host. Intraday perp reads are one day old; spot and levels are live.
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,988 (1D SMA200 72,088)
+*   **Current Price:** $61,006 (1D SMA200 72,088)
 *   **Tactical Bands:**
     *   Upper: $62,800 - $64,441 (Conf: 3/10)
     *   Lower: $58,232 - $59,305 (Conf: 10/10)
@@ -17,16 +17,16 @@
 
 ## 2. THE FUEL (Liquidation Magnets) [MODELED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $67,087 ($153.1M) / 25x $63,427 ($114.8M) / 50x $62,208 ($76.6M) / 100x $61,598 ($38.3M)
-*   **Lower Longs:** 10x $54,889 ($153.1M) / 25x $58,548 ($114.8M) / 50x $59,768 ($76.6M) / 100x $60,378 ($38.3M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,914.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.48 [OKX]
+*   **Upper Shorts:** 10x $67,107 ($153.1M) / 25x $63,446 ($114.8M) / 50x $62,226 ($76.5M) / 100x $61,616 ($38.3M)
+*   **Lower Longs:** 10x $54,905 ($153.1M) / 25x $58,566 ($114.8M) / 50x $59,786 ($76.5M) / 100x $60,396 ($38.3M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,913.4M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
+*   **Long/Short account ratio (4H):** 2.47 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
 *   **CVD (Spot [BIN] / Perp [OKX]):** 1H: 118.8 / UNAVAILABLE | 4H: 476.3 / UNAVAILABLE | 24H: 441.1 / UNAVAILABLE
-*   **Open Interest:** 31,385 BTC [OKX] | 4H Change: -0.14% | 24H Change: 3.59%
+*   **Open Interest:** 31,364 BTC [OKX] | 4H Change: -0.14% | 24H Change: 3.59%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0086% per 8H [OKX] | percentile (100 pts): 63
+*   **Funding:** 0.0087% per 8H [OKX] | percentile (100 pts): 64
 *   **Perp CVD [BIN-DUMP 2026-11-24]:** 4H 952.7 | 24H 242.9 (complete closed day, 24 bars — one day old, not live)
 *   **ATR 1H:** 629 (Rail B stop distance = 1.5 x this = 944)
 
@@ -35,7 +35,7 @@
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-123.3M (25 Nov 2026, settled) | 5D: $-2,175.9M
-*   **Funding percentile:** 63 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 64 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
@@ -47,7 +47,7 @@
 *   lsr HTTP 451
 *   perp CVD is from Binance's daily archive for 2026-11-24 (T+1, 24 bars) — not live
 
-### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5
+### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5.1
 **Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory (50/50 BTC/USDT) strategy.
 **Primary Directive:** Analyze this data packet using S/R-First logic.
 
@@ -62,16 +62,11 @@
 *   **If that size exceeds 30% of the USDT inventory, skip the trade.**
 *   Rail A invalidation = the resistance band is closed above (1 x ATR 1H beyond its high); never trim without one.
 
-**Execution Rules:**
-*   **Rail B (USDT -> BTC):** Wait for price to sweep a Lower Long Liquidation Cluster that overlaps with a Major Support level. Confirm with a BULLISH or MACRO BULLISH SWEEP flag and positive Spot CVD. Enter on the reclaim.
-*   **Rail A (BTC -> USDT):** Wait for price to rally into an Upper Short Liquidation Cluster that overlaps with a Major Resistance level. Confirm with a BEARISH or MACRO BEARISH SWEEP flag and flat/negative Spot CVD. Trim BTC into USDT.
-
-**Required Output Format:**
-1. **Current Market State**
-2. **The Levels Map**
-3. **Rail B (Buy) Plan** (Entry, Trigger, Stop Loss, Target)
-4. **Rail A (Sell/Trim) Plan** (Entry, Trigger, Invalidation Stop, Target)
-5. **Actionable Verdict** (What to do right now with the 50/50 portfolio).
+## ❌ EXECUTION SUSPENDED
+*   **State: PARTIAL.** Perp CVD is the archive figure for 2026-11-24 (T+1). Rail A and Rail B plans are withheld by design — a lagged or missing flow figure is not a basis for an order, and a model reading one beside a plan will use it as if it were live.
+*   **To lift the gate, either:** run this script on a Binance-reachable host (full live perp), or record a screenshot reading with a number and a UTC time:
+    *   `python3 salam_protocol.py --manual "perp_cvd_24h=+2663,at=04:05Z"`
+*   An adjective does not unlock it. `perp_cvd=falling` will print under [MANUAL] and leave execution suspended.
 
 ---
 *Generated by salam_protocol.py — standard library only, closed bars only, no state. UNAVAILABLE is a valid answer; every estimated figure carries its label.*
