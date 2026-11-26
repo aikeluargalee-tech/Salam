@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.4 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.5 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 SPOT = "https://data-api.binance.vision/api/v3"
 FAPI = "https://fapi.binance.com"
 OKX = "https://www.okx.com"
+DUMP = "https://data.binance.vision/data/futures/um/daily/klines"   # official archive, not geo-blocked
 FARSIDE = "https://farside.co.uk/bitcoin-etf-flow-all-data/"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
@@ -54,6 +55,56 @@ def get_text(url: str, timeout: int = 25):
                                                "Accept": "text/html,application/xhtml+xml"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
+
+
+def get_bytes(url: str, timeout: int = 25) -> bytes:
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+
+def dump_bars(csv_lines: list[str]) -> list[dict]:
+    """Parse a Binance kline CSV. The daily files ship a header row; older ones do not."""
+    rows = [ln.split(",") for ln in csv_lines if ln.strip()]
+    if rows and not rows[0][0].strip().lstrip("-").isdigit():
+        rows = rows[1:]                       # drop the header
+    if not rows or len(rows[0]) < 10:
+        raise ValueError(f"unexpected column count {len(rows[0]) if rows else 0}")
+    return [{"v": float(r[5]), "taker_buy": float(r[9])} for r in rows]
+
+
+def perp_cvd_from_dump(days_back: int = 3):
+    """Perp CVD from Binance's public daily archive (no API, no geo-block, T+1 lag).
+
+    The 1h files carry 12 columns; column 9 is takerBuyBaseVolume — the field the live
+    futures API refuses a US runner. Returns a complete closed day, never "now".
+    """
+    import io
+    import zipfile
+    from datetime import timedelta
+
+    today = datetime.now(timezone.utc).date()
+    last_err = "no published daily dump in the last %d days" % days_back
+    for back in range(1, days_back + 1):
+        d = today - timedelta(days=back)
+        url = f"{DUMP}/BTCUSDT/1h/BTCUSDT-1h-{d.isoformat()}.zip"
+        try:
+            blob = get_bytes(url)
+            z = zipfile.ZipFile(io.BytesIO(blob))
+            bars = dump_bars(z.read(z.namelist()[0]).decode().strip().splitlines())
+            if len(bars) < 24:
+                last_err = f"dump {d} only {len(bars)} bars"
+                continue
+            return ({"date": d.isoformat(), "bars": len(bars),
+                     "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24)}, None)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:                      # not published yet -> try the day before
+                last_err = f"dump {d} 404 (not published)"
+                continue
+            return None, f"dump {d} HTTP {e.code}"
+        except Exception as e:                     # noqa: BLE001
+            return None, f"dump {d} {type(e).__name__}"
+    return None, last_err
 
 
 def safe(fn, label: str):
@@ -431,9 +482,15 @@ def collect() -> tuple[dict, list[str]]:
         blsr = okx_data("lsr")
         data["ls_ratio"] = float(blsr[0][1]) if blsr else None
     data["etf"] = raw.get("etf")
+    data["perp_dump"] = None
     if not data["fh1"]:
-        problems.append("perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no "
-                        "taker split, so perp CVD needs a Binance-reachable host")
+        dump, derr = perp_cvd_from_dump()
+        data["perp_dump"] = dump
+        if dump:
+            problems.append(f"perp CVD is from Binance's daily archive for {dump['date']} "
+                            f"(T+1, {dump['bars']} bars) — not live")
+        else:
+            problems.append(f"perp klines unavailable ({derr}); no taker split from OKX/Bybit")
     return data, problems
 
 
@@ -486,6 +543,7 @@ def analyse(d: dict) -> dict:
     out["cvd_spot"] = {"1h": cvd(d["h1"], 1), "4h": cvd(d["h1"], 4), "24h": cvd(d["h1"], 24)}
     out["cvd_perp"] = {"1h": cvd(d["fh1"], 1), "4h": cvd(d["fh1"], 4), "24h": cvd(d["fh1"], 24)}
     out["perp_cvd_ok"] = all(v is not None for v in out["cvd_perp"].values())
+    out["perp_dump"] = d.get("perp_dump")
     out["oi_btc"], out["oi_4h_chg"], out["oi_24h_chg"] = d["oi_btc"], d["oi_4h_chg"], d["oi_24h_chg"]
     out["funding"], out["funding_pct90"], out["ls_ratio"] = d["funding"], d["funding_pct90"], d["ls_ratio"]
     out["etf"] = d["etf"]
@@ -557,7 +615,7 @@ def vp_txt(vp: dict | None, style: str) -> str:
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.4\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.5\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -568,10 +626,15 @@ def render(a: dict) -> str:
     V = tag(a)
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.4")
+    L.append("# SALAM PROTOCOL DATA HUB v1.5")
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
+    dump = a.get("perp_dump")
     if a.get("perp_cvd_ok"):
         L.append("> ✅ **FULL ORDER FLOW: Binance spot + perp. Execution-grade.**")
+    elif dump:
+        L.append(f"> ⚠️ **PARTIAL ORDER FLOW — perp CVD is Binance's archive for {dump['date']} "
+                 f"(T+1), not live.** Live perp klines are blocked on this host. Intraday perp "
+                 f"reads are one day old; spot and levels are live.")
     else:
         why = ("CI host: Binance Futures refused this runner (HTTP 451)"
                if a.get("deriv_src") == "OKX" else
@@ -657,6 +720,12 @@ def render(a: dict) -> str:
              + (f" | percentile (100 pts): {f(a.get('funding_pct90'), 0)}"
                 if a.get("deriv_src") == "OKX"
                 else f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}"))
+    if dump and not a.get("perp_cvd_ok"):
+        L.append(f"*   **Perp CVD [BIN-DUMP {dump['date']}]:** 4H {f(dump.get('cvd_4h'), 1)}"
+                 f" | 24H {f(dump.get('cvd_24h'), 1)} (complete closed day, {dump['bars']} bars"
+                 f" — one day old, not live)")
+    if a.get("manual"):
+        L.append(f"*   **Manual override [MANUAL]:** {a['manual']}")
     L.append(f"*   **ATR 1H:** {f(a.get('atr1h'), 0)} (Rail B stop distance = 1.5 x this = "
              f"{f((a.get('atr1h') or 0) * 1.5, 0)})")
     L.append("")
@@ -692,7 +761,7 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.4")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
@@ -773,6 +842,14 @@ def selftest() -> int:
     probe["perp_cvd_ok"] = True
     check("banner clears with perp CVD", "FULL ORDER FLOW" in render(probe))
 
+    csv = ["open_time,open,high,low,close,volume,close_time,quote_volume,count,"
+           "taker_buy_volume,taker_buy_quote_volume,ignore"]
+    csv += [f"{i},1,1,1,1,10,0,0,0,6,0,0" for i in range(24)]
+    parsed = dump_bars(csv)
+    check("dump parser skips the header row", len(parsed) == 24, f"{len(parsed)} bars")
+    check("dump CVD uses 2*takerBuy - volume", abs(cvd(parsed, 24) - 24 * 2.0) < 1e-9,
+          f"{cvd(parsed, 24)}")
+
     print("live")
     try:
         binance = float(get_json(f"{SPOT}/ticker/price?symbol=BTCUSDT")["price"])
@@ -805,6 +882,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true", help="also write SALAM_DATA_HUB.json")
     ap.add_argument("--check", action="store_true", help="endpoint health only")
     ap.add_argument("--selftest", action="store_true", help="assert maths + cross-venue agreement")
+    ap.add_argument("--manual", default=None,
+                    help='screenshot reading, e.g. "perp_cvd=falling,spot_cvd=flat,at=14:32Z" '
+                         '— printed verbatim, tagged [MANUAL], never merged into a live field')
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -821,6 +901,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not problems else 1
 
     a = analyse(data)
+    if args.manual:
+        a["manual"] = args.manual
     md = render(a)
     if args.stdout:
         sys.stdout.write(md)
