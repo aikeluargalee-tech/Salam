@@ -1,0 +1,14 @@
+name: probe4
+on:
+  workflow_dispatch:
+
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set +e
+          echo "STATUS $(curl -s -o /tmp/t.json -w '%{http_code}' --max-time 15 'https://www.okx.com/api/v5/rubik/stat/taker-volume-contract?instId=BTC-USDT-SWAP&period=1H&unit=0&limit=6') okx-taker"
+          head -c 300 /tmp/t.json
+          echo
+          echo "STATUS $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 'https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP') okx-oi"
