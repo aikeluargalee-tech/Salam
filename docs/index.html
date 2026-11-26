@@ -53,7 +53,8 @@
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px}
   .stat .k{color:var(--dim);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
   .stat .v{font-size:15px;margin-top:2px}
-  .stat .v span.dimv{white-space:nowrap;font-size:12px}
+  .stat .v span.dimv{display:block;white-space:normal;font-size:11px;line-height:1.35;
+       margin-top:1px;overflow-wrap:anywhere}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
