@@ -39,27 +39,37 @@ jobs:
       - name: Show packet in the run summary
         run: cat SALAM_DATA_HUB.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit and push
+      - name: Publish the packet
         run: |
+          set -e
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SALAM_DATA_HUB.md SALAM_DATA_HUB.json docs/SALAM_DATA_HUB.md docs/SALAM_DATA_HUB.json
-          if git diff --cached --quiet; then
-            echo "no change — nothing to publish"
-            exit 0
-          fi
-          git commit -m "data: salam packet $(date -u +%Y-%m-%dT%H:%MZ)"
-          # A push can be rejected when anything else lands on master in the same second —
-          # a hand-pushed commit, or two dispatches racing. Observed on run 45794560094:
-          # "! [rejected] master -> master (fetch first)" and the packet was lost. Rebase and
-          # retry rather than failing the publish.
+          FILES="SALAM_DATA_HUB.md SALAM_DATA_HUB.json docs/SALAM_DATA_HUB.md docs/SALAM_DATA_HUB.json"
+
+          # Two packets can be built at the same time (a scheduled run and a dispatch, or a
+          # dispatch and a human push). Rebase-and-retry is not enough: both runs modify the same
+          # four files, so the rebase conflicts and the retry loop spins — observed on run
+          # 45794838118, four rejections in a row. Instead, move HEAD onto the remote tip while
+          # keeping the freshly built files, and commit them strictly on top of it.
+          publish () {
+            git fetch --quiet origin master
+            git reset --soft origin/master
+            git add $FILES
+            if git diff --cached --quiet; then
+              echo "nothing new to publish — the remote already carries this packet"
+              return 0
+            fi
+            git commit -q -m "data: salam packet $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push --quiet origin master
+          }
+
           for attempt in 1 2 3 4; do
-            if git pull --rebase --autostash origin master && git push; then
+            if publish; then
               echo "published on attempt $attempt"
               exit 0
             fi
-            echo "push rejected (attempt $attempt) — retrying after rebase"
-            sleep $((attempt * 5))
+            echo "publish attempt $attempt lost the race — rebuilding the commit on the new tip"
+            sleep $((attempt * 4))
           done
           echo "::error::could not publish the packet after 4 attempts"
           exit 1
