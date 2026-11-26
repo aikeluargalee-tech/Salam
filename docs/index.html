@@ -405,6 +405,36 @@ function render(d) {
         : bearSweep
           ? `<b>Buy BTC with USDT · shut.</b> The sweep at ${fmt(sw.level)} was bearish (resistance rejected), which confirms selling into strength rather than buying the dip.`
           : `<b>Buy BTC with USDT · restricted.</b> No sweep yet${isNum(supEdge) ? `; the trigger is a 1H close back above <b>${fmt(supEdge)}</b> after a sweep below it` : ''}.`}</span></div>`);
+    // WHY the trim zone sits there: the confluence score says how much independent evidence
+    // stacks on the band, and the surrounding fields say what is near it. Three different kinds
+    // of evidence are named separately because they are not interchangeable — a volume edge is
+    // supply, a short cluster is fuel.
+    if (d.res_band) {
+      const lo = Math.min(d.res_band.low, d.res_band.high);
+      const hi = Math.max(d.res_band.low, d.res_band.high);
+      const NAMES = {POC: 'point of control', 'VAH/VAL': 'value-area edge',
+                     'round-1k': 'a round $1,000 level', 'round-100': 'a round $100 level'};
+      const factors = (d.res_band.why || []).map(f => NAMES[f] || f).join(' + ')
+        || 'nothing but the 4H pivot';
+      const near = [];
+      const v30val = d.vp30 ? d.vp30.val : null;
+      if (isNum(v30val) && Math.abs(v30val / lo - 1) < 0.01) {
+        near.push(`30D VAL <b>${fmt(v30val)}</b> just below — old support, now overhead supply`);
+      }
+      const v4vah = d.vp4h ? d.vp4h.vah : null;
+      if (isNum(v4vah) && Math.abs(v4vah / hi - 1) < 0.02) {
+        near.push(`4H VAH <b>${fmt(v4vah)}</b> just above`);
+      }
+      const tier = (d.liq_upper || []).filter(c => isNum(c.price) && c.price >= lo && c.price <= hi && c.lev >= 25)
+        .sort((a, b) => b.usd_m - a.usd_m)[0];
+      if (tier) {
+        near.push(`${tier.lev}x short cluster <b>${money(tier.usd_m)}M</b> inside at ${fmt(tier.price)} — that is fuel pulling price up into the zone, not a wall`);
+      }
+      rows.push(`<div class="rrow"><span class="rkey">Why</span><span class="rval">Band scores
+        <b>${isNum(d.res_band.score) ? d.res_band.score : '?'}/10</b> (${esc(factors)}).
+        ${near.length ? near.join('; ') + '.' : 'No volume edge or liquidation cluster within 1% of it — a weak zone.'}</span></div>`);
+    }
+
     rows.push(`<div class="rrow"><span class="rkey">Risk</span><span class="rval">Stop distance
       <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b>
       · risk 0.75% of portfolio across that stop · skip the trade if the size exceeds 30% of the USDT side.</span></div>`);
