@@ -23,7 +23,7 @@ import sys
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 SPOT = "https://data-api.binance.vision/api/v3"
 FAPI = "https://fapi.binance.com"
@@ -646,6 +646,17 @@ def band_txt(b: dict | None) -> str:
     return f"{b['low']:,.0f}-{b['high']:,.0f}"
 
 
+def fmt_dual(ts: str | None) -> str:
+    """Render a 'YYYY-MM-DD HH:MMZ' stamp as UTC and SGT (UTC+8)."""
+    if not ts:
+        return ""
+    try:
+        d = datetime.strptime(str(ts), "%Y-%m-%d %H:%MZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return str(ts)
+    return f"{ts} / {(d + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M')} SGT"
+
+
 def tag(a: dict) -> str:
     return "[OKX]" if a.get("deriv_src") == "OKX" else "[BIN]"
 
@@ -666,7 +677,9 @@ def vp_txt(vp: dict | None, style: str) -> str:
 
 
 def render(a: dict) -> str:
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    _n = datetime.now(timezone.utc)
+    now = (_n.strftime("%Y-%m-%d %H:%M:%S UTC")
+           + " / " + (_n + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S SGT (UTC+8)"))
     if a.get("fatal"):
         return f"# SALAM PROTOCOL DATA HUB v1.6\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
@@ -806,7 +819,7 @@ def render(a: dict) -> str:
     else:
         extra = f" ({sw['touches']}x level)" if sw.get("touches") else ""
         L.append(f"*   **Sweep Status:** {sw.get('flag', 'UNAVAILABLE')} at "
-                 f"${(sw.get('level') or 0):,.0f}{extra} ({sw.get('at')})")
+                 f"${(sw.get('level') or 0):,.0f}{extra} · {fmt_dual(sw.get('at'))}")
     L.append("")
 
     # ── 5. Macro veto ──
@@ -992,7 +1005,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not problems else 1
 
     a = analyse(data)
-    a["generated_at_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    _g = datetime.now(timezone.utc)
+    a["generated_at_utc"] = _g.strftime("%Y-%m-%dT%H:%M:%SZ")
+    a["generated_at_sgt"] = (_g + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S+08:00")
     man, man_ok = parse_manual(args.manual)
     a["manual"], a["manual_ok"], a["manual_at"] = (man or None), man_ok, man.get("at")
     if a.get("perp_cvd_ok"):

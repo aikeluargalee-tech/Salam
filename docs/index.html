@@ -153,6 +153,9 @@ const signed = (v, d = 1) => (v === null || v === undefined) ? '—'
   : (v > 0 ? '+' : '') + fmt(v, d);
 const cls = v => (v === null || v === undefined) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
 let generated = null;
+const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
+const parseStamp = s => { const d = new Date(String(s).trim().replace(' ', 'T').replace(/Z$/, 'Z')); return isNaN(d) ? null : d; };
+const stampDual = s => { const d = parseStamp(s); return d ? `${String(s).replace('Z','')} UTC · ${sgtTime(d)} SGT` : String(s || ''); };
 
 const TAGS = ['10x','25x','50x','100x'];
 
@@ -206,7 +209,7 @@ function render(d) {
   generated = new Date(d.generated_at_utc || d.generated || Date.now());
   const price = d.price ?? null;
   $('price').textContent = price ? '$' + fmt(price) : '—';
-  $('ts').textContent = isNaN(generated) ? '' : generated.toISOString().replace('T', ' ').slice(0, 16) + 'Z';
+  $('ts').textContent = isNaN(generated) ? '' : `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`;
 
   const state = d.exec_state || (d.perp_cvd_ok ? 'FULL' : 'PARTIAL');
   const st = $('state');
@@ -277,7 +280,7 @@ function render(d) {
   const sweepEl = $('sweep');
   if (sw.flag && sw.flag !== 'NONE' && sw.flag !== 'UNAVAILABLE') {
     sweepEl.className = 'hit';
-    sweepEl.innerHTML = `<b>${sw.flag}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${sw.at || ''}</div>`;
+    sweepEl.innerHTML = `<b>${sw.flag}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches}x)` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
   } else {
     sweepEl.className = '';
     sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
