@@ -16,7 +16,7 @@
          padding:12px 14px 10px;backdrop-filter:blur(6px)}
   .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .brand{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-  .ver{color:var(--acc);letter-spacing:.04em}
+  .ver{color:var(--acc);letter-spacing:.04em;text-transform:none}
   .spacer{flex:1}
   #price{font-size:26px;font-weight:600;letter-spacing:-.5px}
   #age{padding:1px 7px;border-radius:3px;background:#16202b;color:var(--acc);font-size:11px}
@@ -51,6 +51,7 @@
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 9px}
   .stat .k{color:var(--dim);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
   .stat .v{font-size:15px;margin-top:2px}
+  .stat .v span.dimv{white-space:nowrap;font-size:12px}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
@@ -313,8 +314,9 @@ function render(d) {
   // one line of orientation: where the packet's price sits against the packet's own levels
   (() => {
     const inside = d.inside_band;
-    const supLo = d.sup_band ? Math.min(d.sup_band.low, d.sup_band.high) : null;
-    const resHi = d.res_band ? Math.max(d.res_band.low, d.res_band.high) : null;
+    // the edge price reaches FIRST: top of the support band, bottom of the resistance band
+    const supLo = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
+    const resHi = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
     const pct = lvl => (isNum(price) && isNum(lvl) && Number(price) !== 0)
       ? (() => { const d = (lvl / price - 1) * 100;
           return `<span class="${d < 0 ? 'dn' : 'up'}">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`; })() : '';
