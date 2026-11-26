@@ -807,7 +807,7 @@ function renderAlert() {
   const m = move5m();
   const card = $('alertCard'), big = $('alertBig');
   const NAMES = {notable: 'warns', cascade: 'big', extreme: 'extreme'};
-  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name} at <b>±${money(t.usd)}</b>`).join(' · ')}</span>`;
+  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name} at <b>±\u00a0${money(t.usd)}</b>`).join(' · ')}</span>`;
   $('alertTiers').innerHTML = tiers;
   if (!m) {
     big.textContent = '—';
