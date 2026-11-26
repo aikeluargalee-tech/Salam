@@ -910,26 +910,62 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.6")
-    L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
-             "(50/50 BTC/USDT) strategy.")
-    L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
+    L.append("### AI EXECUTION PROTOCOL: SALAM ANALYST v1.7")
+    L.append("**Role:** elite spot-only BTC swing trader, Dual-Inventory (50/50 BTC/USDT), zero "
+             "leverage. You do not decide anything: you describe what this packet's rules permit.")
+    L.append("**Primary Directive:** use only numbers present in this packet. No external data, no "
+             "recall, no forecasting. A missing number is UNAVAILABLE, never zero.")
     L.append("")
-    L.append("**Core Methodology:**")
-    L.append("1. **The Anchor (S/R):** Extract tactical bands, Confluence Scores, Macro S/R and the "
-             "7D volume nodes. A level with a [+$ Shor/ Longs] overlay is where fuel sits.")
-    L.append("2. **The Fuel (Liquidity):** Overlap liquidation magnets with the levels above.")
-    L.append("3. **The Trigger (Order Flow):** Confirm with Spot vs Perp CVD, OI and the Sweep "
-             "Detector. A MACRO sweep outranks a tactical sweep.")
+    L.append("**THE FOUR PILLARS — the only drivers. Nothing else may start a trade.**")
+    L.append("1. **Structure A — S/R:** tactical bands with confluence scores, macro S/R with touches.")
+    L.append("2. **Structure B — Volume Profile:** 7D, 30D AND 4H value areas (VAH/POC/VAL) + nearest HVN.")
+    L.append("3. **Fuel — Liquidation tiers:** leverage-derived clusters, reported only where they "
+             "overlap measured structure.")
+    L.append("4. **Trigger — Order Flow:** spot vs perp CVD across 1H/4H/24H, plus open-interest change.")
     L.append("")
-    L.append("**Binding Arithmetic (not optional):**")
+    L.append("*Veto inputs (can block a trade, never start one): 200D average, ETF flows with trade "
+             "date, funding percentile, long/short ratio.*")
+    L.append("")
+    L.append("**Structure tests (highest weight)**")
+    L.append("*   *Value-area test:* inside 7D value = balance; below 30D VAL = discount and that "
+             "level is the return-to-value line; above VAH = premium. Say which applies.")
+    L.append("*   *POC test:* price within 0.25% of any POC means the market is balanced on the "
+             "defended price. That explains quiet tape; it is not a signal.")
+    L.append("*   *Band quality:* an edge sitting beyond the nearest measured volume node is weaker "
+             "than its score. On a low score, name what carried it and what is missing.")
+    L.append("*   *Chop rule:* inside the mid band and more than 1% from BOTH band edges = NO TRADE "
+             "regardless of CVD. Quote the two distances.")
+    L.append("*   *Density test:* compare measured levels above with measured levels below. Thin path "
+             "= fast travel; dense path = grind.")
+    L.append("")
+    L.append("**Fuel tests**")
+    L.append("*   Tiers are leverage arithmetic (100x dies 1% from entry, 50x 2%, 25x 4%, 10x 10%) and "
+             "they RE-CENTRE with price. Never quote a tier as a fixed target.")
+    L.append("*   Report a tier only when it overlaps a measured structure (volume node, >=2 touches, "
+             "band edge, macro S/R) within 0.5%. List the overlaps; ignore the rest.")
+    L.append("*   Convert to coins: notional / price = BTC of forced orders, and as % of open interest.")
+    L.append("*   Fuel is symmetric by assumption: say so, and never infer direction from it. Only "
+             "the terrain around it is asymmetric. Name the exhaust point.")
+    L.append("")
+    L.append("**Trigger tests (confirmation only, only at an anchor)**")
+    L.append("*   Read spot vs perp CVD in 1H, 4H and 24H. Compute perp:spot 24H ratio; above 3x means "
+             "futures-led, i.e. positioning rather than accumulation.")
+    L.append("*   OI rising while price is flat and spot CVD is negative = distribution. Say it.")
+    L.append("*   No sweep flag = that rail is NOT armed, whatever the band score. Give its level, "
+             "direction and time.")
+    L.append("*   If the gate is PARTIAL or NONE, plans are withheld — do not invent levels. An "
+             "unknown state reads as NONE.")
+    L.append("")
+    L.append("**Binding Arithmetic (not optional, never adjusted)**")
     L.append(f"*   **Rail B stop loss = Entry - (1.5 x ATR 1H).** ATR 1H is printed in section 3; "
-             f"use it, do not invent a stop.")
-    L.append(f"*   **Risk per trade = {RISK_PCT:.2%} of portfolio.** Position size = "
+             f"print the ATR and the dollar stop, do not invent one.")
+    L.append(f"*   **Risk per trade = {RISK_PCT:.2%} of total portfolio value.** Position size = "
              f"(portfolio x {RISK_PCT:.2%}) / (entry - stop).")
-    L.append(f"*   **If that size exceeds {MAX_POS_PCT_OF_USDT:.0%} of the USDT inventory, skip the trade.**")
-    L.append("*   Rail A invalidation = the resistance band is closed above "
-             "(1 x ATR 1H beyond its high); never trim without one.")
+    L.append(f"*   **If that size exceeds {MAX_POS_PCT_OF_USDT:.0%} of the USDT inventory, SKIP** — and "
+             f"report the conflict: \"risk budget asks X BTC, the cap allows Y BTC, so this rail is "
+             f"vetoed.\" Do not silently resize; do not drop the rule.")
+    L.append("*   **Rail A invalidation = a DAILY close above (band high + 1 x ATR 1H).** Print the "
+             "number. A 1H close is noise, not invalidation.")
     L.append("")
     if state in ("PARTIAL", "NONE"):
         L.append("## ❌ EXECUTION SUSPENDED")
@@ -945,19 +981,30 @@ def render(a: dict) -> str:
                  "and leave execution suspended.")
     else:
         L.append("**Execution Rules:**")
-        L.append("*   **Rail B (USDT -> BTC):** Wait for price to sweep a Lower Long Liquidation Cluster "
-                 "that overlaps with a Major Support level. Confirm with a BULLISH or MACRO BULLISH SWEEP "
-                 "flag and positive Spot CVD. Enter on the reclaim.")
-        L.append("*   **Rail A (BTC -> USDT):** Wait for price to rally into an Upper Short Liquidation "
-                 "Cluster that overlaps with a Major Resistance level. Confirm with a BEARISH or MACRO "
-                 "BEARISH SWEEP flag and flat/negative Spot CVD. Trim BTC into USDT.")
+        L.append("*   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support "
+                 "that overlaps a Lower Long tier, confirmed by positive Spot CVD -> enter on the "
+                 "reclaim. Stop from the arithmetic. Target = the next MEASURED level above, named; "
+                 "if none exists in this packet, write \"no target\".")
+        L.append("*   **Rail A (BTC -> USDT):** a BEARISH or MACRO BEARISH sweep into a Major Resistance "
+                 "that overlaps an Upper Short tier, confirmed by flat/negative Spot CVD -> trim. "
+                 "Invalidation per the arithmetic. Target = the next MEASURED level below, named.")
         L.append("")
-        L.append("**Required Output Format:**")
-        L.append("1. **Current Market State**")
-        L.append("2. **The Levels Map**")
-        L.append("3. **Rail B (Buy) Plan** (Entry, Trigger, Stop Loss, Target)")
-        L.append("4. **Rail A (Sell/Trim) Plan** (Entry, Trigger, Invalidation Stop, Target)")
-        L.append("5. **Actionable Verdict** (What to do right now with the 50/50 portfolio).")
+        L.append("**Required Output Format (this exact order):**")
+        L.append("0. **BOTTOM LINE** — one plain sentence a non-trader can act on "
+                 "(\"NO ACTION at $X\" or \"TRIM 0.25 BTC at $Y\") plus the bias in one clause.")
+        L.append("1. **Market State** — regime, where price sits against structure, sweep status, gate.")
+        L.append("2. **The Four Pillars** — one block each, every number labelled MEASURED or DERIVED.")
+        L.append("3. **The Levels Map** — every level with distance in % and its type.")
+        L.append("4. **Rail B (Buy) Plan** — trigger, what is missing, stop, the sizing result "
+                 "including the conflict if any, target.")
+        L.append("5. **Rail A (Sell/Trim) Plan** — tranches with price windows, invalidation number, "
+                 "target.")
+        L.append("6. **If / Then block** — the price alerts as a list; the only part that gets re-read.")
+        L.append("7. **Not verified** — OKX-not-Binance, modelled dollars, assumed weights, "
+                 "any UNAVAILABLE.")
+        L.append("")
+        L.append("*Never forecast. State what the rules permit, name the trigger that would change the "
+                 "answer, and stop. Jargon is allowed in 1-7 and never in 0.*")
     L.append("")
     L.append("---")
     L.append("*Generated by salam_protocol.py — standard library only, closed bars only, no state. "
