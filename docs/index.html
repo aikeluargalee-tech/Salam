@@ -27,6 +27,8 @@
   #live{font-size:26px;font-weight:600;letter-spacing:-.5px}
   #live.frozen{color:var(--dim)}
   #pkt{font-size:10px;color:var(--dim);letter-spacing:.02em}
+  .livetag{font-size:9px;letter-spacing:.11em;color:var(--up);border:1px solid #1d5c3a;
+       border-radius:3px;padding:0 4px;margin-right:6px;vertical-align:middle}
   #pkt.stale{color:var(--warn)}
   #live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
        background:var(--up);margin-right:6px;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
@@ -89,17 +91,17 @@
 </head>
 <body>
 <header>
-  <div class="row">
+  <div id="state" class="ok">connecting…</div>
+  <div class="row" style="margin-top:9px">
     <span class="brand">SALAM<span class="ver" id="ver"></span></span>
     <span id="age">loading…</span>
     <span class="ts" id="ts"></span>
     <span class="spacer"></span>
     <span class="pxwrap">
-      <span id="live">—</span>
+      <div><span class="livetag" id="livetag">LIVE</span><span id="live">—</span></div>
       <div id="pkt">packet loading…</div>
     </span>
   </div>
-  <div id="state" class="ok">connecting…</div>
   <div id="loc"><span class="k">location</span><span id="locBody">—</span></div>
   <div class="row actions">
     <button id="copy" title="Copy the full markdown packet, ready to paste into any AI">⧉ copy packet for AI</button>
@@ -178,7 +180,7 @@ const cls = v => !isNum(v) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
 const esc = s => String(s === null || s === undefined ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-let generated = null, packetPrice = null, liveOK = false;
+let generated = null, packetPrice = null, packetSrc = null, liveOK = false;
 
 // The packet is a snapshot — it only changes when the workflow publishes one. A price that
 // sits still reads as "broken site", so the big number is a live public ticker and the
@@ -196,11 +198,15 @@ async function tickLive() {
       if (!p || !isFinite(p)) continue;
       $('live').textContent = '$' + fmt(p);
       $('live').classList.remove('frozen');
+      $('livetag').textContent = 'LIVE';
+      $('livetag').style.color = 'var(--up)';
+      $('livetag').style.borderColor = '#1d5c3a';
       liveOK = true;
-      const drift = packetPrice ? (p / packetPrice - 1) * 100 : null;
       const nowSgt = sgtTime(new Date());
+      const drift = (isNum(packetPrice) && packetPrice !== 0) ? (p / packetPrice - 1) * 100 : null;
       $('pkt').textContent = `live ${nowSgt} SGT [${src}]`
-        + (isNum(packetPrice) ? ` · packet ${money(packetPrice)} @ ${generated ? sgtTime(generated) : '—'} SGT` : '');
+        + (drift === null ? '' : ` ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs packet`)
+        + (isNum(packetPrice) ? ` · packet [${packetSrc}]` : '');
       $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
       return;
     } catch (e) { /* next venue */ }
@@ -208,7 +214,8 @@ async function tickLive() {
   liveOK = false;
   $('live').textContent = packetPrice ? '$' + fmt(packetPrice) : '—';
   $('live').classList.add('frozen');
-  $('pkt').textContent = packetPrice ? `packet ${money(packetPrice)} · live ticker unavailable` : 'no data';
+  $('pkt').textContent = packetPrice
+    ? `packet ${money(packetPrice)} [${packetSrc}] · live ticker unavailable` : 'no data';
 }
 const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
 const parseStamp = s => { const d = new Date(String(s).trim().replace(' ', 'T').replace(/Z$/, 'Z')); return isNaN(d) ? null : d; };
@@ -271,10 +278,18 @@ function render(d) {
   if (generated && isNaN(generated)) generated = null;   // unknown must not read as brand new
   const price = d.price ?? null;
   packetPrice = price;
+  packetSrc = d.price_src === 'CLOSE-1D' ? 'BIN-CLOSE 1D'
+    : (d.price_src === 'TICKER' ? 'BIN' : 'src unknown');
   $('pkt').textContent = isNum(price)
-    ? `packet ${money(price)} · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
+    ? `packet ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
     : 'packet —';
-  if (!liveOK) { $('live').textContent = price ? '$' + fmt(price) : '—'; $('live').classList.add('frozen'); }
+  if (!liveOK) {
+    $('live').textContent = price ? '$' + fmt(price) : '—';
+    $('live').classList.add('frozen');
+    $('livetag').textContent = 'SNAPSHOT';
+    $('livetag').style.color = 'var(--warn)';
+    $('livetag').style.borderColor = '#6b5312';
+  }
   $('ts').textContent = generated
     ? `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`
     : 'packet timestamp missing';
@@ -302,13 +317,14 @@ function render(d) {
   $('stats').innerHTML = [
     stat('200 SMA', isNum(sma) ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
     stat('funding 8h', isNum(d.funding) ? d.funding.toFixed(4) + '%' : '—',
-         !isNum(d.funding_pct90) ? '' : `<span class="dimv">p${Math.round(d.funding_pct90)}</span>`),
+         `<span class="dimv">${isNum(d.funding_pct90) ? 'p' + Math.round(d.funding_pct90) + ' · ' : ''}${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
     stat('open interest', isNum(d.oi_btc) ? fmt(d.oi_btc) : '—',
          !isNum(d.oi_btc) ? '' : `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>`),
     stat('ATR 1H', isNum(d.atr1h) ? fmt(d.atr1h) : '—'),
-    stat('L/S', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—'),
+    stat('L/S', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—',
+         `<span class="dimv">${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
     stat('ETF 1D', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
-         !isNum(etf.five_day_m) ? '' : `<span class="dimv">5D ${money(etf.five_day_m, 0)}M</span>`)
+         `<span class="dimv">${etf.latest_date ? esc(etf.latest_date) + ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}</span>`)
   ].join('');
 
   // one line of orientation: where the packet's price sits against the packet's own levels
@@ -356,8 +372,14 @@ function render(d) {
     cvdRow('24H', cs['24h'], cp['24h'], maxAbs);
   const ratio = (isNum(cs['24h']) && isNum(cp['24h']) && Number(cs['24h']) !== 0)
     ? Math.abs(cp['24h'] / cs['24h']) : null;
-  $('cvdnote').innerHTML = ratio === null ? ''
-    : `perp:spot 24H ratio <b>${ratio.toFixed(1)}×</b> — above 3× means the move is futures-led, not spot accumulation.`;
+  const oiBits = [];
+  if (isNum(d.oi_4h_chg)) oiBits.push(`<span class="${cls(d.oi_4h_chg)}">4H ${signed(d.oi_4h_chg, 2)}%</span>`);
+  if (isNum(d.oi_24h_chg)) oiBits.push(`<span class="${cls(d.oi_24h_chg)}">24H ${signed(d.oi_24h_chg, 2)}%</span>`);
+  const oiLine = oiBits.length ? `OI change ${oiBits.join(' · ')}` : '';
+  $('cvdnote').innerHTML = [
+    ratio === null ? '' : `perp:spot 24H ratio <b>${ratio.toFixed(1)}×</b> — above 3× means the move is futures-led, not spot accumulation.`,
+    oiLine
+  ].filter(Boolean).join('<br>');
 
   // liq ladder
   const up = d.liq_upper || [], dn = d.liq_lower || [];

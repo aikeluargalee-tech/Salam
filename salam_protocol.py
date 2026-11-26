@@ -71,7 +71,8 @@ def dump_bars(csv_lines: list[str]) -> list[dict]:
         rows = rows[1:]                       # drop the header
     if not rows or len(rows[0]) < 10:
         raise ValueError(f"unexpected column count {len(rows[0]) if rows else 0}")
-    return [{"v": float(r[5]), "taker_buy": float(r[9])} for r in rows]
+    return [{"t": int(float(r[0])), "v": float(r[5]), "taker_buy": float(r[9])}
+            for r in rows]
 
 
 def okx_perp_cvd():
@@ -89,6 +90,28 @@ def okx_perp_cvd():
             for r in reversed(rows)]                    # oldest -> newest
     return {"cvd_1h": cvd(bars, 1), "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24),
             "bars": len(bars)}
+
+
+def dump_day_problem(bars: list[dict], day) -> str | None:
+    """None if these bars are exactly one closed UTC day; otherwise the reason they are not.
+
+    A row count is not a day: twenty-four copies of one hour, or twenty-four hours pulled from
+    two different dates, both pass a `>= 24` test and would be published as a complete day.
+    """
+    if len(bars) != 24:
+        return f"{len(bars)} rows, expected 24"
+    stamps = [b.get("t") for b in bars]
+    if any(t is None for t in stamps):
+        return "rows carry no timestamp"
+    if len(set(stamps)) != 24:
+        return f"{len(set(stamps))} unique hours, expected 24"
+    days = {datetime.fromtimestamp(t / 1000, timezone.utc).date() for t in stamps}
+    if days != {day}:
+        return f"rows span {sorted(str(x) for x in days)}, expected {day}"
+    hours = sorted(datetime.fromtimestamp(t / 1000, timezone.utc).hour for t in stamps)
+    if hours != list(range(24)):
+        return f"hours {hours} are not 00–23"
+    return None
 
 
 def perp_cvd_from_dump(days_back: int = 3):
@@ -112,6 +135,10 @@ def perp_cvd_from_dump(days_back: int = 3):
             bars = dump_bars(z.read(z.namelist()[0]).decode().strip().splitlines())
             if len(bars) < 24:
                 last_err = f"dump {d} only {len(bars)} bars"
+                continue
+            why = dump_day_problem(bars, d)
+            if why:
+                last_err = f"dump {d} unusable: {why}"
                 continue
             return ({"date": d.isoformat(), "bars": len(bars),
                      "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24)}, None)
@@ -511,26 +538,30 @@ def collect() -> tuple[dict, list[str]]:
         data["oi_btc"] = None
 
     oi_series: list[float] = []
-    oi_step_h = None
+    oi_stamps: list[int] = []
     if raw.get("oi_hist"):
         oi_series = [float(r["sumOpenInterest"]) for r in raw["oi_hist"]]
-        oi_step_h = 4
+        oi_stamps = [int(r["timestamp"]) for r in raw["oi_hist"]]
     elif okx_data("oi_hist"):
-        rows = okx_data("oi_hist")[:25]                  # hourly, newest first
-        oi_series = [float(r[1]) for r in reversed(rows)]
-        oi_step_h = 1
+        rows = list(reversed(okx_data("oi_hist")[:25]))   # hourly, newest first -> oldest first
+        oi_series = [float(r[1]) for r in rows]
+        oi_stamps = [int(r[0]) for r in rows]
 
-    def chg(series: list[float], step_h: int | None, hours: int):
-        if not series or not step_h:
+    def chg(series: list[float], stamps: list[int], hours: int):
+        """Change over `hours`, matched by timestamp. Positional offsets assume the samples are
+        contiguous; one missing hour silently shifts the window. If no sample sits within 30
+        minutes of the requested horizon, the change is unavailable rather than approximate."""
+        if not series or not stamps or len(series) != len(stamps):
             return None
-        back = hours // step_h
-        if back < 1 or len(series) <= back:
+        target = stamps[-1] - hours * 3600_000
+        idx = min(range(len(stamps) - 1), key=lambda i: abs(stamps[i] - target))
+        if abs(stamps[idx] - target) > 1800_000:
             return None
-        a, b = series[-1 - back], series[-1]
+        a, b = series[idx], series[-1]
         return (b / a - 1) * 100 if a else None
 
-    data["oi_4h_chg"] = chg(oi_series, oi_step_h, 4)
-    data["oi_24h_chg"] = chg(oi_series, oi_step_h, 24)
+    data["oi_4h_chg"] = chg(oi_series, oi_stamps, 4)
+    data["oi_24h_chg"] = chg(oi_series, oi_stamps, 24)
     fh = [float(r["fundingRate"]) * 100 for r in (raw.get("funding_hist") or [])]
     if not fh:
         fh = [float(r["fundingRate"]) * 100 for r in okx_data("fund_hist")
@@ -836,8 +867,9 @@ def render(a: dict) -> str:
                  + ", ".join(f"{k}={v}" for k, v in man.items() if k != "at")
                  + ("" if a.get("manual_ok") else
                     "  (no numeric perp CVD + timestamp — does NOT unlock execution)"))
-    L.append(f"*   **ATR 1H:** {f(a.get('atr1h'), 0)} (Rail B stop distance = 1.5 x this = "
-             f"{f((a.get('atr1h') or 0) * 1.5, 0)})")
+    _atr = a.get("atr1h")
+    _stop = f"1.5 x this = {f(_atr * 1.5, 0)})" if _atr is not None else "UNAVAILABLE)"
+    L.append(f"*   **ATR 1H:** {f(_atr, 0)} (Rail B stop distance = {_stop}")
     L.append("")
 
     # ── 4. Trigger ──
@@ -855,7 +887,9 @@ def render(a: dict) -> str:
     # ── 5. Macro veto ──
     L.append("## 5. MACRO VETO INPUTS")
     if etf:
-        L.append(f"*   **ETF Net Flow:** 1D: ${etf['one_day_m']:,.1f}M ({etf['latest_date']}, settled)"
+        _settled = "settling" if etf.get("one_day_settling") else "settled"
+        L.append(f"*   **ETF Net Flow:** 1D: ${etf['one_day_m']:,.1f}M "
+                 f"({etf['latest_date']}, {_settled})"
                  f" | 5D: ${etf['five_day_m']:,.1f}M")
     else:
         L.append("*   **ETF Net Flow:** UNAVAILABLE (Farside unreachable or no settled row)")
@@ -978,6 +1012,29 @@ def selftest() -> int:
     man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at=fresh,
                          manual={"perp_cvd_24h": "+2663", "at": fresh}))
     check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
+
+    import datetime as _dt
+    _day = _dt.date(2026, 11, 24)
+    _base_ms = int(_dt.datetime(2026, 11, 24, tzinfo=timezone.utc).timestamp() * 1000)
+    good = [{"t": _base_ms + h * 3600_000, "v": 1.0, "taker_buy": 0.6} for h in range(24)]
+    dup = [{"t": _base_ms, "v": 1.0, "taker_buy": 0.6} for _ in range(24)]
+    split = [{"t": _base_ms + h * 3600_000, "v": 1.0, "taker_buy": 0.6} for h in range(12)] + \
+            [{"t": _base_ms + 86_400_000 + h * 3600_000, "v": 1.0, "taker_buy": 0.6}
+             for h in range(12)]
+    check("a complete 24-hour archive day is accepted", dump_day_problem(good, _day) is None)
+    check("24 copies of one hour are rejected", dump_day_problem(dup, _day) is not None,
+          str(dump_day_problem(dup, _day)))
+    check("a day split across two dates is rejected", dump_day_problem(split, _day) is not None,
+          str(dump_day_problem(split, _day)))
+    check("23 rows are rejected", dump_day_problem(good[:23], _day) is not None)
+
+    _noatr = render(dict(base, perp_cvd_ok=True, exec_state="FULL", atr1h=None))
+    check("missing ATR never prints a zero stop distance",
+          "UNAVAILABLE)" in _noatr and "= 0)" not in _noatr)
+    _settling = render(dict(base, perp_cvd_ok=True, exec_state="FULL", etf={
+        "latest_date": "26 Nov 2026", "one_day_m": -100.0, "one_day_settling": True,
+        "five_day_m": -200.0}))
+    check("a settling ETF row is labelled settling", "settling" in _settling)
 
     check("a candle-close price is never labelled as a ticker",
           "[BIN-CLOSE 1D]" in render(dict(base, perp_cvd_ok=True, exec_state="FULL",
