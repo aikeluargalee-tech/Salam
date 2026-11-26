@@ -13,7 +13,7 @@
   "bybit:bfh HTTP 403",
   "perp klines: Binance Futures unreachable here; Bybit/OKX klines carry no taker split, so perp CVD needs a Binance-reachable host"
  ],
- "price": 60846.86,
+ "price": 60941.67,
  "atr1d": 3064.8040793680525,
  "sma200": 72088.27369999998,
  "vp30": {
