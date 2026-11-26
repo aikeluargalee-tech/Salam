@@ -32,6 +32,7 @@ Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then r
 
 ```
 ✅ FULL       live Binance spot + perp        run on a Binance-reachable host
+✅ FULL-OKX   spot Binance, perp CVD measured on OKX rubik taker volume (live, not modelled)
 ✅ MANUAL     perp CVD typed in from a screenshot with a number and a UTC time
 ⚠️ PARTIAL    spot live, perp CVD from the archive for <date>, T+1
 ⚠️ NONE       archive has not published the day yet, or the host cannot reach it

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Salam Data Packet Protocol (SDPP) v1.5.1 — single file, standard library only.
+"""Salam Data Packet Protocol (SDPP) v1.6 — single file, standard library only.
 
 Fetch -> compute -> write SALAM_DATA_HUB.md. No state, no database, no dependencies.
 
@@ -71,6 +71,23 @@ def dump_bars(csv_lines: list[str]) -> list[dict]:
     if not rows or len(rows[0]) < 10:
         raise ValueError(f"unexpected column count {len(rows[0]) if rows else 0}")
     return [{"v": float(r[5]), "taker_buy": float(r[9])} for r in rows]
+
+
+def okx_perp_cvd():
+    """Live perp CVD from OKX's Rubik taker-volume endpoint — measured, not modelled.
+
+    OKX klines carry no taker split, but rubik/stat/taker-volume-contract does:
+    data rows are [ts, sellVolume, buyVolume] in coin units, newest first.
+    """
+    url = (f"{OKX}/api/v5/rubik/stat/taker-volume-contract"
+           f"?instId=BTC-USDT-SWAP&period=1H&unit=0&limit=100")
+    rows = (get_json(url) or {}).get("data") or []
+    if len(rows) < 24:
+        raise ValueError(f"only {len(rows)} taker-volume rows")
+    bars = [{"v": float(r[1]) + float(r[2]), "taker_buy": float(r[2])}
+            for r in reversed(rows)]                    # oldest -> newest
+    return {"cvd_1h": cvd(bars, 1), "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24),
+            "bars": len(bars)}
 
 
 def perp_cvd_from_dump(days_back: int = 3):
@@ -503,9 +520,21 @@ def collect() -> tuple[dict, list[str]]:
         data["ls_ratio"] = float(blsr[0][1]) if blsr else None
     data["etf"] = raw.get("etf")
     data["perp_dump"] = None
+    data["perp_src"] = "BINANCE" if data["fh1"] else None
     if not data["fh1"]:
+        try:
+            data["okx_perp"] = okx_perp_cvd()
+            data["perp_src"] = "OKX-RUBIK"
+            problems.append("perp CVD is OKX's measured taker volume (BTC-USDT swap), "
+                            "not Binance — Binance Futures refused this host")
+        except Exception as e:                          # noqa: BLE001
+            data["okx_perp"] = None
+            problems.append(f"okx taker-volume unavailable ({type(e).__name__})")
+    if not data["fh1"] and not data.get("okx_perp"):
         dump, derr = perp_cvd_from_dump()
         data["perp_dump"] = dump
+        if dump:
+            data["perp_src"] = "ARCHIVE"
         if dump:
             problems.append(f"perp CVD is from Binance's daily archive for {dump['date']} "
                             f"(T+1, {dump['bars']} bars) — not live")
@@ -562,6 +591,10 @@ def analyse(d: dict) -> dict:
 
     out["cvd_spot"] = {"1h": cvd(d["h1"], 1), "4h": cvd(d["h1"], 4), "24h": cvd(d["h1"], 24)}
     out["cvd_perp"] = {"1h": cvd(d["fh1"], 1), "4h": cvd(d["fh1"], 4), "24h": cvd(d["fh1"], 24)}
+    if d.get("okx_perp"):
+        op = d["okx_perp"]
+        out["cvd_perp"] = {"1h": op["cvd_1h"], "4h": op["cvd_4h"], "24h": op["cvd_24h"]}
+    out["perp_src"] = d.get("perp_src")
     out["perp_cvd_ok"] = all(v is not None for v in out["cvd_perp"].values())
     out["perp_dump"] = d.get("perp_dump")
     out["oi_btc"], out["oi_4h_chg"], out["oi_24h_chg"] = d["oi_btc"], d["oi_4h_chg"], d["oi_24h_chg"]
@@ -635,7 +668,7 @@ def vp_txt(vp: dict | None, style: str) -> str:
 def render(a: dict) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.5.1\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PROTOCOL DATA HUB v1.6\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -644,13 +677,18 @@ def render(a: dict) -> str:
     up, lo = a.get("liq_upper") or [], a.get("liq_lower") or []
     hvn = a.get("hvn7") or {}
     V = tag(a)
+    PV = ("[OKX-RUBIK]" if a.get("perp_src") == "OKX-RUBIK" else "[BIN]")
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.5.1")
+    L.append("# SALAM PROTOCOL DATA HUB v1.6")
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} [BIN]")
     dump = a.get("perp_dump")
     state = a.get("exec_state", "FULL")
-    if state == "FULL":
+    if state == "FULL" and a.get("perp_src") == "OKX-RUBIK":
+        L.append("> ✅ **FULL ORDER FLOW — perp CVD is OKX's measured taker volume, spot is Binance.** "
+                 "Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint "
+                 "publishes real taker buy/sell per hour.")
+    elif state == "FULL":
         L.append("> ✅ **FULL ORDER FLOW: Binance spot + perp. Execution-grade.**")
     elif state == "MANUAL":
         L.append(f"> ✅ **FULL ORDER FLOW — PERP CVD IS MANUAL @ {a.get('manual_at')}.** "
@@ -731,7 +769,7 @@ def render(a: dict) -> str:
     # ── 3. Order flow ──
     L.append("## 3. THE TRUTH (Order Flow)")
     cs, cp = a.get("cvd_spot") or {}, a.get("cvd_perp") or {}
-    L.append(f"*   **CVD (Spot [BIN] / Perp {V}):** "
+    L.append(f"*   **CVD (Spot [BIN] / Perp {PV}):** "
              f"1H: {f(cs.get('1h'), 1)} / {f(cp.get('1h'), 1)}"
              f" | 4H: {f(cs.get('4h'), 1)} / {f(cp.get('4h'), 1)}"
              f" | 24H: {f(cs.get('24h'), 1)} / {f(cp.get('24h'), 1)}")
@@ -790,7 +828,7 @@ def render(a: dict) -> str:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.5.1")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PROTOCOL v1.6")
     L.append("**Role:** Act as an elite Spot-Only Crypto Swing Trader using a Dual-Inventory "
              "(50/50 BTC/USDT) strategy.")
     L.append("**Primary Directive:** Analyze this data packet using S/R-First logic.")
@@ -895,6 +933,9 @@ def selftest() -> int:
                          manual={"perp_cvd_24h": "+2663", "at": "04:05Z"}))
     check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
 
+    okx_md = render(dict(base, perp_cvd_ok=True, exec_state="FULL", perp_src="OKX-RUBIK"))
+    check("OKX perp CVD is labelled and still execution-grade",
+          "OKX-RUBIK" in okx_md and "Execution Rules" in okx_md)
     _, ok_num = parse_manual("perp_cvd_24h=+2663,at=04:05Z")
     _, ok_adj = parse_manual("perp_cvd=falling,spot_cvd=flat,at=04:05Z")
     check("manual with a number + time unlocks", ok_num is True)
