@@ -30,3 +30,19 @@ Runs in ~2 s. On GitHub: **Actions → Salam Protocol → Run workflow**, then r
 - a failed endpoint prints `UNAVAILABLE`; never a stale value, never `0`, never `null`
 - every estimate is labelled `[MODELED]` or `[PROXY]`
 - no leverage, no shorts: Rail A trims BTC into USDT, Rail B buys BTC with USDT
+
+## Hosting reality (measured from a GitHub Actions runner)
+
+```
+451   fapi.binance.com          Binance Futures — blocked by geo
+403   api.bybit.com             Bybit — blocked by geo
+000   api.deribit.com           unreachable
+200   data-api.binance.vision   Binance Spot  <- primary
+200   www.okx.com               OKX            <- derivatives fallback
+200   api.bitget.com · api.gateio.ws · futures.kraken.com · api.coingecko.com
+```
+
+Consequence: on CI the packet takes **spot from Binance** and **OI / funding / L-S from OKX**,
+and says so in the packet. **Perp CVD is UNAVAILABLE on CI and cannot be restored** — only Binance
+publishes taker-buy volume inside klines, and its futures API refuses the runner. Run the script
+from a Binance-reachable machine (your own PC, in Malaysia) for the full packet.
