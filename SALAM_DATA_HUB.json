@@ -1,21 +1,30 @@
 {
- "problems": [],
- "deriv_src": "BINANCE",
+ "problems": [
+  "fd1 HTTP 451",
+  "fh1 HTTP 451",
+  "funding HTTP 451",
+  "funding_hist HTTP 451",
+  "oi HTTP 451",
+  "oi_hist HTTP 451",
+  "lsr HTTP 451",
+  "perp CVD is OKX's measured taker volume (BTC-USDT swap), not Binance \u2014 Binance Futures refused this host"
+ ],
+ "deriv_src": "OKX",
  "price_src": "TICKER",
  "spot_check": {
-  "bin_price": 61839.73,
-  "okx_price": 61844.1,
-  "spread_pct": 0.0071,
+  "bin_price": 61853.92,
+  "okx_price": 61852.0,
+  "spread_pct": 0.0031,
   "ok": true
  },
- "oi_src": "BINANCE",
- "oi_hist_src": "BINANCE",
- "fund_src": "BINANCE",
- "fund_hist_src": "BINANCE",
- "lsr_src": "BINANCE",
- "price": 61839.73,
+ "oi_src": "OKX",
+ "oi_hist_src": "OKX",
+ "fund_src": "OKX",
+ "fund_hist_src": "OKX",
+ "lsr_src": "OKX",
+ "price": 61853.92,
  "atr1d": 2967.8452165560484,
- "sma200": 71980.10925,
+ "sma200": 71980.10924999996,
  "vp30": {
   "poc": 77273.825,
   "val": 61840.25,
@@ -427,7 +436,7 @@
    "touches": 8,
    "liq": [
     "Shorts",
-    123.05804986835439,
+    40.520761788801444,
     100
    ]
   },
@@ -438,7 +447,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    246.11609973670878,
+    81.04152357760289,
     50
    ]
   },
@@ -449,7 +458,7 @@
    "touches": 7,
    "liq": [
     "Shorts",
-    369.1741496050632,
+    121.56228536640434,
     25
    ]
   }
@@ -462,7 +471,7 @@
    "touches": 2,
    "liq": [
     "Longs",
-    123.05804986835439,
+    40.520761788801444,
     100
    ]
   },
@@ -492,7 +501,7 @@
   ],
   "liq": [
    "Longs",
-   369.1741496050632,
+   121.56228536640434,
    25
   ]
  },
@@ -507,7 +516,7 @@
   ],
   "liq": [
    "Shorts",
-   246.11609973670878,
+   81.04152357760289,
    50
   ]
  },
@@ -518,7 +527,7 @@
   "center": 61557.775,
   "liq": [
    "Longs",
-   123.05804986835439,
+   40.520761788801444,
    100
   ]
  },
@@ -558,7 +567,7 @@
    ],
    "liq": [
     "Longs",
-    369.1741496050632,
+    121.56228536640434,
     25
    ]
   },
@@ -591,7 +600,7 @@
    ],
    "liq": [
     "Shorts",
-    246.11609973670878,
+    81.04152357760289,
     50
    ]
   },
@@ -763,20 +772,20 @@
   "24h": 507.24484
  },
  "cvd_perp": {
-  "1h": -653.0249999999996,
-  "4h": 39.48000000000047,
-  "24h": 3459.472999999999
+  "1h": -144.44860000000017,
+  "4h": 555.8379999999997,
+  "24h": 2368.1024999999995
  },
- "perp_src": "BINANCE",
+ "perp_src": "OKX-RUBIK",
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 99497.564,
- "oi_4h_chg": 0.8779718251016977,
- "oi_24h_chg": 2.7536632466330424,
- "funding": 0.005541,
- "funding_pct90": 52.96296296296296,
- "ls_ratio": 2.453,
+ "oi_btc": 32755.209200000136,
+ "oi_4h_chg": 1.6560474144090565,
+ "oi_24h_chg": 5.285805808178168,
+ "funding": 0.007312329104679999,
+ "funding_pct90": 62.0,
+ "ls_ratio": 2.273936864075137,
  "etf": {
   "latest_date": "25 Nov 2026",
   "one_day_m": -453.0,
@@ -785,51 +794,51 @@
   "prev_day_m": -453.0,
   "five_day_m": -2505.6,
   "five_day_days": 5,
-  "twenty_day_m": -6017.1
+  "twenty_day_m": -6017.099999999999
  },
- "oi_usd_m": 6152.90249341772,
+ "oi_usd_m": 2026.0380894400723,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 68023.70300000001,
-   "usd_m": 492.23219947341755
+   "price": 68039.312,
+   "usd_m": 162.08304715520578
   },
   {
    "lev": 25,
-   "price": 64313.319200000005,
-   "usd_m": 369.1741496050632
+   "price": 64328.0768,
+   "usd_m": 121.56228536640434
   },
   {
    "lev": 50,
-   "price": 63076.524600000004,
-   "usd_m": 246.11609973670878
+   "price": 63090.9984,
+   "usd_m": 81.04152357760289
   },
   {
    "lev": 100,
-   "price": 62458.12730000001,
-   "usd_m": 123.05804986835439
+   "price": 62472.4592,
+   "usd_m": 40.520761788801444
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 55655.757000000005,
-   "usd_m": 492.23219947341755
+   "price": 55668.528,
+   "usd_m": 162.08304715520578
   },
   {
    "lev": 25,
-   "price": 59366.1408,
-   "usd_m": 369.1741496050632
+   "price": 59379.763199999994,
+   "usd_m": 121.56228536640434
   },
   {
    "lev": 50,
-   "price": 60602.9354,
-   "usd_m": 246.11609973670878
+   "price": 60616.8416,
+   "usd_m": 81.04152357760289
   },
   {
    "lev": 100,
-   "price": 61221.3327,
-   "usd_m": 123.05804986835439
+   "price": 61235.3808,
+   "usd_m": 40.520761788801444
   }
  ],
  "sleeve1": {
@@ -846,11 +855,11 @@
   "indicators": {
    "close_price": 61411.0,
    "macro_120d_ema": 73205.18613241617,
-   "rolling_15d_vwap": 62767.14327855107,
-   "vwap_slope_12bar": -1264.0011679319068,
+   "rolling_15d_vwap": 62767.14327855108,
+   "vwap_slope_12bar": -1264.0011679318923,
    "atr_14": 1129.7921099079858,
-   "upper_buffer_price": 63332.03933350506,
-   "lower_buffer_price": 62202.24722359708
+   "upper_buffer_price": 63332.03933350507,
+   "lower_buffer_price": 62202.247223597085
   },
   "conditions": {
    "above_macro_shield": false,
@@ -900,16 +909,16 @@
   },
   "indicators": {
    "close_price": 60577.18,
-   "bb_upper": 77698.67815299712,
-   "bb_mid": 66031.76950000001,
-   "bb_lower": 54364.86084700289,
+   "bb_upper": 77698.6781529971,
+   "bb_mid": 66031.7695,
+   "bb_lower": 54364.86084700288,
    "kc_upper": 69697.07046651223,
    "kc_mid": 65455.57662668652,
    "kc_lower": 61214.0827868608,
    "prior_3d_squeeze_bars": 0,
    "mom": -8824.15725,
    "prev_mom": -9427.29933214286,
-   "sma_21": 66499.01857142858,
+   "sma_21": 66499.01857142856,
    "atr_14": 2967.8452165560507
   },
   "conditions": {
@@ -951,12 +960,12 @@
  "macro_weather": {
   "regime": "HEADWIND",
   "above_sma200": false,
-  "sma200_dist_pct": -14.09,
+  "sma200_dist_pct": -14.07,
   "etf_5d_m": -2505.6,
   "etf_1d_m": -453.0,
-  "funding_pct90": 52.96296296296296,
+  "funding_pct90": 62.0,
   "crowded_long": false,
-  "summary": "Price -14.1% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 53"
+  "summary": "Price -14.1% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 62"
  },
  "rail_b_sizing": {
   "ref_entry": 60434.37,
@@ -972,8 +981,8 @@
   "vetoed_at_50_50": true,
   "vetoed_at_100_usdt": true
  },
- "generated_at_utc": "2026-11-27T07:20:28Z",
- "generated_at_sgt": "2026-11-27T15:20:28+08:00",
+ "generated_at_utc": "2026-11-27T07:21:00Z",
+ "generated_at_sgt": "2026-11-27T15:21:00+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
