@@ -12,9 +12,9 @@
  "deriv_src": "OKX",
  "price_src": "TICKER",
  "spot_check": {
-  "bin_price": 61750.61,
-  "okx_price": 61750.1,
-  "spread_pct": 0.0008,
+  "bin_price": 61638.01,
+  "okx_price": 61641.6,
+  "spread_pct": 0.0058,
   "ok": true
  },
  "oi_src": "OKX",
@@ -22,7 +22,7 @@
  "fund_src": "OKX",
  "fund_hist_src": "OKX",
  "lsr_src": "OKX",
- "price": 61750.61,
+ "price": 61638.01,
  "atr1d": 2967.8452165560484,
  "sma200": 71980.10924999996,
  "vp30": {
@@ -288,8 +288,8 @@
   "bars": 7
  },
  "vp4h": {
-  "poc": 60525.75683333333,
-  "val": 60099.763666666666,
+  "poc": 62838.29116666667,
+  "val": 59978.05133333333,
   "vah": 64603.12,
   "hist": [
    0.0,
@@ -318,7 +318,7 @@
    3820.63296,
    2754.79293,
    0.0,
-   15710.68808,
+   9868.99605,
    6991.96996,
    2747.84164,
    6662.4191200000005,
@@ -328,7 +328,7 @@
    0.0,
    5095.2785,
    7428.53817,
-   0.0,
+   3251.77547,
    0.0,
    0.0,
    0.0,
@@ -415,18 +415,18 @@
    64420.5515,
    64542.26383333334
   ],
-  "peak": 15710.68808,
+  "peak": 12165.86544,
   "bars": 30
  },
  "hvn7": {
   "above": null,
   "below": 59787.617333333335
  },
- "atr1h": 413.0970657377571,
+ "atr1h": 413.4422944945839,
  "px_chg": {
-  "1h": 0.05877007950674251,
-  "4h": -0.07332510471715903,
-  "24h": 1.8973029681577325
+  "1h": -0.005918961791406829,
+  "4h": -0.01764130269994446,
+  "24h": 1.5623412125142178
  },
  "macro_res": [
   {
@@ -436,7 +436,7 @@
    "touches": 8,
    "liq": [
     "Shorts",
-    39.73879218047011,
+    39.413660320244,
     100
    ]
   },
@@ -447,7 +447,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    79.47758436094021,
+    78.827320640488,
     50
    ]
   },
@@ -467,7 +467,7 @@
    "touches": 2,
    "liq": [
     "Longs",
-    39.73879218047011,
+    39.413660320244,
     100
    ]
   },
@@ -497,7 +497,7 @@
   ],
   "liq": [
    "Longs",
-   119.21637654141031,
+   118.24098096073199,
    25
   ]
  },
@@ -512,7 +512,7 @@
   ],
   "liq": [
    "Shorts",
-   119.21637654141031,
+   118.24098096073199,
    25
   ]
  },
@@ -523,7 +523,7 @@
   "center": 61557.775,
   "liq": [
    "Longs",
-   39.73879218047011,
+   39.413660320244,
    100
   ]
  },
@@ -563,7 +563,7 @@
    ],
    "liq": [
     "Longs",
-    119.21637654141031,
+    118.24098096073199,
     25
    ]
   },
@@ -596,7 +596,7 @@
    ],
    "liq": [
     "Shorts",
-    119.21637654141031,
+    118.24098096073199,
     25
    ]
   },
@@ -763,78 +763,78 @@
   "at": null
  },
  "cvd_spot": {
-  "1h": 15.10730000000001,
-  "4h": -187.5870799999999,
-  "24h": 475.72585000000015
+  "1h": -31.356110000000058,
+  "4h": -251.83635000000004,
+  "24h": 373.94984
  },
  "cvd_perp": {
-  "1h": -37.53570000000013,
-  "4h": 736.9785999999997,
-  "24h": 3509.462699999999
+  "1h": -363.2448999999997,
+  "4h": 353.95439999999985,
+  "24h": 2658.1564
  },
  "perp_src": "OKX-RUBIK",
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32176.841800000115,
+ "oi_btc": 31971.87930000011,
  "oi_4h_chg": -1.8400794360189932,
  "oi_24h_chg": 2.8087090604125065,
- "funding": -0.00160536445903,
- "funding_pct90": 7.0,
- "ls_ratio": 2.3170200788140365,
+ "funding": -0.00153946251362,
+ "funding_pct90": 8.0,
+ "ls_ratio": 2.3025798479799304,
  "etf": {
-  "latest_date": "25 Nov 2026",
-  "one_day_m": -453.0,
-  "one_day_settling": false,
+  "latest_date": "27 Nov 2026",
+  "one_day_m": 0.0,
+  "one_day_settling": true,
   "prev_date": "25 Nov 2026",
   "prev_day_m": -453.0,
-  "five_day_m": -2505.6,
+  "five_day_m": -1923.3000000000002,
   "five_day_days": 5,
-  "twenty_day_m": -6017.099999999999
+  "twenty_day_m": -6034.299999999999
  },
- "oi_usd_m": 1986.9396090235052,
+ "oi_usd_m": 1970.6830160122,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 67925.671,
-   "usd_m": 158.95516872188043
+   "price": 67801.811,
+   "usd_m": 157.654641280976
   },
   {
    "lev": 25,
-   "price": 64220.6344,
-   "usd_m": 119.21637654141031
+   "price": 64103.5304,
+   "usd_m": 118.24098096073199
   },
   {
    "lev": 50,
-   "price": 62985.622200000005,
-   "usd_m": 79.47758436094021
+   "price": 62870.770200000006,
+   "usd_m": 78.827320640488
   },
   {
    "lev": 100,
-   "price": 62368.1161,
-   "usd_m": 39.73879218047011
+   "price": 62254.390100000004,
+   "usd_m": 39.413660320244
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 55575.549,
-   "usd_m": 158.95516872188043
+   "price": 55474.209,
+   "usd_m": 157.654641280976
   },
   {
    "lev": 25,
-   "price": 59280.5856,
-   "usd_m": 119.21637654141031
+   "price": 59172.4896,
+   "usd_m": 118.24098096073199
   },
   {
    "lev": 50,
-   "price": 60515.597799999996,
-   "usd_m": 79.47758436094021
+   "price": 60405.2498,
+   "usd_m": 78.827320640488
   },
   {
    "lev": 100,
-   "price": 61133.1039,
-   "usd_m": 39.73879218047011
+   "price": 61021.6299,
+   "usd_m": 39.413660320244
   }
  ],
  "sleeve1": {
@@ -844,18 +844,18 @@
   "weight_pct": 80,
   "bars_analyzed": 999,
   "last_closed_bar": {
-   "open_utc": "2026-11-27 04:00Z",
-   "close_utc": "2026-11-27 08:00Z",
-   "close_sgt": "2026-11-27 16:00 SGT"
+   "open_utc": "2026-11-27 08:00Z",
+   "close_utc": "2026-11-27 12:00Z",
+   "close_sgt": "2026-11-27 20:00 SGT"
   },
   "indicators": {
-   "close_price": 61673.45,
-   "macro_120d_ema": 73205.18613241617,
-   "rolling_15d_vwap": 62726.62217312737,
-   "vwap_slope_12bar": -1219.43781133632,
-   "atr_14": 1098.2548163431295,
-   "upper_buffer_price": 63275.74958129894,
-   "lower_buffer_price": 62177.4947649558
+   "close_price": 61662.57,
+   "macro_120d_ema": 73286.18674769587,
+   "rolling_15d_vwap": 62675.441822740846,
+   "vwap_slope_12bar": -1151.015634702897,
+   "atr_14": 1079.3266151757632,
+   "upper_buffer_price": 63215.105130328724,
+   "lower_buffer_price": 62135.77851515297
   },
   "conditions": {
    "above_macro_shield": false,
@@ -867,11 +867,11 @@
   "readiness": {
    "gates_passed": 0,
    "gates_total": 3,
-   "shield_dist_pct": -15.75,
-   "upper_buf_dist_pct": -2.53,
-   "lower_buf_dist_pct": -0.81,
-   "price_hurdle": 73205.19,
-   "rally_to_hurdle_pct": 18.7
+   "shield_dist_pct": -15.86,
+   "upper_buf_dist_pct": -2.46,
+   "lower_buf_dist_pct": -0.76,
+   "price_hurdle": 73286.19,
+   "rally_to_hurdle_pct": 18.85
   },
   "state": {
    "raw_signal": -1,
@@ -881,15 +881,15 @@
    "flipped_on_last_bar": false,
    "last_transition": {
     "type": "SELL",
-    "time_utc": "2026-10-11 04:00Z",
-    "price": 82820.0,
-    "bars_ago": 282,
-    "days_ago": 47.2
+    "time_utc": "2026-10-12 04:00Z",
+    "price": 83613.06,
+    "bars_ago": 277,
+    "days_ago": 46.3
    },
-   "exposure_pct": 35.8,
+   "exposure_pct": 36.1,
    "if_flat": "HOLD USDT (wait for BUY +1)",
    "if_long": "SELL BTC at next bar open",
-   "reference_3x_atr_sl": 58378.68555097061
+   "reference_3x_atr_sl": 58424.59015447271
   }
  },
  "sleeve2": {
@@ -956,29 +956,29 @@
  "macro_weather": {
   "regime": "HEADWIND",
   "above_sma200": false,
-  "sma200_dist_pct": -14.21,
-  "etf_5d_m": -2505.6,
-  "etf_1d_m": -453.0,
-  "funding_pct90": 7.0,
+  "sma200_dist_pct": -14.37,
+  "etf_5d_m": -1923.3000000000002,
+  "etf_1d_m": 0.0,
+  "funding_pct90": 8.0,
   "crowded_long": false,
-  "summary": "Price -14.2% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 7"
+  "summary": "Price -14.4% vs 200D SMA \u00b7 5D ETF -1,923.3M \u00b7 Funding pctile 8"
  },
  "rail_b_sizing": {
   "ref_entry": 60434.37,
   "ref_source": "Tactical Floor High",
-  "atr1h": 413.1,
-  "stop_dist": 619.65,
-  "stop_price": 59814.73,
-  "stop_pct": 1.025,
-  "implied_port_pct": 73.15,
+  "atr1h": 413.44,
+  "stop_dist": 620.16,
+  "stop_price": 59814.21,
+  "stop_pct": 1.026,
+  "implied_port_pct": 73.09,
   "cap_port_pct_50_50": 15.0,
   "cap_port_pct_100_usdt": 30.0,
-  "required_usdt_share_pct": 243.8,
+  "required_usdt_share_pct": 243.6,
   "vetoed_at_50_50": true,
   "vetoed_at_100_usdt": true
  },
- "generated_at_utc": "2026-11-27T11:37:19Z",
- "generated_at_sgt": "2026-11-27T19:37:19+08:00",
+ "generated_at_utc": "2026-11-27T12:07:16Z",
+ "generated_at_sgt": "2026-11-27T20:07:16+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
