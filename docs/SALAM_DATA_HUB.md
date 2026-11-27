@@ -1,5 +1,5 @@
 # SALAM PRO MAX DATA HUB v1.7
-**Timestamp:** 2026-11-27 17:07:15 UTC / 2026-11-28 01:07:15 SGT (UTC+8) | **Spot Price:** $60,024.01 [BIN] | **OKX Spot:** $60,025.70 (spread 0.003% [OK])
+**Timestamp:** 2026-11-27 23:14:57 UTC / 2026-11-28 07:14:57 SGT (UTC+8) | **Spot Price:** $59,824.00 [BIN] | **OKX Spot:** $59,823.80 (spread 0.000% [OK])
 > ✅ **LIVE DATA — plans allowed** (state: FULL). Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ### AI EXECUTION PROTOCOL: SALAM PRO MAX v1.7 (3-VERDICT EDITION)
@@ -47,7 +47,7 @@ Start every response with a **3-VERDICT SUMMARY TABLE** covering all three syste
 *   **Risk per trade = 0.75% of total portfolio value.** Position size = (portfolio x 0.75%) / (entry - stop).
 *   **If that size exceeds 30% of the USDT inventory, SKIP** — and report the conflict: "risk budget asks X BTC, the cap allows Y BTC, so this rail is vetoed." Do not silently resize; do not drop the rule.
 *   **Rail A invalidation = a DAILY close above (band high + 1 x ATR 1H).** Print the number. A 1H close is noise, not invalidation.
-*   **Pre-Computed Sizing Check (at Tactical Floor High $59,019):** 1.5x ATR stop = $928 (1.57%, stop $58,091) -> 0.75% risk requires **47.7%** of total portfolio. At 50/50 BTC/USDT (cap 15.0% of portfolio): **VETOED — EXCEEDS 30% USDT CAP**; at 100% USDT (cap 30.0%): **VETOED — EXCEEDS 30% USDT CAP**.
+*   **Pre-Computed Sizing Check (at Tactical Floor High $59,019):** 1.5x ATR stop = $731 (1.24%, stop $58,289) -> 0.75% risk requires **60.6%** of total portfolio. At 50/50 BTC/USDT (cap 15.0% of portfolio): **VETOED — EXCEEDS 30% USDT CAP**; at 100% USDT (cap 30.0%): **VETOED — EXCEEDS 30% USDT CAP**.
 
 **Execution Rules:**
 *   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support that overlaps a Lower Long tier, confirmed by positive Spot CVD -> enter on the reclaim. Stop from the arithmetic. Target = the next MEASURED level above, named; if none exists in this packet, write "no target".
@@ -66,49 +66,49 @@ Start every response with a **3-VERDICT SUMMARY TABLE** covering all three syste
 *Never forecast. State what the rules permit, name the trigger that would change the answer, and stop. Jargon is allowed in 1-7 and never in 0.*
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,024 (1D SMA200 71,980)
+*   **Current Price:** $59,824 (1D SMA200 71,980)
 *   **Tactical Bands:**
-    *   Upper: $60,771 - $62,344 (Conf: 3/10, round-1k) [+$76M 50x Shorts]
-    *   Lower: $57,596 - $59,019 (Conf: 10/10, POC+VAH/VAL+round-1k) [+$76M 50x Longs]
+    *   Upper: $60,771 - $62,344 (Conf: 3/10, round-1k) [+$77M 50x Shorts]
+    *   Lower: $57,596 - $59,019 (Conf: 10/10, POC+VAH/VAL+round-1k) [+$77M 50x Longs]
     *   Price is inside $59,069 - $60,434 [+$38M 100x Longs]
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $61,031 (2x) [+$76M 50x Shorts], $62,338 (8x) [+$115M 25x Shorts], $63,065 (2x)
+    *   Resistance: $60,000 (1x), $61,031 (2x) [+$77M 50x Shorts], $62,338 (8x) [+$115M 25x Shorts]
     *   Support: $59,131 (1x), $57,958 (2x), $55,130 (1x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 61,840
-    *   4H (last 30 bars): VAH 64,603 · POC 62,838 · VAL 60,100
+    *   4H (last 30 bars): VAH 64,603 · POC 62,838 · VAL 59,978
 
 ## 2. THE FUEL (Liquidation Magnets) [ESTIMATED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,026 ($152.8M) / 25x $62,425 ($114.6M) / 50x $61,224 ($76.4M) / 100x $60,624 ($38.2M)
-*   **Lower Longs:** 10x $54,022 ($152.8M) / 25x $57,623 ($114.6M) / 50x $58,824 ($76.4M) / 100x $59,424 ($38.2M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,909.4M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
-*   **Long/Short account ratio (4H):** 2.81 [OKX]
+*   **Upper Shorts:** 10x $65,806 ($153.4M) / 25x $62,217 ($115.1M) / 50x $61,020 ($76.7M) / 100x $60,422 ($38.4M)
+*   **Lower Longs:** 10x $53,842 ($153.4M) / 25x $57,431 ($115.1M) / 50x $58,628 ($76.7M) / 100x $59,226 ($38.4M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,918.0M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
+*   **Long/Short account ratio (4H):** 2.84 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
-*   **Price Change (closed 1H [BIN]):** 1H: -0.26% | 4H: -2.72% | 24H: -0.93%
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: -5.4 / -472.9 | 4H: -113.5 / -4,565.5 | 24H: 242.3 / -1,321.3
-*   **Open Interest:** 31,810 BTC [OKX] | 4H Change: -1.14% | 24H Change: -0.94%
+*   **Price Change (closed 1H [BIN]):** 1H: -0.10% | 4H: -0.29% | 24H: -1.34%
+*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: -199.0 / -31.4 | 4H: -296.1 / -40.3 | 24H: -118.9 / -2,023.2
+*   **Open Interest:** 32,061 BTC [OKX] | 4H Change: -0.06% | 24H Change: -0.59%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** -0.0004% per 8H [OKX] | percentile (100 pts): 16
-*   **ATR 1H:** 619 (Rail B stop distance = 1.5 x this = 928)
+*   **Funding:** 0.0048% per 8H [OKX] | percentile (100 pts): 46
+*   **ATR 1H:** 487 (Rail B stop distance = 1.5 x this = 731)
 
 ## 4. THE TRIGGER
 *   **Sweep Status:** NONE (no closed 1H bar beyond a level that closed back inside)
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $0.0M (27 Nov 2026, settling) | 5D: $-1,923.3M
-*   **Funding percentile:** 16 of the last 100 readings (~33 days, OKX)
-*   **Macro Weather (Veto Summary, never a trigger):** HEADWIND (Price -16.6% vs 200D SMA · 5D ETF -1,923.3M · Funding pctile 16)
+*   **Funding percentile:** 46 of the last 100 readings (~33 days, OKX)
+*   **Macro Weather (Veto Summary, never a trigger):** HEADWIND (Price -16.9% vs 200D SMA · 5D ETF -1,923.3M · Funding pctile 46)
 
 ## 6. PROJECT F — SLEEVE #1 (4H Rolling VWAP Shield · 80% Weight)
 *   **Strategy:** `tier1_5_vwap_shield` (Spot BTC/USDT, zero leverage, 4H closed bars)
-*   **Last Closed 4H Bar:** 2026-11-27 12:00Z -> 2026-11-27 16:00Z / 2026-11-28 00:00 SGT (999 closed 4H bars)
-*   **Indicators:** Close $60,116.98 | 120D EMA Shield $73,286.19 | 15D Rolling VWAP (90b) $62,482.57 (12b Slope -1,109.56) | Band +/-0.50 ATR: $61,877.34 to $63,087.79 | 4H ATR(14) $1,210.45
+*   **Last Closed 4H Bar:** 2026-11-27 16:00Z -> 2026-11-27 20:00Z / 2026-11-28 04:00 SGT (999 closed 4H bars)
+*   **Indicators:** Close $59,910.33 | 120D EMA Shield $73,286.19 | 15D Rolling VWAP (90b) $62,396.67 (12b Slope -1,042.69) | Band +/-0.50 ATR: $61,797.30 to $62,996.03 | 4H ATR(14) $1,198.73
 *   **Checks:** [FAIL] Close > 120D EMA | [FAIL] Close > Upper Buffer | [FAIL] 12b VWAP Slope > 0 | [TRIGGERED] Exit Rule
-*   **Readiness Radar:** 0/3 Buy Gates Passed | vs 120D EMA: -17.97% | vs Upper Buffer: -4.71% | Clear-Both Hurdle: $73,286.19 (+21.91% needed)
-*   **Signal & Simulated State:** raw_signal = -1 | Sim Prior Pos = USDT -> Action: HOLD USDT | Reference 3.0x ATR Stop: $56,485.63
-*   **Transition Memory:** Last Flip: SELL @ $83,613.06 on 2026-10-12 04:00Z (46.5d / 278 bars ago) | Window BTC Exposure: 36.0%
+*   **Readiness Radar:** 0/3 Buy Gates Passed | vs 120D EMA: -18.25% | vs Upper Buffer: -4.90% | Clear-Both Hurdle: $73,286.19 (+22.33% needed)
+*   **Signal & Simulated State:** raw_signal = -1 | Sim Prior Pos = USDT -> Action: HOLD USDT | Reference 3.0x ATR Stop: $56,314.15
+*   **Transition Memory:** Last Flip: SELL @ $83,613.06 on 2026-10-12 04:00Z (46.7d / 279 bars ago) | Window BTC Exposure: 36.0%
 *   **Action by Actual Account State:** If currently FLAT (USDT): HOLD USDT (wait for BUY +1) | If currently LONG (BTC): SELL BTC at next bar open
 
 ## 7. PROJECT F — SLEEVE #2 (1D TTM Volatility Squeeze · 20% Weight)
