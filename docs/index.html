@@ -3,742 +3,1285 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SALAM · BTC spot data packet</title>
+<title>SALAM ATM · BTC spot data packet</title>
 <style>
 :root {
-  --bg: #090c10;
-  --surface: #0f141b;
-  --surface-2: #151c25;
-  --surface-quiet: #0c1016;
-  --line: #212b38;
-  --line-subtle: #18202b;
-  --fg: #e6edf3;
-  --fg-muted: #9aa7b6;
-  --dim: #6e7d8d;
-  /* Single accent color */ --acc: #4da3ff;
-  --acc-soft: #13253a;
-  /* Semantic status & directional colors only */ --up: #34c77b;
-  --up-bg: #0c1d15;
-  --up-line: #1c4d34;
-  --warn: #e5a00d;
-  --warn-bg: #231a07;
-  --warn-line: #75530c;
-  --dn: #e5484d;
-  --dn-bg: #260e10;
-  --dn-line: #7d2126;
-  /* Neutral secondary data bar (never decorative amber) */ --bar-alt: #6e8196;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --fs: 14px;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --radius: 6px;
-  --maxw: 1240px;
+  --bg: #040a06;
+  --surface: #08140d;
+  --inset: #0b1c12;
+  --inset-2: #0f2518;
+  --line: #1f5c37;
+  --line-subtle: #143b24;
+  --fg: #d8ffe8;
+  --acc: #3dff8b;
+  --muted: #7ec29a;
+  --dim: #4e8062;
+  --warn: #ffbe3b;
+  --warn-bg: #241904;
+  --warn-line: #996a0f;
+  --dn: #ff5c5c;
+  --dn-bg: #26090b;
+  --dn-line: #9e262b;
+  --up-bg: #0a2415;
+  --up-line: #28854f;
+  --shadow: #194d2e;
+  --maxw: 1120px;
 }
+
+@media (min-width: 900px) {
+  :root {
+    --fs: 15px;
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
 html {
   background: var(--bg);
   color: var(--fg);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 14px/1.55 var(--sans);
-  padding-bottom: 56px;
+  font-family: var(--mono);
+  font-size: var(--fs);
+  line-height: 1.5;
+  padding-bottom: 48px;
   overflow-x: hidden;
+  font-variant-numeric: tabular-nums;
 }
+
+/* Subtle CRT scanline overlay — purely visual, zero interaction impact */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+}
+
+button, a, input, select, textarea, h1, h2, h3, summary, details, code, pre, b, strong, span, div, p, section, header, main, footer {
+  font-family: var(--mono);
+  font-size: var(--fs);
+}
+
 a {
   color: var(--acc);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
+
 :focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
-.num, #live, #alertBig, #age, #ts, #pkt, .stat .v, .px, .chip, #locBody b {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-/* ── 1. MAY I ACT: Sticky Status Banner ─────────────────────────────────── */ .status-bar {
+
+/* ── TOP STICKY GATE BANNER (fail-closed default before JS loads) ─────────── */
+.status-bar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 30;
   background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  padding: 8px 12px;
+  border-bottom: 2px solid var(--line);
+  padding: 8px 10px;
 }
-/* Default (unclassed) = BROKEN / UNKNOWN / UNGRADED mood. Must look unmistakably wrong rather than calm or healthy. */ #state {
+
+#state {
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 10px 14px;
-  border-radius: var(--radius);
-  font-size: 13.5px;
-  line-height: 1.45;
-  font-weight: 500;
-  color: #ffd4d6;
-  background: repeating-linear-gradient( -45deg, #220b10, #220b10 10px, #2d0f16 10px, #2d0f16 20px );
+  padding: 10px 12px;
   border: 2px dashed var(--dn);
-  border-left: 5px solid var(--dn);
+  border-left: 6px solid var(--dn);
+  background: repeating-linear-gradient(
+    -45deg,
+    #26090b,
+    #26090b 10px,
+    #310c0f 10px,
+    #310c0f 20px
+  );
+  color: #ffd6d6;
 }
+
 #state.ok {
   background: var(--up-bg);
-  border: 1px solid var(--up-line);
-  border-left: 4px solid var(--up);
-  color: #c2f5d8;
-}
-#state.warn {
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-line);
-  border-left: 4px solid var(--warn);
-  color: #ffe099;
-}
-#state.bad {
-  background: var(--dn-bg);
-  border: 1px solid var(--dn-line);
-  border-left: 4px solid var(--dn);
-  color: #ffc7c9;
-}
-#state b {
-  font-weight: 700;
-  letter-spacing: .01em;
-}
-/* ── 2. WHERE IS PRICE & 3. LOCATION: Non-sticky Instrument Header ──────── */ .deck-header {
-  max-width: var(--maxw);
-  margin: 0 auto;
-  padding: 14px 12px 0;
-}
-.meta-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line-subtle);
-}
-.brand {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  border: 2px solid var(--up-line);
+  border-left: 6px solid var(--acc);
   color: var(--fg);
 }
-.ver {
+
+#state.warn {
+  background: var(--warn-bg);
+  border: 2px solid var(--warn-line);
+  border-left: 6px solid var(--warn);
+  color: #ffe9b8;
+}
+
+#state.bad {
+  background: var(--dn-bg);
+  border: 2px solid var(--dn-line);
+  border-left: 6px solid var(--dn);
+  color: #ffd6d6;
+}
+
+#state .b1 {
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+#state .b2 {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+#state.warn .b2 {
+  color: #f3cc7a;
+}
+
+#state.bad .b2 {
+  color: #f2a8a8;
+}
+
+/* ── MAIN ATM CHASSIS ─────────────────────────────────────────────────────── */
+.atm-wrap {
+  max-width: var(--maxw);
+  margin: 12px auto 0;
+  padding: 0 10px;
+}
+
+.atm-chassis {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  box-shadow: 0 0 0 1px var(--line-subtle), inset 0 0 0 1px var(--line-subtle);
+  padding: 12px;
+}
+
+.atm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--line);
+}
+
+.brand {
+  font-weight: 700;
   color: var(--acc);
-  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ver {
+  color: var(--muted);
+  font-weight: 400;
   letter-spacing: .02em;
   text-transform: none;
 }
-#age {
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--acc-soft);
-  color: var(--acc);
-  font-size: 12px;
-  font-weight: 600;
-}
-#age.warn {
-  background: var(--warn-bg);
-  color: var(--warn);
-  border: 1px solid var(--warn-line);
-}
-#age.bad {
-  background: var(--dn-bg);
-  color: var(--dn);
-  border: 1px solid var(--dn-line);
-}
-.ts {
-  color: var(--dim);
-  font-size: 12px;
-}
+
 .spacer {
   flex: 1 1 auto;
 }
-.hero-band {
+
+#age {
+  padding: 2px 8px;
+  border: 1px solid var(--up-line);
+  background: var(--up-bg);
+  color: var(--acc);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+#age.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+
+#age.bad {
+  background: var(--dn-bg);
+  border-color: var(--dn-line);
+  color: var(--dn);
+}
+
+.ts {
+  color: var(--dim);
+}
+
+/* ── SCREEN BLOCKS & INVERTED HEADER BARS ─────────────────────────────────── */
+.screen {
+  margin-top: 14px;
+  border: 2px solid var(--line);
+  background: var(--inset);
+}
+
+.screen-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  background: var(--acc);
+  color: var(--bg);
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.screen-bar .tag {
+  font-weight: 700;
+}
+
+.screen.warn {
+  border-color: var(--warn-line);
+}
+
+.screen.warn > .screen-bar {
+  background: var(--warn);
+  color: var(--bg);
+}
+
+.screen.bad {
+  border-color: var(--dn-line);
+}
+
+.screen.bad > .screen-bar {
+  background: var(--dn);
+  color: var(--bg);
+}
+
+.screen-body {
+  padding: 12px;
+}
+
+/* ── SCREEN 1: 5-SECOND QUICK GLANCE ──────────────────────────────────────── */
+.verdict-box {
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  margin-bottom: 12px;
+}
+
+.verdict-box.active {
+  border-color: var(--acc);
+  background: var(--up-bg);
+}
+
+.verdict-box.quiet {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.verdict-box.wait {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+
+.verdict-box.stop {
+  border-color: var(--dn-line);
+  background: var(--dn-bg);
+}
+
+.verdict-main {
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: .02em;
+}
+
+.verdict-box.active .verdict-main {
+  color: var(--acc);
+}
+
+.verdict-box.wait .verdict-main {
+  color: var(--warn);
+}
+
+.verdict-box.stop .verdict-main {
+  color: var(--dn);
+}
+
+.verdict-sub {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.verdict-box.wait .verdict-sub {
+  color: #f3cc7a;
+}
+
+.verdict-box.stop .verdict-sub {
+  color: #f2a8a8;
+}
+
+.price-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  padding: 16px 0 14px;
-  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
 }
-.price-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 10px 12px;
 }
-.price-primary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.livetag {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  color: var(--up);
-  border: 1px solid var(--up-line);
-  border-radius: 4px;
-  padding: 2px 6px;
-  line-height: 1.2;
-}
-#live {
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  color: var(--fg);
-  display: inline-flex;
-  align-items: center;
-}
-#live::before {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--up);
-  margin-right: 10px;
-  flex-shrink: 0;
-  animation: pulse 2.4s ease-in-out infinite;
-}
-#live.frozen {
-  color: var(--fg-muted);
-}
-#live.frozen::before {
-  background: var(--dim);
-  animation: none;
-}
-@keyframes pulse {
-  0%, 100% {
-  opacity: 1;
-}
-50% {
-  opacity: .25;
-}
-}
-#pkt {
-  font-size: 12px;
+
+.panel-label {
   color: var(--dim);
-  line-height: 1.4;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 6px;
 }
+
+.price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+#livetag {
+  padding: 1px 6px;
+  border: 1px solid var(--up-line);
+  background: var(--up-bg);
+  color: var(--acc);
+  font-weight: 700;
+}
+
+#livetag.snap {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+#live {
+  font-weight: 700;
+  color: var(--acc);
+}
+
+#live.frozen {
+  color: var(--muted);
+}
+
+#pkt {
+  margin-top: 6px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 #pkt.stale {
   color: var(--warn);
 }
-/* Location orientation strip */ #loc {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  font-size: 14px;
-  line-height: 1.5;
+
+#locBody {
   color: var(--fg);
+  overflow-wrap: anywhere;
 }
-#loc .k {
-  display: block;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  color: var(--dim);
-  margin-bottom: 3px;
+
+#locBody b {
+  color: var(--acc);
+  font-weight: 700;
 }
-/* Utility buttons */ .actions {
+
+#posGauge {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line-subtle);
+}
+
+.gauge-labels {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  justify-content: space-between;
+  gap: 4px 10px;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
-button, .btn, .chatlink {
-  background: var(--surface-2);
-  color: var(--fg);
+
+.gauge-track {
+  position: relative;
+  height: 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 9px 14px;
-  min-height: 44px;
-  font: 500 13px/1.2 var(--sans);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  transition: border-color .15s, background-color .15s;
+  background: var(--inset);
 }
-button:hover, .btn:hover, .chatlink:hover {
-  border-color: var(--acc);
-  color: #fff;
-  text-decoration: none;
+
+.gauge-fill {
+  height: 100%;
+  background: var(--line);
 }
-button:active, .btn:active, .chatlink:active {
-  transform: translateY(1px);
+
+.gauge-pin {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 6px;
+  transform: translateX(-50%);
+  background: var(--acc);
 }
-.ico {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  opacity: .85;
-}
-#copyState, #copyState2 {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--up);
-}
-/* ── MAIN WORKSPACE ─────────────────────────────────────────────────────── */ main {
-  max-width: var(--maxw);
-  margin: 0 auto;
-  padding: 14px 12px 0;
-}
-.section-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+
+.gauge-note {
+  margin-top: 4px;
   color: var(--dim);
-  margin: 22px 0 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
-.section-label::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line-subtle);
-}
-.section-label:first-child {
-  margin-top: 2px;
-}
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 14px;
-}
-.card h2 {
-  margin: 0 0 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-/* ── 4. WHAT CHANGED: Alert Zone + Trigger ──────────────────────────────── */ .changes-grid {
+
+/* 3-line beginner quick checks */
+.checks-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 8px;
 }
-/* Quiet by default */ #alertCard {
-  background: var(--surface-quiet);
+
+.check-item {
   border: 1px solid var(--line-subtle);
-  transition: border-color .2s, background-color .2s;
+  background: var(--surface);
+  padding: 10px 12px;
 }
-#alertCard h2 {
-  color: var(--dim);
-}
-#alertBig {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--fg-muted);
-  line-height: 1.25;
-}
-/* Fires amber / red only when threshold is crossed */ #alertCard.warn {
-  background: var(--warn-bg);
+
+.check-item.warn {
   border: 2px solid var(--warn);
-  border-left-width: 5px;
+  background: var(--warn-bg);
 }
-#alertCard.warn h2 {
+
+.check-item.bad {
+  border: 2px solid var(--dn);
+  background: var(--dn-bg);
+}
+
+.check-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.check-item.warn .check-head {
   color: var(--warn);
 }
+
+.check-item.bad .check-head {
+  color: var(--dn);
+}
+
+#alertBig {
+  font-weight: 700;
+  color: var(--fg);
+}
+
 #alertBig.warn {
   color: var(--warn);
-  font-size: 24px;
 }
-#alertCard.bad {
-  background: var(--dn-bg);
-  border: 2px solid var(--dn);
-  border-left-width: 5px;
-}
-#alertCard.bad h2 {
-  color: var(--dn);
-}
+
 #alertBig.bad {
   color: var(--dn);
-  font-size: 24px;
 }
+
 .alertrow {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.tier {
-  font-family: var(--mono);
-  font-size: 12px;
+  margin-top: 6px;
   color: var(--dim);
 }
+
 .tier b {
-  color: var(--fg-muted);
-  font-weight: 600;
+  color: var(--muted);
 }
+
+#alertNote {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
 #sweep {
-  padding: 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-subtle);
-  background: var(--surface-quiet);
-  font-size: 14px;
-  line-height: 1.5;
+  color: var(--fg);
 }
+
 #sweep.hit {
+  padding: 6px 8px;
   border: 1px solid var(--warn-line);
   border-left: 4px solid var(--warn);
   background: var(--warn-bg);
-  color: #ffe099;
+  color: #ffe9b8;
 }
-/* ── 5. THE RULES THAT APPLY ────────────────────────────────────────────── */ .read {
-  border-left: 4px solid var(--line);
+
+#quickStatus {
+  font-weight: 700;
+  color: var(--fg);
 }
-.read.armed {
-  border-left-color: var(--up);
+
+/* ── SCREEN 2: ATM KEYPAD (COPY TO AI) ────────────────────────────────────── */
+.keypad-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
+
+button, .btn, .chatlink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  background: var(--inset-2);
+  color: var(--fg);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 var(--shadow);
+  transition: transform .08s, box-shadow .08s, border-color .12s;
+}
+
+button:hover, .btn:hover, .chatlink:hover {
+  border-color: var(--acc);
+  color: var(--acc);
+  text-decoration: none;
+}
+
+button:active, .btn:active, .chatlink:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+
+.btn-primary {
+  background: var(--acc);
+  color: var(--bg);
+  border-color: var(--acc);
+  box-shadow: 3px 3px 0 #155c31;
+}
+
+.btn-primary:hover {
+  background: #6effa9;
+  border-color: #6effa9;
+  color: var(--bg);
+}
+
+#copyState {
+  color: var(--acc);
+  font-weight: 700;
+}
+
+.steps-guide {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-subtle);
+  display: grid;
+  gap: 8px;
+}
+
+.step-line {
+  color: var(--muted);
+}
+
+.step-line b {
+  color: var(--fg);
+}
+
+.ai-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── SCREEN 3: PLAIN-ENGLISH RULES ────────────────────────────────────────── */
 .read.suspended {
-  border-left-color: var(--dn);
-  background: #140d0f;
+  background: #17090b;
 }
+
 .rrow {
   display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line-subtle);
-  align-items: baseline;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line-subtle);
 }
+
 .rrow:first-child {
   padding-top: 2px;
 }
+
 .rrow:last-child {
   border-bottom: 0;
   padding-bottom: 2px;
 }
+
 .rkey {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .07em;
+  font-weight: 700;
+  color: var(--acc);
   text-transform: uppercase;
-  color: var(--dim);
 }
+
+.read.suspended .rkey {
+  color: var(--dn);
+}
+
 .rval {
-  font-size: 14px;
-  line-height: 1.55;
   color: var(--fg);
-}
-.rval b {
-  color: #fff;
-  font-weight: 600;
-}
-/* ── 6. THE EVIDENCE ────────────────────────────────────────────────────── */ .stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.stat {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  min-width: 0;
-}
-.stat .k {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-.stat .v {
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 4px;
-  color: var(--fg);
-  line-height: 1.25;
-}
-.stat .v .up, .stat .v .dn {
-  font-size: 13px;
-  font-weight: 600;
-  margin-left: 4px;
-}
-.stat .v span.dimv {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1.35;
-  margin-top: 3px;
-  color: var(--dim);
   overflow-wrap: anywhere;
 }
-.grid {
+
+.rval b {
+  color: var(--acc);
+  font-weight: 700;
+}
+
+/* ── SCREEN 4: COLLAPSIBLE SUPPORTING DATA DRAWERS ────────────────────────── */
+.drawers-head {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.drawers-title {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+details.drawer {
+  margin-top: 10px;
+  border: 2px solid var(--line);
+  background: var(--inset);
+}
+
+details.drawer > summary {
+  list-style: none;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--inset-2);
+  color: var(--fg);
+  font-weight: 700;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  border-bottom: 1px solid transparent;
+}
+
+details.drawer[open] > summary {
+  border-bottom: 2px solid var(--line);
+  color: var(--acc);
+}
+
+details.drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sum-left::before {
+  content: "[+] ";
+  color: var(--acc);
+}
+
+details.drawer[open] > summary .sum-left::before {
+  content: "[-] ";
+}
+
+.sum-meta {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.drawer-body {
+  padding: 12px;
+}
+
+.plain-hint {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.plain-hint b {
+  color: var(--acc);
+}
+
+.subgrid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
 }
-.wide {
-  grid-column: 1 / -1;
+
+.subcard {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 10px 12px;
 }
-/* Instrument data rows */ .lvl {
+
+.subcard-head {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 6px 8px;
-  padding: 8px 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--line-subtle);
+  color: var(--acc);
+  font-weight: 700;
+  text-transform: uppercase;
 }
+
+/* Stats grid */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 9px 10px;
+}
+
+.stat .k {
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stat .v {
+  margin-top: 3px;
+  color: var(--fg);
+  font-weight: 700;
+}
+
+.stat .hint {
+  margin-top: 3px;
+  color: var(--dim);
+}
+
+/* Data rows & bars */
+.lvl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--line-subtle);
+}
+
 .lvl:last-child {
   border-bottom: 0;
   padding-bottom: 0;
 }
+
 .lvl .nm {
-  width: 44px;
-  flex-shrink: 0;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--dim);
+  color: var(--muted);
+  font-weight: 700;
   text-transform: uppercase;
+  min-width: 7ch;
 }
+
 .lvl .px {
-  font-size: 13.5px;
   color: var(--fg);
-  min-width: 114px;
+  font-weight: 700;
 }
-/* Compact CVD rows so two bars never wrap or overflow at 390px */ #cvd .lvl {
-  flex-wrap: nowrap;
-  gap: 6px;
-}
-#cvd .lvl .nm {
-  width: 30px;
-}
-#cvd .lvl .px {
-  font-size: 12.5px;
-  min-width: 68px !important;
-  text-align: right;
-}
-#cvd .bar {
-  min-width: 24px;
-}
-#vp .lvl {
-  flex-wrap: nowrap;
-  align-items: baseline;
-}
-#vp .lvl .nm {
-  width: 38px;
-}
-#vp .lvl .px {
-  font-size: 13px;
-  line-height: 1.45;
-}
-/* Data bars — flat fills, no decorative gradients */ .bar {
-  flex: 1 1 48px;
-  height: 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--line-subtle);
-  border-radius: 2px;
+
+.bar {
+  flex: 1 1 64px;
+  min-width: 48px;
+  height: 12px;
+  border: 1px solid var(--line);
+  background: var(--inset);
   overflow: hidden;
-  min-width: 36px;
 }
+
 .bar i {
   display: block;
   height: 100%;
   background: var(--acc);
 }
-.bar.liq i {
-  background: var(--bar-alt);
+
+.bar.alt i {
+  background: var(--muted);
 }
-/* Missing value bar: hatched + dashed border, unmistakably distinct from measured 0 */ .bar.na {
+
+.bar.na {
   border: 1px dashed var(--dim);
-  background: repeating-linear-gradient( -45deg, var(--surface-quiet), var(--surface-quiet) 4px, #1e2733 4px, #1e2733 8px );
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--inset),
+    var(--inset) 4px,
+    #1b3524 4px,
+    #1b3524 8px
+  );
 }
-/* Chips */ .chip {
-  font-size: 11.5px;
-  padding: 2px 7px;
-  border-radius: 4px;
+
+.chip {
+  padding: 1px 6px;
   border: 1px solid var(--line);
-  background: var(--surface-2);
-  color: var(--fg-muted);
+  background: var(--inset-2);
+  color: var(--muted);
   white-space: nowrap;
 }
-.chip.ok {
-  color: var(--up);
+
+.chip.ok, .chip.long {
   border-color: var(--up-line);
   background: var(--up-bg);
+  color: var(--acc);
+  font-weight: 700;
 }
-.chip.long {
-  color: var(--up);
-  border-color: var(--up-line);
-  background: var(--up-bg);
-}
+
 .chip.short {
-  color: var(--fg);
-  border-color: var(--line);
-  background: #1b2430;
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn);
 }
+
+/* CVD beginner rows */
+.cvd-group {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line-subtle);
+}
+
+.cvd-group:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.cvd-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 3px;
+}
+
+.cvd-line .nm {
+  min-width: 7ch;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.cvd-line .px {
+  min-width: 8ch;
+  font-weight: 700;
+}
+
+/* Liquidation two-column area */
 .tiers {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 12px;
 }
+
 .subhead {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .08em;
+  color: var(--acc);
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--dim);
   margin-bottom: 6px;
 }
-.up {
-  color: var(--up);
+
+.glossary-list {
+  display: grid;
+  gap: 8px;
 }
+
+.g-item {
+  border: 1px solid var(--line-subtle);
+  background: var(--surface);
+  padding: 8px 10px;
+}
+
+.g-item b {
+  color: var(--acc);
+}
+
+.up {
+  color: var(--acc);
+}
+
 .dn {
   color: var(--dn);
 }
+
+.warn-txt {
+  color: var(--warn);
+}
+
 .dimv {
   color: var(--dim);
 }
+
 .note {
-  color: var(--fg-muted);
-  font-size: 12.5px;
   margin-top: 10px;
-  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
-/* AI Handoff */ .handoff {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-  align-items: center;
-}
-.handoff .step {
-  font-family: var(--mono);
-  font-size: 11.5px;
+
+/* Footer */
+footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 2px solid var(--line);
   color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: .05em;
 }
-/* Footer */ footer {
-  max-width: var(--maxw);
-  margin: 24px auto 0;
-  padding: 16px 12px 0;
-  border-top: 1px solid var(--line-subtle);
-  color: var(--dim);
-  font-size: 12.5px;
-  line-height: 1.55;
-}
+
 .footer-links {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-footer a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-family: var(--mono);
-  font-size: 12px;
-}
-details {
+
+#probs {
   margin-top: 10px;
+  border: 1px solid var(--line);
+  background: var(--inset);
 }
-summary {
+
+#probs > summary {
+  list-style: none;
   cursor: pointer;
-  color: var(--fg-muted);
-  padding: 10px 0;
   min-height: 44px;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-weight: 700;
   display: flex;
   align-items: center;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
 }
+
+#probs > summary::-webkit-details-marker {
+  display: none;
+}
+
+#probs > summary::before {
+  content: "[+] ";
+  color: var(--acc);
+  margin-right: 6px;
+}
+
+#probs[open] > summary::before {
+  content: "[-] ";
+}
+
 #probsBody {
-  font-family: var(--mono);
-  font-size: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-top: 4px;
+  padding: 10px;
+  border-top: 1px dashed var(--line-subtle);
+  color: var(--fg);
   overflow-wrap: anywhere;
 }
-/* ── RESPONSIVE BREAKPOINTS (Tablet & 1280px Desktop) ───────────────────── */ @media (min-width: 600px) {
+
+/* ── RESPONSIVE BREAKPOINTS ───────────────────────────────────────────────── */
+@media (min-width: 600px) {
+  .rrow {
+    grid-template-columns: 16ch 1fr;
+    gap: 10px;
+    align-items: baseline;
+  }
   .stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tiers {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
 }
-.tiers {
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+
+@media (min-width: 860px) {
+  .atm-wrap {
+    padding: 0 18px;
+  }
+  .atm-chassis {
+    padding: 16px;
+  }
+  .price-grid {
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+  .checks-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .subgrid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
-}
+
 @media (min-width: 900px) {
-  .status-bar, .deck-header, main, footer {
-  padding-left: 24px;
-  padding-right: 24px;
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
-.hero-band {
-  grid-template-columns: minmax(280px, auto) 1fr;
-  align-items: center;
-  gap: 24px;
-}
-#live {
-  font-size: 44px;
-}
-.changes-grid {
-  grid-template-columns: 1.15fr 0.85fr;
-}
-.stats {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-.grid {
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-}
-/* ── REDUCED MOTION ─────────────────────────────────────────────────────── */ @media (prefers-reduced-motion: reduce) {
+
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    display: none;
+  }
   *, *::before, *::after {
-  animation-duration: 0.001ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.001ms !important;
-  scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-}
-  .ver{text-transform:none;letter-spacing:.02em}
-  #state .b1{font-size:13px;letter-spacing:.01em}
-  #state .b2{font-size:11.5px;opacity:.82;margin-top:3px;line-height:1.45}
 </style>
 </head>
-<body> <!-- 1. MAY I ACT: Always-visible status banner (defaults to broken/ungraded until JS verifies) --> <div class="status-bar"> <div id="state" role="status" aria-live="polite">⏳ <b>CHECKING THE DATA…</b><div class="b2">Nothing is shown until the packet arrives — a page that assumes it is fine is a page that lies.</div></div> </div> <!-- 2. WHERE IS PRICE & 3. WHERE IS PRICE AGAINST ITS LEVELS --> <header class="deck-header"> <div class="meta-row"> <span class="brand">SALAM<span class="ver" id="ver"></span></span> <span id="age">loading…</span> <span class="ts" id="ts"></span> <span class="spacer"></span> </div> <div class="hero-band"> <div class="price-block"> <div class="price-primary"> <span class="livetag" id="livetag">LIVE</span> <span id="live">—</span> </div> <div id="pkt">packet loading…</div> </div> <div id="loc"> <span class="k">Where price is</span> <span id="locBody">—</span> </div> </div> <div class="actions"> <button id="copy" type="button" title="Copy the full markdown packet, ready to paste into any AI"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy the data for an AI </button> <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener" title="Open the workflow page, then Run workflow"> <svg class="ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"> <path d="M4.5 3.2v9.6L12.5 8 4.5 3.2z"></path> </svg> Run workflow </a> <span id="copyState" aria-live="polite"></span> </div> </header> <main> <!-- 4. WHAT CHANGED --> <div class="section-label">What is moving right now</div> <div class="changes-grid"> <section class="card" id="alertCard"> <h2>Alert zone <span class="chip">5-minute move</span></h2> <div id="alertBig">—</div> <div class="alertrow" id="alertTiers"></div> <div class="note" id="alertNote"></div> </section> <section class="card"> <h2>Last level break <span class="chip">last hour</span></h2> <div id="sweep">—</div> </section> </div> <!-- 5. THE RULES THAT APPLY --> <div class="section-label">The rules that apply</div> <section class="card read" id="readCard"> <h2>What the rules say <span class="chip">rules, not a forecast</span></h2> <div id="read"></div> </section> <!-- 6. THE EVIDENCE --> <div class="section-label">The evidence</div> <div class="stats" id="stats"></div> <div class="grid"> <section class="card wide"> <h2>Price zones <span class="chip" id="insidechip"></span></h2> <div id="bands"></div> <div class="note" id="bandsnote"></div> </section> <section class="card"> <h2>Big levels · nearest 3</h2> <div id="macro"></div> </section> <section class="card"> <h2>Where trading happened</h2> <div id="vp"></div> </section> <section class="card wide"> <h2>Who is buying</h2> <div id="cvd"></div> <div class="note" id="cvdnote"></div> </section> <section class="card wide"> <h2>Where leveraged traders get wiped out <span class="chip">ESTIMATED</span></h2> <div class="tiers"> <div> <div class="subhead">Above · shorts</div> <div id="liqUp"></div> </div> <div> <div class="subhead">Below · longs</div> <div id="liqDn"></div> </div> </div> <div class="note" id="liqnote"></div> </section> <section class="card wide" id="handoffCard"> <h2>Ask an AI to explain it</h2> <div class="note" style="margin-top:0"> The card above applies the rules to the numbers and stops there. An AI can weigh the level break, futures positions, funding and ETF flows together — using only the data in this packet, so it knows no more than the page does. </div> <div class="handoff"> <span class="step">1 · copy</span> <button id="copy2" type="button"> <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"> <rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect> <path d="M3.5 11H3a1.5 1.5 0 0 1-1.5-1.5V3A1.5 1.5 0 0 1 3 1.5h6.5A1.5 1.5 0 0 1 11 3v.5"></path> </svg> Copy the data </button> <span class="step">2 · open</span> <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a> <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a> <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a> <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a> <span id="copyState2" class="dimv" aria-live="polite"></span> </div> <div class="note">3 · paste, then ask: "read this and tell me what the rules allow right now".</div> </section> </div> </main> <footer> <div class="footer-links"> <a id="lmd" href="SALAM_DATA_HUB.md">text file</a> <a id="ljson" href="SALAM_DATA_HUB.json">data file</a> </div> <div class="note"> No dependencies. Only completed candles. Anything missing prints UNAVAILABLE instead of a guess. Liquidation amounts are estimated, not measured. </div> <details id="probs"> <summary>What went wrong, if anything</summary> <div id="probsBody" class="note"></div> </details> </footer>
+<body>
+
+<div class="status-bar">
+  <div id="state" role="status" aria-live="polite">
+    <div class="b1">[!!] CHECKING DATA... DO NOT ACT UNTIL PACKET LOADS</div>
+    <div class="b2">Waiting for verified data packet before showing any status.</div>
+  </div>
+</div>
+
+<div class="atm-wrap">
+  <div class="atm-chassis">
+
+    <header class="atm-head">
+      <span class="brand">SALAM ATM // BTC-USDT SPOT <span class="ver" id="ver"></span></span>
+      <span id="age">LOADING...</span>
+      <span class="ts" id="ts">WAITING FOR TIMESTAMP</span>
+      <span class="spacer"></span>
+    </header>
+
+    <main>
+      <!-- SCREEN 1: 5-SECOND QUICK GLANCE -->
+      <section class="screen" id="glanceScreen">
+        <div class="screen-bar">
+          <span>SCREEN 1 // 5-SECOND QUICK GLANCE</span>
+          <span class="tag">SHOULD YOU COPY TO AI NOW?</span>
+        </div>
+        <div class="screen-body">
+          <div id="glanceVerdict" class="verdict-box wait">
+            <div class="verdict-main">CHECKING PACKET...</div>
+            <div class="verdict-sub">Loading latest market snapshot and rules.</div>
+          </div>
+
+          <div class="price-grid">
+            <div class="panel">
+              <div class="panel-label">CURRENT BTC PRICE</div>
+              <div class="price-row">
+                <span id="livetag">[LIVE]</span>
+                <span id="live">—</span>
+              </div>
+              <div id="pkt">Packet loading...</div>
+            </div>
+
+            <div class="panel" id="loc">
+              <div class="panel-label">WHERE PRICE SITS RIGHT NOW</div>
+              <div id="locBody">—</div>
+              <div id="posGauge"></div>
+            </div>
+          </div>
+
+          <div class="checks-list">
+            <div class="check-item" id="alertCard">
+              <div class="check-head">
+                <span>1. 5-MIN SPEED</span>
+                <span>WATCH +/-$500</span>
+              </div>
+              <div id="alertBig">—</div>
+              <div class="alertrow" id="alertTiers"></div>
+              <div id="alertNote">Waiting for price history...</div>
+            </div>
+
+            <div class="check-item">
+              <div class="check-head">
+                <span>2. LAST-HOUR BREAK</span>
+                <span>POKE &amp; BOUNCE</span>
+              </div>
+              <div id="sweep">—</div>
+            </div>
+
+            <div class="check-item">
+              <div class="check-head">
+                <span>3. BUY / SELL STATUS</span>
+                <span>RULE CHECK</span>
+              </div>
+              <div id="quickStatus">Checking...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: ATM ACTION KEYPAD -->
+      <section class="screen">
+        <div class="screen-bar">
+          <span>SCREEN 2 // ATM ACTION KEYPAD</span>
+          <span class="tag">SEND TO YOUR AI</span>
+        </div>
+        <div class="screen-body">
+          <div class="keypad-row">
+            <button id="copy" class="btn-primary" type="button">[ &gt; ] COPY DATA PACKET FOR AI</button>
+            <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener">[ &gt; ] RUN FRESH UPDATE (GITHUB)</a>
+            <span id="copyState" aria-live="polite"></span>
+          </div>
+
+          <div class="steps-guide">
+            <div class="step-line"><b>STEP 1:</b> Press <b>[ &gt; ] COPY DATA PACKET FOR AI</b> above.</div>
+            <div class="ai-keys">
+              <span class="step-line"><b>STEP 2:</b> Open an AI -&gt;</span>
+              <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">[ CHATGPT ]</a>
+              <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">[ CLAUDE ]</a>
+              <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">[ GEMINI ]</a>
+              <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">[ DEEPSEEK ]</a>
+            </div>
+            <div class="step-line"><b>STEP 3:</b> Paste the packet and send (ask: <b>"Read this and tell me what the rules allow right now."</b>).</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: PLAIN-ENGLISH RULES -->
+      <section class="screen read" id="readCard">
+        <div class="screen-bar">
+          <span>SCREEN 3 // WHAT THE RULES SAY</span>
+          <span class="tag">RULES ONLY · NO GUESSING</span>
+        </div>
+        <div class="screen-body" id="read">
+          <div class="rrow">
+            <span class="rkey">STATUS</span>
+            <span class="rval">Loading rule check...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: SUPPORTING DATA DRAWERS -->
+      <div class="drawers-head">
+        <span class="drawers-title">SCREEN 4 // SUPPORTING DATA DRAWERS</span>
+        <button id="toggleAll" type="button">[ + ] EXPAND ALL DETAILS</button>
+      </div>
+
+      <!-- Drawer 1 (Open by default) -->
+      <details class="drawer" open>
+        <summary>
+          <span class="sum-left">KEY PRICE FLOORS &amp; CEILINGS</span>
+          <span class="sum-meta" id="sumLevels">Loading levels...</span>
+        </summary>
+        <div class="drawer-body">
+          <div class="plain-hint"><b>In plain English:</b> Floors are areas where buyers stepped in before. Ceilings are areas where sellers stepped in before.</div>
+          <div class="subcard" style="margin-bottom:12px;">
+            <div class="subcard-head">
+              <span>NEAREST BUY &amp; SELL ZONES</span>
+              <span class="chip" id="insidechip">—</span>
+            </div>
+            <div id="bands"></div>
+            <div class="note" id="bandsnote">Scores rate how many clues agree on a zone (out of 10).</div>
+          </div>
+
+          <div class="subgrid">
+            <div class="subcard">
+              <div class="subcard-head"><span>BIG FLOORS &amp; CEILINGS (NEAREST 3)</span></div>
+              <div id="macro"></div>
+            </div>
+            <div class="subcard">
+              <div class="subcard-head"><span>BUSIEST TRADING AREAS</span></div>
+              <div id="vp"></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Drawer 2 (Collapsed by default) -->
+      <details class="drawer">
+        <summary>
+          <span class="sum-left">MARKET HEALTH &amp; WHO IS BUYING</span>
+          <span class="sum-meta" id="sumHealth">Loading metrics...</span>
+        </summary>
+        <div class="drawer-body">
+          <div class="plain-hint"><b>In plain English:</b> Shows whether normal coin buyers (Spot) or borrowed-money traders (Futures) are driving price.</div>
+          <div class="stats" id="stats"></div>
+          <div class="subcard">
+            <div class="subcard-head"><span>SPOT VS FUTURES BUYING PRESSURE</span></div>
+            <div id="cvd"></div>
+            <div class="note" id="cvdnote"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Drawer 3 (Collapsed by default) -->
+      <details class="drawer">
+        <summary>
+          <span class="sum-left">ESTIMATED LIQUIDATION MAP [ESTIMATED]</span>
+          <span class="sum-meta" id="sumLiq">Loading map...</span>
+        </summary>
+        <div class="drawer-body">
+          <div class="plain-hint"><b>In plain English:</b> Prices where borrowed-money traders may get forced out, causing fast price spikes. Dollar sizes are estimates, not measurements.</div>
+          <div class="tiers">
+            <div class="subcard">
+              <div class="subhead">ABOVE PRICE · SHORTS FORCED TO BUY</div>
+              <div id="liqUp"></div>
+            </div>
+            <div class="subcard">
+              <div class="subhead">BELOW PRICE · LONGS FORCED TO SELL</div>
+              <div id="liqDn"></div>
+            </div>
+          </div>
+          <div class="note" id="liqnote"></div>
+        </div>
+      </details>
+
+      <!-- Drawer 4 (Collapsed by default) -->
+      <details class="drawer">
+        <summary>
+          <span class="sum-left">BEGINNER GLOSSARY — 6 TERMS IN 30 SECONDS</span>
+          <span class="sum-meta">PLAIN DEFINITIONS</span>
+        </summary>
+        <div class="drawer-body">
+          <div class="glossary-list">
+            <div class="g-item"><b>SPOT VS FUTURES:</b> Spot is buying real Bitcoin directly. Futures is betting on price with borrowed money (often moves faster and reverses sharply).</div>
+            <div class="g-item"><b>FLOOR &amp; CEILING:</b> A floor (support) is a price area where drops previously bounced. A ceiling (resistance) is a price area where rallies previously stalled.</div>
+            <div class="g-item"><b>SWEEP (POKE &amp; BOUNCE):</b> Price briefly pokes past a floor or ceiling and closes right back inside — a sign of trapped traders.</div>
+            <div class="g-item"><b>FUNDING RATE:</b> Small fee paid between futures buyers and sellers. High positive means many traders are betting on up moves; negative means many bet down.</div>
+            <div class="g-item"><b>LIQUIDATIONS:</b> Forced closes when a trader with borrowed money runs out of margin (10x–100x leverage). Clusters act like magnets for fast wicks.</div>
+            <div class="g-item"><b>WHY "WAIT" IS COMMON:</b> Most hours have no valid trigger. Staying patient protects you from buying or selling in the middle of noise.</div>
+          </div>
+        </div>
+      </details>
+    </main>
+
+    <footer>
+      <div class="footer-links">
+        <a id="lmd" href="SALAM_DATA_HUB.md">[ RAW TEXT: SALAM_DATA_HUB.md ]</a>
+        <a id="ljson" href="SALAM_DATA_HUB.json">[ RAW JSON: SALAM_DATA_HUB.json ]</a>
+      </div>
+      <div class="note">
+        No third-party libraries. Only completed candles. Anything missing prints UNAVAILABLE instead of a guess. Liquidation amounts are estimated, not measured.
+      </div>
+      <details id="probs">
+        <summary>SYSTEM LOG / WARNINGS (<span id="probsCount">0</span>)</summary>
+        <div id="probsBody">none</div>
+      </details>
+    </footer>
+
+  </div>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
-// Number.isNaN("abc") is false, so the old guard let the string "NaN" render. A value is
-// usable only if it coerces to a finite number; anything else prints as an em dash.
+
 const isNum = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
 const fmt = (v, d = 0) => isNum(v)
   ? Number(v).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d})
@@ -746,27 +1289,26 @@ const fmt = (v, d = 0) => isNum(v)
 const money = (v, d = 0) => !isNum(v) ? '—'
   : (v < 0 ? '-$' + fmt(Math.abs(v), d) : '$' + fmt(v, d));
 const signed = (v, d = 1) => !isNum(v) ? '—'
-  : (v > 0 ? '+' : '') + fmt(v, d);
-const cls = v => !isNum(v) ? 'dimv' : (v > 0 ? 'up' : v < 0 ? 'dn' : 'dimv');
-// packet strings are data, never markup
+  : (Number(v) > 0 ? '+' : '') + fmt(v, d);
+const cls = v => !isNum(v) ? 'dimv' : (Number(v) > 0 ? 'up' : Number(v) < 0 ? 'dn' : 'dimv');
 const esc = s => String(s === null || s === undefined ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-let generated = null, packetPrice = null, packetSrc = null, liveOK = false;
 
-// ── 5-minute move alert ─────────────────────────────────────────────────────────────
-// Thresholds are calibrated against measurement, not intuition: over 83 hours of 5-minute bars
-// (Binance, 26 Nov 2026) the median close-to-close move was $61, p99 was $474, and the largest
-// was $2,715. A $5,000 move in five minutes is ~8% — cascade territory that fired zero times in
-// that window. So the $5,000 rule is kept as the top tier, and two tiers below it make the card
-// useful in the meantime.
+let generated = null;
+let packetPrice = null;
+let packetSrc = null;
+let liveOK = false;
+let lastPacket = null;
+
+// ── 5-minute move alert ──────────────────────────────────────────────────────
 const ALERT_TIERS = [
   {name: 'notable', usd: 500, cls: 'warn'},
   {name: 'cascade', usd: 1500, cls: 'bad'},
   {name: 'extreme', usd: 5000, cls: 'bad'},
 ];
-let priceHist = [];                       // [{t: ms, p: price}]
-const lastAlert = {};                     // tier -> {t, move}
+let priceHist = [];
+const lastAlert = {};
 
 function histPush(t, p) {
   if (!isNum(p)) return;
@@ -781,8 +1323,8 @@ async function seedHistory() {
                           {cache: 'no-store'});
     if (!r.ok) return;
     const rows = await r.json();
-    for (const k of rows) histPush(Number(k[6]), Number(k[4]));   // closeTime, close
-  } catch (e) { /* the alert degrades to "since page opened" */ }
+    for (const k of rows) histPush(Number(k[6]), Number(k[4]));
+  } catch (e) { /* degrades to "since page opened" */ }
 }
 
 function move5m() {
@@ -791,51 +1333,66 @@ function move5m() {
   const target = now.t - 5 * 60_000;
   let ref = null;
   for (const x of priceHist) if (x.t <= target && (!ref || x.t > ref.t)) ref = x;
-  if (!ref) ref = priceHist[0];           // less than five minutes of history: use the oldest
-  return {move: now.p - ref.p, pct: (now.p / ref.p - 1) * 100, span: (now.t - ref.t) / 60_000,
-          full: ref.t <= target};
+  if (!ref) ref = priceHist[0];
+  return {
+    move: now.p - ref.p,
+    pct: ref.p !== 0 ? (now.p / ref.p - 1) * 100 : 0,
+    span: (now.t - ref.t) / 60_000,
+    full: ref.t <= target
+  };
 }
 
 function renderAlert() {
   const m = move5m();
   const card = $('alertCard'), big = $('alertBig');
-  const NAMES = {notable: 'warns', cascade: 'big', extreme: 'extreme'};
-  const tiers = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name} at <b>±\u00a0${money(t.usd)}</b>`).join(' · ')}</span>`;
-  $('alertTiers').innerHTML = tiers;
+  const NAMES = {notable: 'warn', cascade: 'big', extreme: 'extreme'};
+  $('alertTiers').innerHTML = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name}: +/-${money(t.usd)}`).join(' | ')}</span>`;
+
   if (!m) {
-    big.textContent = '—';
+    big.textContent = 'WAITING...';
     big.className = '';
-    card.className = 'card';
-    $('alertNote').textContent = 'Waiting for price history…';
+    card.className = 'check-item';
+    $('alertNote').textContent = 'Collecting live 5-min prices...';
+    renderGlance();
     return;
   }
+
   const abs = Math.abs(m.move);
   const hit = [...ALERT_TIERS].reverse().find(t => abs >= t.usd) || null;
   const arrow = m.move >= 0 ? '▲' : '▼';
-  big.textContent = `${arrow} ${m.move >= 0 ? '+' : '−'}${money(abs)} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%) in ${m.full ? '5' : Math.round(m.span)} min`;
+  big.textContent = `${arrow} ${m.move >= 0 ? '+' : '-'}${money(abs)} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%) in ${m.full ? '5' : Math.max(1, Math.round(m.span))} min`;
   big.className = hit ? hit.cls : '';
-  card.className = 'card' + (hit ? ' ' + hit.cls : '');
+  card.className = 'check-item' + (hit ? ' ' + hit.cls : '');
+
   if (hit) {
     lastAlert[hit.name] = {t: Date.now(), move: m.move};
-    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM`;
-  } else if (document.title !== 'SALAM · BTC spot data packet') {
-    document.title = 'SALAM · BTC spot data packet';
+    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM ATM`;
+  } else if (document.title !== 'SALAM ATM · BTC spot data packet') {
+    document.title = 'SALAM ATM · BTC spot data packet';
   }
-  const last = ALERT_TIERS.map(t => lastAlert[t.name])
-    .filter(Boolean).sort((a, b) => b.t - a.t)[0];
+
+  const last = ALERT_TIERS.map(t => lastAlert[t.name]).filter(Boolean).sort((a, b) => b.t - a.t)[0];
   $('alertNote').innerHTML = [
-    m.full ? '' : `<span class="dimv">history is only ${Math.round(m.span)} min old — reads short until it fills</span>`,
-    last ? `last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '−'}${money(Math.abs(last.move))})` : 'no alerts yet on this screen',
-    `<span class="dimv">limits set from 83 hours of history: a normal 5-minute move is $61, the biggest seen was $2,715</span>`,
-  ].filter(Boolean).join(' · ');
+    m.full ? 'Normal calm 5-min move is around $61.' : `History is ${Math.max(1, Math.round(m.span))} min old — still warming up.`,
+    last ? `Last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '-'}${money(Math.abs(last.move))}).` : 'No sudden spikes yet.'
+  ].join(' ');
+
+  renderGlance();
 }
 
-// The packet is a snapshot — it only changes when the workflow publishes one. A price that
-// sits still reads as "broken site", so the big number is a live public ticker and the
-// snapshot stays labelled underneath, always with its timestamp.
+const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
+const parseStamp = s => {
+  const d = new Date(String(s).trim().replace(' ', 'T').replace(/Z$/, 'Z'));
+  return isNaN(d) ? null : d;
+};
+const stampDual = s => {
+  const d = parseStamp(s);
+  return d ? `${String(s).replace('Z', '')} UTC · ${sgtTime(d)} SGT` : String(s || '');
+};
+
 async function tickLive() {
   const tries = [
-    ['https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', j => ({p: +j.price, src: 'BIN'})],
+    ['https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', j => ({p: +j.price, src: 'Binance'})],
     ['https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT', j => ({p: +j.data[0].last, src: 'OKX'})],
   ];
   for (const [url, pick] of tries) {
@@ -848,60 +1405,154 @@ async function tickLive() {
       renderAlert();
       $('live').textContent = '$' + fmt(p);
       $('live').classList.remove('frozen');
-      $('livetag').textContent = 'LIVE';
+      $('livetag').textContent = '[LIVE]';
       $('livetag').classList.remove('snap');
       liveOK = true;
       const nowSgt = sgtTime(new Date());
-      const drift = (isNum(packetPrice) && packetPrice !== 0) ? (p / packetPrice - 1) * 100 : null;
-      $('pkt').textContent = `live ${nowSgt} SGT [${src === 'BIN' ? 'Binance' : 'OKX'}]`
-        + (drift === null ? '' : ` ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs snapshot`)
-        + (isNum(packetPrice) ? ` · snapshot [${packetSrc}]` : '');
+      const drift = (isNum(packetPrice) && Number(packetPrice) !== 0) ? (p / Number(packetPrice) - 1) * 100 : null;
+      $('pkt').textContent = `Live ${nowSgt} SGT [${src}]`
+        + (drift === null ? '' : ` (${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs snapshot)`)
+        + (isNum(packetPrice) ? ` · Snapshot ${money(packetPrice)} [${packetSrc}]` : '');
       $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
       return;
     } catch (e) { /* next venue */ }
   }
   liveOK = false;
-  $('live').textContent = packetPrice ? '$' + fmt(packetPrice) : '—';
+  $('live').textContent = isNum(packetPrice) ? '$' + fmt(packetPrice) : '—';
   $('live').classList.add('frozen');
-  $('pkt').textContent = packetPrice
-    ? `packet ${money(packetPrice)} [${packetSrc}] · live ticker unavailable` : 'no data';
+  $('livetag').textContent = '[SNAPSHOT]';
+  $('livetag').classList.add('snap');
+  $('pkt').textContent = isNum(packetPrice)
+    ? `Snapshot ${money(packetPrice)} [${packetSrc}] · Live ticker unavailable`
+    : 'No live or snapshot price available';
 }
-const sgtTime = d => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(11, 16);
-const parseStamp = s => { const d = new Date(String(s).trim().replace(' ', 'T').replace(/Z$/, 'Z')); return isNaN(d) ? null : d; };
-const stampDual = s => { const d = parseStamp(s); return d ? `${String(s).replace('Z','')} UTC · ${sgtTime(d)} SGT` : String(s || ''); };
 
-const TAGS = ['10x','25x','50x','100x'];
+function srcTag(v) {
+  if (v === 'OKX' || v === 'OKX-RUBIK') return 'OKX';
+  if (v === 'BINANCE' || v === 'BIN') return 'Binance';
+  return 'UNAVAILABLE';
+}
 
-function stat(k, v, extra) {
-  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}${extra ? ' ' + extra : ''}</div></div>`;
+function bandBounds(b) {
+  if (!b || !isNum(b.low) || !isNum(b.high)) return null;
+  return {
+    lo: Math.min(Number(b.low), Number(b.high)),
+    hi: Math.max(Number(b.low), Number(b.high))
+  };
+}
+
+function renderGlance() {
+  const box = $('glanceVerdict');
+  const screen = $('glanceScreen');
+  if (!lastPacket) {
+    box.className = 'verdict-box wait';
+    box.innerHTML = `<div class="verdict-main">CHECKING PACKET...</div>
+      <div class="verdict-sub">Waiting for verified market data before giving a read.</div>`;
+    screen.className = 'screen';
+    return;
+  }
+
+  const d = lastPacket;
+  const VALID_STATES = ['FULL', 'MANUAL', 'PARTIAL', 'NONE'];
+  const state = VALID_STATES.includes(d.exec_state) ? d.exec_state : 'UNKNOWN';
+  const suspended = !(state === 'FULL' || state === 'MANUAL');
+
+  if (suspended) {
+    const why = state === 'PARTIAL'
+      ? `Futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}, so trade plans are paused.`
+      : state === 'NONE'
+        ? 'Futures buying/selling data is currently missing, so only price levels are shown.'
+        : 'The packet arrived without a valid status flag and cannot be trusted.';
+    box.className = state === 'PARTIAL' ? 'verdict-box wait' : 'verdict-box stop';
+    box.innerHTML = `<div class="verdict-main">DECISION: WAIT — DATA IS INCOMPLETE (NO NEED TO COPY YET)</div>
+      <div class="verdict-sub">${why}</div>`;
+    screen.className = state === 'PARTIAL' ? 'screen warn' : 'screen bad';
+    return;
+  }
+
+  const price = isNum(d.price) ? Number(d.price) : null;
+  const supB = bandBounds(d.sup_band);
+  const resB = bandBounds(d.res_band);
+  const supLo = supB ? supB.hi : null;   // top edge of floor (met first on drop)
+  const resHi = resB ? resB.lo : null;   // bottom edge of ceiling (met first on rise)
+  const sw = d.sweep || {};
+  const flag = String(sw.flag || '');
+  const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
+  const bullSweep = swept && /BULL/i.test(flag);
+  const bearSweep = swept && /BEAR/i.test(flag);
+  const m = move5m();
+  const liveHit = m && Math.abs(m.move) >= 500;
+  const gap = (price !== null && resHi !== null && price !== 0) ? (resHi / price - 1) * 100 : null;
+  const supDist = (price !== null && supLo !== null && price !== 0) ? Math.abs(supLo / price - 1) * 100 : null;
+  const resDist = (price !== null && resHi !== null && price !== 0) ? Math.abs(resHi / price - 1) * 100 : null;
+  const nearEdge = (supDist !== null && supDist <= 1.5) || (resDist !== null && resDist <= 1.5);
+
+  const reasons = [];
+  if (liveHit) reasons.push(`5-minute move hit ${m.move >= 0 ? '+' : '-'}${money(Math.abs(m.move))}`);
+  if (bullSweep) reasons.push(`Bullish sweep detected near ${fmt(sw.level)}`);
+  if (bearSweep) reasons.push(`Bearish sweep detected near ${fmt(sw.level)}`);
+  if (gap !== null && gap <= 0) reasons.push(`Price is inside or above the sell zone (${fmt(resHi)})`);
+  else if (d.inside_band) {
+    const ib = bandBounds(d.inside_band);
+    if (ib) reasons.push(`Price is sitting inside a watched price zone (${fmt(ib.lo)}-${fmt(ib.hi)})`);
+  } else if (nearEdge) {
+    if (resDist !== null && resDist <= 1.5) reasons.push(`Price is within ${resDist.toFixed(1)}% of the sell ceiling (${fmt(resHi)})`);
+    if (supDist !== null && supDist <= 1.5) reasons.push(`Price is within ${supDist.toFixed(1)}% of the buy floor (${fmt(supLo)})`);
+  }
+
+  if (reasons.length) {
+    box.className = 'verdict-box active';
+    box.innerHTML = `<div class="verdict-main">DECISION: ACTIVE MOMENT — GOOD TIME TO COPY TO AI</div>
+      <div class="verdict-sub">${reasons.join(' · ')}.</div>`;
+    screen.className = 'screen';
+  } else {
+    const quietParts = [];
+    if (gap !== null) quietParts.push(`Sell zone is +${gap.toFixed(1)}% higher at ${fmt(resHi)}`);
+    if (supLo !== null && price !== null && price !== 0) {
+      quietParts.push(`Buy floor is ${((supLo / price - 1) * 100).toFixed(1)}% lower at ${fmt(supLo)}`);
+    }
+    quietParts.push('no dip-and-bounce trigger occurred');
+    box.className = 'verdict-box quiet';
+    box.innerHTML = `<div class="verdict-main">DECISION: QUIET MARKET — NOTHING TRIGGERED YET</div>
+      <div class="verdict-sub">${quietParts.join(' · ')}.</div>`;
+    screen.className = 'screen';
+  }
+}
+
+function stat(k, v, hint) {
+  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
 }
 
 function bandRow(label, b, price) {
-  if (!b) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">—</span></div>`;
+  if (!b) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">UNAVAILABLE</span></div>`;
+  const bounds = bandBounds(b);
+  if (!bounds) return `<div class="lvl"><span class="nm">${label}</span><span class="px dimv">UNAVAILABLE</span></div>`;
+  const {lo, hi} = bounds;
   const scoreOk = isNum(b.score);
   const score = scoreOk ? Math.max(0, Math.min(10, Number(b.score))) : null;
-  const lo = Math.min(b.low, b.high), hi = Math.max(b.low, b.high);
-  // nearest edge, the level a reader actually meets — same reference as the location line
-  const edge = !isNum(price) ? null : (price < lo ? lo : (price > hi ? hi : null));
-  const dist = isNum(edge) ? (edge / price - 1) * 100 : null;
-  const insideBand = isNum(price) && price >= lo && price <= hi;
-  const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}× ${b.liq[0].toLowerCase()} ${money(b.liq[1])}M</span>` : '';
+  const edge = !isNum(price) ? null : (Number(price) < lo ? lo : (Number(price) > hi ? hi : null));
+  const dist = (isNum(edge) && Number(price) !== 0) ? (edge / Number(price) - 1) * 100 : null;
+  const insideBand = isNum(price) && Number(price) >= lo && Number(price) <= hi;
+  const liq = b.liq ? `<span class="chip ${b.liq[0] === 'Shorts' ? 'short' : 'long'}">${b.liq[2]}x ${b.liq[0].toLowerCase()} ${money(b.liq[1])}M</span>` : '';
   return `<div class="lvl">
     <span class="nm">${label}</span>
-    <span class="px">${fmt(lo)}–${fmt(hi)}</span>
+    <span class="px">${fmt(lo)}-${fmt(hi)}</span>
     ${scoreOk
       ? `<span class="bar" title="confluence ${score}/10"><i style="width:${score * 10}%"></i></span>
-         <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10</span>`
-      : '<span class="bar na" title="confluence score unavailable"></span><span class="chip">—</span>'}
-    <span class="chip">${insideBand ? 'price here' : dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
+         <span class="chip ${score >= 7 ? 'ok' : ''}">${score}/10 clues</span>`
+      : '<span class="bar na" title="score unavailable"></span><span class="chip">—</span>'}
+    <span class="chip">${insideBand ? 'PRICE HERE' : dist === null ? '—' : (dist > 0 ? '+' : '') + dist.toFixed(1) + '%'}</span>
     ${liq}
   </div>`;
 }
 
 function macroRow(c) {
   const liq = c.liq ? `<span class="chip ${c.liq[0] === 'Shorts' ? 'short' : 'long'}">${c.liq[2]}x ${money(c.liq[1])}M</span>` : '';
-  return `<div class="lvl"><span class="px" style="min-width:96px">${fmt(c.center)}</span>
-    <span class="chip">${c.touches === 1 ? '1 touch' : c.touches + ' touches'}</span>${liq}</div>`;
+  return `<div class="lvl">
+    <span class="px">${fmt(c.center)}</span>
+    <span class="chip">${c.touches === 1 ? '1 touch' : c.touches + ' touches'}</span>
+    ${liq}
+  </div>`;
 }
 
 function liqRows(list, maxUsd) {
@@ -909,297 +1560,344 @@ function liqRows(list, maxUsd) {
   return list.map(c => `<div class="lvl">
     <span class="nm">${c.lev}x</span>
     <span class="px">${fmt(c.price)}</span>
-    <span class="bar liq"><i style="width:${Math.max(4, (c.usd_m / maxUsd) * 100)}%"></i></span>
+    <span class="bar alt"><i style="width:${Math.max(4, (c.usd_m / maxUsd) * 100)}%"></i></span>
     <span class="chip">${money(c.usd_m, 0)}M</span>
   </div>`).join('');
 }
 
-function cvdRow(label, s, p, maxAbs) {
+function cvdGroup(label, s, p, maxAbs) {
   const w = v => Math.min(100, Math.abs(Number(v)) / maxAbs * 100);
-  // a missing reading is hatched: a zero-width bar is indistinguishable from a measured zero
   const bar = (v, kind) => !isNum(v)
-    ? '<span class="bar na" title="UNAVAILABLE — not measured, not zero"></span>'
-    : `<span class="bar ${kind}"><i style="width:${w(v)}%"></i></span>`;
-  return `<div class="lvl"><span class="nm">${label}</span>
-    <span class="px ${cls(s)}" style="min-width:74px">${signed(s)}</span>
-    <span class="px ${cls(p)}" style="min-width:74px">${signed(p)}</span>
-    ${bar(s, '')}
-    ${bar(p, 'liq')}
+    ? '<span class="bar na" title="UNAVAILABLE — not measured, not zero"></span><span class="chip">N/A</span>'
+    : `<span class="bar ${kind}"><i style="width:${w(v)}%"></i></span><span class="chip ${Number(v) > 0 ? 'ok' : ''}">${Number(v) > 0 ? 'BUYERS' : Number(v) < 0 ? 'SELLERS' : 'FLAT'}</span>`;
+  return `<div class="cvd-group">
+    <div class="subhead">${label} WINDOW</div>
+    <div class="cvd-line">
+      <span class="nm">SPOT</span>
+      <span class="px ${cls(s)}">${signed(s)}</span>
+      ${bar(s, '')}
+    </div>
+    <div class="cvd-line">
+      <span class="nm">FUTURES</span>
+      <span class="px ${cls(p)}">${signed(p)}</span>
+      ${bar(p, 'alt')}
+    </div>
   </div>`;
 }
 
 function render(d) {
+  lastPacket = d;
   generated = d.generated_at_utc ? new Date(d.generated_at_utc) : null;
-  if (generated && isNaN(generated)) generated = null;   // unknown must not read as brand new
-  const price = d.price ?? null;
+  if (generated && isNaN(generated)) generated = null;
+
+  const price = isNum(d.price) ? Number(d.price) : null;
   packetPrice = price;
   packetSrc = d.price_src === 'CLOSE-1D' ? 'Binance daily close'
     : (d.price_src === 'TICKER' ? 'Binance' : 'source unknown');
-  $('pkt').textContent = isNum(price)
-    ? `snapshot ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
-    : 'snapshot —';
+
+  $('pkt').textContent = price !== null
+    ? `Snapshot ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
+    : 'Snapshot —';
+
   if (!liveOK) {
-    $('live').textContent = price ? '$' + fmt(price) : '—';
+    $('live').textContent = price !== null ? '$' + fmt(price) : '—';
     $('live').classList.add('frozen');
-    $('livetag').textContent = 'SNAPSHOT';
+    $('livetag').textContent = '[SNAPSHOT]';
     $('livetag').classList.add('snap');
   }
+
   $('ts').textContent = generated
     ? `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`
-    : 'packet timestamp missing';
+    : 'PACKET TIMESTAMP MISSING';
 
-  // Only the four declared states render as themselves. A missing or invented state shows as
-  // UNKNOWN — never upgraded to FULL on the strength of a different field.
+  // Strict 4-state whitelist; anything else renders as UNKNOWN
   const VALID_STATES = ['FULL', 'MANUAL', 'PARTIAL', 'NONE'];
   const state = VALID_STATES.includes(d.exec_state) ? d.exec_state : 'UNKNOWN';
   const st = $('state');
-  st.className = state === 'FULL' ? 'ok' : (state === 'MANUAL' ? 'warn' : state === 'PARTIAL' ? 'warn' : 'bad');
-  const perpSrc = d.perp_src === 'OKX-RUBIK' ? '[OKX-RUBIK]' : d.perp_src === 'BINANCE' ? '[BIN]' : '[—]';
-  // Written for someone who has never heard of a "perp". Line 1 says the verdict, line 2 says
-  // what it means for them — "execution-grade" and "order flow" were my vocabulary, and friends
-  // kept asking what the banner meant, which is the banner failing rather than the friend.
+  st.className = state === 'FULL' ? 'ok' : (state === 'MANUAL' || state === 'PARTIAL' ? 'warn' : 'bad');
+
   const BANNER = {
-    FULL: ['✅ <b>LIVE DATA — plans allowed</b>',
-      'Spot from Binance, buying and selling pressure from OKX — both measured now, not estimated.'],
-    MANUAL: [`✅ <b>HAND-ENTERED DATA @ ${esc(d.manual_at) || '—'} — plans allowed</b>`,
-      'The futures figure was typed in from a screenshot, so you checked it, not the machine.'],
-    PARTIAL: ['⚠️ <b>HALF DATA — no plans today</b>',
-      `The futures flow is yesterday&rsquo;s${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}. Levels are still live, but who was buying and selling is a day old, so this page will not name an entry, a stop or a size.`],
-    NONE: ['⛔ <b>NO FUTURES DATA — map only</b>',
-      'Which side is buying cannot be measured right now, so the levels stand and no plan is published.'],
-    UNKNOWN: [`⛔ <b>CANNOT READ THIS PACKET</b>${d.exec_state ? ' (' + esc(d.exec_state) + ')' : ''}`,
-      'The data arrived without a usable quality flag, so it is treated as untrustworthy: levels shown, plans withheld.'],
+    FULL: ['[OK] LIVE DATA — SAFE TO COPY TO AI',
+      'Prices and buying/selling data are live (spot from Binance, futures from OKX).'],
+    MANUAL: [`[OK] HAND-UPDATED DATA @ ${esc(d.manual_at) || '—'} — SAFE TO COPY TO AI`,
+      'You typed in the futures number from a screenshot and verified it yourself.'],
+    PARTIAL: ['[WAIT] HALF DATA ONLY — NO TRADE PLANS YET',
+      `Price levels are live, but futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}. No entry, stop, or size is published.`],
+    NONE: ['[STOP] FUTURES DATA MISSING — PRICE MAP ONLY',
+      'We cannot measure who is buying futures right now. Price levels stay visible, trade plans stay locked.'],
+    UNKNOWN: [`[ERROR] UNREADABLE PACKET${d.exec_state ? ' (' + esc(d.exec_state) + ')' : ''} — DO NOT TRUST`,
+      'The packet arrived without a valid quality flag. Treated as unsafe: levels only, plans withheld.'],
   };
   const [line1, line2] = BANNER[state];
   st.innerHTML = `<div class="b1">${line1}</div><div class="b2">${line2}</div>`;
 
-  // THE READ — derived strictly from the packet's own rules. No forecast, no opinion:
-  // it states which rail is open, what invalidates it, and what the stop arithmetic is.
+  // Quick status + Screen 3 plain-English rules
+  const suspended = !(state === 'FULL' || state === 'MANUAL');
+  const supB = bandBounds(d.sup_band);
+  const resB = bandBounds(d.res_band);
+  const supLo = supB ? supB.hi : null;
+  const resHi = resB ? resB.lo : null;
+  const sw = d.sweep || {};
+  const flag = String(sw.flag || '');
+  const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
+  const bullSweep = swept && /BULL/i.test(flag);
+  const bearSweep = swept && /BEAR/i.test(flag);
+  const gap = (price !== null && resHi !== null && price !== 0) ? (resHi / price - 1) * 100 : null;
+
+  if (suspended) {
+    $('quickStatus').innerHTML = `<span class="${state === 'PARTIAL' ? 'warn-txt' : 'dn'}">WITHHELD — DATA INCOMPLETE</span>`;
+  } else {
+    const buyLabel = bullSweep ? '<span class="up">BUY: ARMED</span>' : 'BUY: OFF';
+    const sellLabel = (gap !== null && gap <= 0)
+      ? '<span class="up">SELL: IN ZONE NOW</span>'
+      : gap !== null ? `SELL: WAIT (+${gap.toFixed(1)}%)` : 'SELL: NO ZONE';
+    $('quickStatus').innerHTML = `${buyLabel} | ${sellLabel}`;
+  }
+
   (() => {
     const box = $('read'), el = $('readCard');
-    const suspended = !(state === 'FULL' || state === 'MANUAL');
-    el.className = 'card read ' + (suspended ? 'suspended' : 'armed');
+    el.className = 'screen read ' + (suspended ? 'bad suspended' : '');
     if (suspended) {
-      box.innerHTML = `<div class="rrow"><span class="rkey">Rails</span><span class="rval">
-        <b>Withheld.</b> Order flow is ${state === 'PARTIAL' ? 'a T+1 archive' : 'unavailable'},
-        so the packet's own rules forbid naming an entry, a stop or a size. Levels above are still
-        the live map; the plans are not published until flow is live again.</span></div>`;
+      box.innerHTML = `<div class="rrow"><span class="rkey">PLANS LOCKED</span><span class="rval">
+        <b>Withheld.</b> Futures buying/selling data is ${state === 'PARTIAL' ? 'yesterday\'s archive' : state === 'NONE' ? 'unavailable' : 'untrusted'},
+        so the rules forbid naming an entry, a stop, or a trade size. Check the live price map below, and wait until data is live again.</span></div>`;
       return;
     }
-    const sma200 = d.sma200;                    // read the packet directly: the `sma` const
-    const below = isNum(price) && isNum(sma200) && price < sma200;   // is declared further down
 
-    const atr1h = d.atr1h;
-    const stopD = isNum(atr1h) ? atr1h * 1.5 : null;
-    const invalHigh = d.res_band ? Math.max(d.res_band.low, d.res_band.high) : null;
-    const inval = (isNum(invalHigh) && isNum(atr1h)) ? invalHigh + atr1h : null;
-    const supEdge = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
-    const sw = d.sweep || {};
-    const flag = String(sw.flag || '');
-    const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
-    // Direction matters: a bullish sweep (support taken and reclaimed) arms the buy rail; a
-    // bearish sweep (resistance taken and rejected) confirms selling into strength and leaves
-    // the buy rail shut. Treating either as "armed" is how a card invents a trade.
-    const bullSweep = swept && /BULL/i.test(flag);
-    const bearSweep = swept && /BEAR/i.test(flag);
+    const sma200 = isNum(d.sma200) && Number(d.sma200) !== 0 ? Number(d.sma200) : null;
+    const hasTrend = price !== null && sma200 !== null;
+    const below = hasTrend && price < sma200;
+    const atr1h = isNum(d.atr1h) ? Number(d.atr1h) : null;
+    const stopD = atr1h !== null ? atr1h * 1.5 : null;
+    const inval = (resB && atr1h !== null) ? resB.hi + atr1h : null;
+
     const rows = [];
-    const trimEdge = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
-    const gap = (isNum(price) && isNum(trimEdge)) ? (trimEdge / price - 1) * 100 : null;
-    rows.push(`<div class="rrow"><span class="rkey">Now</span><span class="rval">${
+    rows.push(`<div class="rrow"><span class="rkey">RIGHT NOW</span><span class="rval">${
       bullSweep
-        ? '<b>A buy setup is armed</b> — see Rail B below.'
+        ? '<b>Buy setup is active</b> — see BUY SETUP below.'
         : (gap !== null && gap <= 0)
-          ? `<b>Price is inside the trim zone</b> (${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}) — this is where Rail A sells. Buying still needs a sweep that closes back inside first.`
+          ? `<b>Price is inside the sell zone</b> (${fmt(resB.lo)}-${fmt(resB.hi)}). Buying still needs a drop below a floor that closes back inside first.`
           : `Nothing to do at ${money(price)}. ${
-              gap === null ? 'No trim zone in this packet.'
-                : `Selling needs price <b>${gap.toFixed(1)}% higher</b>, at ${fmt(trimEdge)}.`} Buying needs price to poke below a level and close back above it first.`}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Trend</span><span class="rval">${
-      below ? `<b>Down</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below its 200-day average`
-            : `<b>Up</b> — price is above its 200-day average`}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Selling</span><span class="rval">${
-      d.res_band
-        ? `<b>Sell some BTC</b> in the <b>${fmt(Math.min(d.res_band.low, d.res_band.high))}–${fmt(Math.max(d.res_band.low, d.res_band.high))}</b> zone${bearSweep ? ', which the failed push up supports' : ''}. Call it off if a daily candle closes above <b>${isNum(inval) ? fmt(inval) : '—'}</b>.`
-        : 'No resistance band in this packet — nothing to trim into.'}</span></div>`);
-    rows.push(`<div class="rrow"><span class="rkey">Buying</span><span class="rval">${
+              gap === null ? 'No sell zone in this packet.'
+                : `Selling waits until price rises <b>+${gap.toFixed(1)}%</b> to ${fmt(resHi)}.`} Buying waits until price dips below a floor and bounces back above it.`
+    }</span></div>`);
+
+    rows.push(`<div class="rrow"><span class="rkey">BIG TREND</span><span class="rval">${
+      !hasTrend ? '<span class="dimv">UNAVAILABLE — 200-day average missing.</span>'
+        : below ? `<b>DOWN</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% below its 200-day average (${fmt(sma200)}).`
+          : `<b>UP</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% above its 200-day average (${fmt(sma200)}).`
+    }</span></div>`);
+
+    rows.push(`<div class="rrow"><span class="rkey">SELL ZONE</span><span class="rval">${
+      resB
+        ? `<b>Consider selling some BTC</b> between <b>${fmt(resB.lo)}-${fmt(resB.hi)}</b>${bearSweep ? ' (backed by the recent failed push up)' : ''}. Cancel if a daily candle closes above <b>${isNum(inval) ? fmt(inval) : '—'}</b>.`
+        : 'No sell zone in this packet — nothing to trim into.'
+    }</span></div>`);
+
+    rows.push(`<div class="rrow"><span class="rkey">BUY SETUP</span><span class="rval">${
       bullSweep
-        ? `<b>On</b> — price poked below <b>${fmt(sw.level)}</b> and climbed back. Buying only once the recovery holds; stop 1.5× the hourly swing below entry.`
+        ? `<b>ON</b> — price poked below <b>${fmt(sw.level)}</b> and bounced back. Only buy if the recovery holds.`
         : bearSweep
-          ? `<b>Off.</b> Price pushed above <b>${fmt(sw.level)}</b> and failed, which favours selling into strength rather than buying the dip.`
-          : `<b>Off.</b> Nothing to buy yet${isNum(supEdge) ? ` — price must first dip below <b>${fmt(supEdge)}</b> and close back above it` : ''}.`}</span></div>`);
-    // WHY the trim zone sits there: the confluence score says how much independent evidence
-    // stacks on the band, and the surrounding fields say what is near it. Three different kinds
-    // of evidence are named separately because they are not interchangeable — a volume edge is
-    // supply, a short cluster is fuel.
-    if (d.res_band) {
-      const lo = Math.min(d.res_band.low, d.res_band.high);
-      const hi = Math.max(d.res_band.low, d.res_band.high);
-      const NAMES = {POC: 'point of control', 'VAH/VAL': 'value-area edge',
-                     'round-1k': 'a round $1,000 level', 'round-100': 'a round $100 level'};
+          ? `<b>OFF.</b> Price pushed above <b>${fmt(sw.level)}</b> and fell back, which leans toward selling rather than buying.`
+          : `<b>OFF.</b> Waiting${isNum(supLo) ? ` — price must dip below <b>${fmt(supLo)}</b> and close back above it first` : ''}.`
+    }</span></div>`);
+
+    if (resB) {
+      const NAMES = {
+        POC: 'busiest trading price',
+        'VAH/VAL': 'value-area edge',
+        'round-1k': 'a round $1,000 level',
+        'round-100': 'a round $100 level'
+      };
       const factors = (d.res_band.why || []).map(f => NAMES[f] || f).join(' + ')
-        || 'nothing but the 4H pivot';
+        || 'the 4-hour price swing alone';
       const near = [];
       const v30val = d.vp30 ? d.vp30.val : null;
-      if (isNum(v30val) && Math.abs(v30val / lo - 1) < 0.01) {
-        near.push(`the 30-day value low <b>${fmt(v30val)}</b> sits just below — an old floor, now overhead selling`);
+      if (isNum(v30val) && resB.lo !== 0 && Math.abs(Number(v30val) / resB.lo - 1) < 0.01) {
+        near.push(`the 30-day low-value edge <b>${fmt(v30val)}</b> sits nearby (an old floor that can resist rallies)`);
       }
       const v4vah = d.vp4h ? d.vp4h.vah : null;
-      if (isNum(v4vah) && Math.abs(v4vah / hi - 1) < 0.02) {
-        near.push(`the 4-hour value high <b>${fmt(v4vah)}</b> sits just above`);
+      if (isNum(v4vah) && resB.hi !== 0 && Math.abs(Number(v4vah) / resB.hi - 1) < 0.02) {
+        near.push(`the 4-hour value ceiling <b>${fmt(v4vah)}</b> sits just above`);
       }
-      const tier = (d.liq_upper || []).filter(c => isNum(c.price) && c.price >= lo && c.price <= hi && c.lev >= 25)
+      const tier = (d.liq_upper || [])
+        .filter(c => isNum(c.price) && c.price >= resB.lo && c.price <= resB.hi && c.lev >= 25)
         .sort((a, b) => b.usd_m - a.usd_m)[0];
       if (tier) {
-        near.push(`<b>${money(tier.usd_m)}M</b> of ${tier.lev}× shorts sit inside at ${fmt(tier.price)} — that pulls price up into the zone rather than blocking it`);
+        near.push(`<b>${money(tier.usd_m)}M</b> of ${tier.lev}x short bets sit at ${fmt(tier.price)} (forced buys that can pull price up here)`);
       }
-      rows.push(`<div class="rrow"><span class="rkey">Why here</span><span class="rval"><b>${isNum(d.res_band.score) ? d.res_band.score : '?'} of 10</b> checks agree (${esc(factors)}).
-        ${near.length ? near.join('; ').replace(/^./, c => c.toUpperCase()) + '.' : 'Nothing else sits within 1% of it — a weak zone.'}</span></div>`);
+      rows.push(`<div class="rrow"><span class="rkey">WHY THIS ZONE</span><span class="rval"><b>${isNum(d.res_band.score) ? d.res_band.score : '?'} of 10</b> clues agree (${esc(factors)}).
+        ${near.length ? near.join('; ').replace(/^./, c => c.toUpperCase()) + '.' : 'No extra levels sit within 1% — treat as a lighter zone.'}</span></div>`);
     }
 
-    rows.push(`<div class="rrow"><span class="rkey">If you buy</span><span class="rval">Stop <b>${isNum(stopD) ? money(stopD) + ' (' + (stopD / price * 100).toFixed(2) + '%)' : 'UNAVAILABLE'}</b> below entry.
-      Risk no more than <b>0.75%</b> of your portfolio. Skip the trade if the position would be more than <b>30%</b> of your cash.</span></div>`);
+    const stopPct = (isNum(stopD) && price !== null && price !== 0) ? ` (${(stopD / price * 100).toFixed(2)}%)` : '';
+    rows.push(`<div class="rrow"><span class="rkey">SAFETY RULES</span><span class="rval">Stop loss distance: <b>${isNum(stopD) ? money(stopD) + stopPct : 'UNAVAILABLE'}</b> below entry.
+      Never risk more than <b>0.75%</b> of your total portfolio on one trade. Skip the trade if it would use over <b>30%</b> of your cash.</span></div>`);
+
     box.innerHTML = rows.join('');
   })();
 
-  // stats
-  const sma = d.sma200, dist = (isNum(price) && isNum(sma) && Number(sma) !== 0) ? (price / sma - 1) * 100 : null;
-  const etf = d.etf || {};
-  $('stats').innerHTML = [
-    stat('200-day average', isNum(sma) ? fmt(sma) : '—', dist === null ? '' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}%</span>`),
-    stat('funding rate', isNum(d.funding) ? d.funding.toFixed(4) + '%' : '—',
-         `<span class="dimv">${isNum(d.funding_pct90) ? Math.round(d.funding_pct90) + 'th percentile · ' : ''}${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
-    stat('futures positions', isNum(d.oi_btc) ? fmt(d.oi_btc) : '—',
-         !isNum(d.oi_btc) ? '' : `<span class="dimv">${d.deriv_src === 'OKX' ? '[OKX]' : '[BIN]'}</span>`),
-    stat('hourly swing', isNum(d.atr1h) ? fmt(d.atr1h) : '—'),
-    stat('buyers vs sellers', isNum(d.ls_ratio) ? d.ls_ratio.toFixed(2) : '—',
-         `<span class="dimv">${d.deriv_src === 'OKX' ? 'OKX' : 'BIN'}</span>`),
-    stat('ETF flows (1 day)', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : '—',
-         `<span class="dimv">${etf.latest_date ? esc(String(etf.latest_date).replace(/\s+\d{4}$/, '')) + ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}</span>`)
-  ].join('');
-
-  // one line of orientation: where the packet's price sits against the packet's own levels
-  // the edge price reaches FIRST: top of the support band, bottom of the resistance band
-  const supLo = d.sup_band ? Math.max(d.sup_band.low, d.sup_band.high) : null;
-  const resHi = d.res_band ? Math.min(d.res_band.low, d.res_band.high) : null;
+  // Location & visual gauge
+  const ib = bandBounds(d.inside_band);
   const containment = (() => {
-    if (d.inside_band) {
-      const lo = Math.min(d.inside_band.low, d.inside_band.high);
-      const hi = Math.max(d.inside_band.low, d.inside_band.high);
-      return `inside ${fmt(lo)}–${fmt(hi)}`;
+    if (ib) return `inside zone ${fmt(ib.lo)}-${fmt(ib.hi)}`;
+    if (price !== null && supLo !== null && resHi !== null && price > supLo && price < resHi) {
+      return 'between floor and ceiling';
     }
-    // If the packet omitted the field, only claim "between bands" when price and both bands
-    // actually prove it. Absence of data is not evidence of a position.
-    if (isNum(price) && isNum(supLo) && isNum(resHi) && price > supLo && price < resHi) {
-      return 'between bands';
-    }
-    return '<span class="dimv">containment unknown</span>';
+    return '<span class="dimv">position unknown</span>';
   })();
 
   (() => {
-    const pct = lvl => (isNum(price) && isNum(lvl) && Number(price) !== 0)
-      ? (() => { const d = (lvl / price - 1) * 100;
-          return `<span class="${d < 0 ? 'dn' : 'up'}">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`; })() : '';
-    const bits = [];
-    bits.push(isNum(price) ? `<b>${money(price)}</b>` : '<span class="dimv">price unavailable</span>');
-    bits.push(containment);
-    if (isNum(supLo)) bits.push(`↓ ${fmt(supLo)} ${pct(supLo)}`);
-    if (isNum(resHi)) bits.push(`↑ ${fmt(resHi)} ${pct(resHi)}`);
+    const pctStr = lvl => (price !== null && isNum(lvl) && price !== 0)
+      ? (() => {
+          const diff = (Number(lvl) / price - 1) * 100;
+          return `<span class="${diff < 0 ? 'dn' : 'up'}">(${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%)</span>`;
+        })()
+      : '';
+    const bits = [price !== null ? `<b>${money(price)}</b>` : '<span class="dimv">price unavailable</span>', containment];
+    if (supLo !== null) bits.push(`Floor ${fmt(supLo)} ${pctStr(supLo)}`);
+    if (resHi !== null) bits.push(`Ceiling ${fmt(resHi)} ${pctStr(resHi)}`);
     $('locBody').innerHTML = bits.join(' · ');
+
+    if (price !== null && supLo !== null && resHi !== null && resHi > supLo) {
+      const rawPct = (price - supLo) / (resHi - supLo) * 100;
+      const clamped = Math.max(0, Math.min(100, rawPct));
+      const posNote = rawPct < 0
+        ? `Price is below the nearest floor (${fmt(supLo)}).`
+        : rawPct > 100
+          ? `Price is above the nearest ceiling (${fmt(resHi)}).`
+          : `Price is ${Math.round(clamped)}% of the way from floor to ceiling.`;
+      $('posGauge').innerHTML = `
+        <div class="gauge-labels">
+          <span>FLOOR ${money(supLo)}</span>
+          <span>CEILING ${money(resHi)}</span>
+        </div>
+        <div class="gauge-track" aria-label="${posNote}">
+          <div class="gauge-fill" style="width:${clamped.toFixed(1)}%"></div>
+          <div class="gauge-pin" style="left:${clamped.toFixed(1)}%"></div>
+        </div>
+        <div class="gauge-note">${posNote}</div>`;
+    } else {
+      $('posGauge').innerHTML = '<div class="gauge-note">Price gauge unavailable without both floor and ceiling.</div>';
+    }
   })();
 
-  // bands
-  $('bands').innerHTML = bandRow('Zone above', d.res_band, price) + bandRow('Zone below', d.sup_band, price);
-  $('insidechip').innerHTML = containment;
+  // Sweep check
+  const sweepEl = $('sweep');
+  if (swept) {
+    sweepEl.className = 'hit';
+    sweepEl.innerHTML = `<b>${esc(sw.flag)}</b> at ${fmt(sw.level)}${sw.touches ? ` (${sw.touches === 1 ? '1 touch' : sw.touches + ' touches'})` : ''}
+      <div class="dimv">${stampDual(sw.at)}</div>`;
+  } else {
+    sweepEl.className = '';
+    sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
+      ? '<span class="dimv">UNAVAILABLE — no 1-hour candle history</span>'
+      : 'None — price stayed calm without poking and snapping back in the last hour.';
+  }
 
-  // macro
+  // Drawer 1: Levels
+  $('bands').innerHTML = bandRow('CEILING', d.res_band, price) + bandRow('FLOOR', d.sup_band, price);
+  $('insidechip').innerHTML = containment;
+  $('sumLevels').textContent = `${supLo !== null ? 'FLOOR ' + money(supLo) : 'NO FLOOR'} | ${resHi !== null ? 'CEILING ' + money(resHi) : 'NO CEILING'}`;
+
   const res = d.macro_res || [], sup = d.macro_sup || [];
   $('macro').innerHTML =
-    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:2px 0 3px">ABOVE PRICE</div>` +
-    (res.length ? res.map(macroRow).join('') : '<div class="dimv">—</div>') +
-    `<div class="dimv" style="font-size:10px;letter-spacing:.07em;margin:9px 0 3px">BELOW PRICE</div>` +
-    (sup.length ? sup.map(macroRow).join('') : '<div class="dimv">—</div>');
+    `<div class="subhead">ABOVE PRICE (CEILINGS)</div>` +
+    (res.length ? res.map(macroRow).join('') : '<div class="dimv">UNAVAILABLE</div>') +
+    `<div class="subhead" style="margin-top:10px">BELOW PRICE (FLOORS)</div>` +
+    (sup.length ? sup.map(macroRow).join('') : '<div class="dimv">UNAVAILABLE</div>');
 
-  // cvd
+  const v7 = d.vp7 || {}, v30 = d.vp30 || {}, v4 = d.vp4h || {}, hv = d.hvn7 || {};
+  $('vp').innerHTML = `
+    <div class="lvl"><span class="nm">7 DAYS</span><span class="px">Top ${fmt(v7.vah)} | Busiest ${fmt(v7.poc)} | Bottom ${fmt(v7.val)}</span></div>
+    <div class="lvl"><span class="nm">30 DAYS</span><span class="px dimv">Top ${fmt(v30.vah)} | Busiest ${fmt(v30.poc)} | Bottom ${fmt(v30.val)}</span></div>
+    <div class="lvl"><span class="nm">4 HOURS</span><span class="px">Top ${fmt(v4.vah)} | Busiest ${fmt(v4.poc)} | Bottom ${fmt(v4.val)}</span></div>
+    <div class="lvl"><span class="nm">HOTSPOT</span><span class="px">${isNum(hv.above) ? 'Above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' | ' : ''}${isNum(hv.below) ? 'Below ' + fmt(hv.below) : (!isNum(hv.above) ? 'None nearby' : '')}</span></div>`;
+
+  // Drawer 2: Market Health & CVD (per-field provenance!)
+  const sma = d.sma200;
+  const dist = (price !== null && isNum(sma) && Number(sma) !== 0) ? (price / Number(sma) - 1) * 100 : null;
+  const etf = d.etf || {};
+  const fundSrc = srcTag(d.fund_src || d.deriv_src);
+  const oiSrc = srcTag(d.oi_src || d.deriv_src);
+  const lsrSrc = srcTag(d.lsr_src || d.deriv_src);
+
+  $('stats').innerHTML = [
+    stat('200-DAY AVERAGE', isNum(sma) ? money(sma) : 'UNAVAILABLE',
+         dist === null ? 'Long-term trend line.' : `<span class="${dist < 0 ? 'dn' : 'up'}">${dist.toFixed(1)}% vs average</span>`),
+    stat('FUNDING FEE', isNum(d.funding) ? Number(d.funding).toFixed(4) + '%' : 'UNAVAILABLE',
+         `${isNum(d.funding_pct90) ? Math.round(d.funding_pct90) + 'th pct · ' : ''}Source: ${fundSrc}`),
+    stat('OPEN FUTURES', isNum(d.oi_btc) ? fmt(d.oi_btc) + ' BTC' : 'UNAVAILABLE',
+         `Total open bets · Source: ${oiSrc}`),
+    stat('HOURLY SWING', isNum(d.atr1h) ? money(d.atr1h) : 'UNAVAILABLE',
+         'Average 1-hour high-to-low move.'),
+    stat('BUYERS VS SELLERS', isNum(d.ls_ratio) ? Number(d.ls_ratio).toFixed(2) : 'UNAVAILABLE',
+         `Above 1 = more longs · Source: ${lsrSrc}`),
+    stat('ETF FLOW (1 DAY)', isNum(etf.one_day_m) ? money(etf.one_day_m, 1) + 'M' : 'UNAVAILABLE',
+         `${etf.latest_date ? esc(String(etf.latest_date).replace(/\s+\d{4}$/, '')) : ''}${etf.latest_date && isNum(etf.five_day_m) ? ' · ' : ''}${isNum(etf.five_day_m) ? '5D ' + money(etf.five_day_m, 0) + 'M' : ''}`)
+  ].join('');
+
+  $('sumHealth').textContent = `${dist !== null ? 'TREND ' + (dist >= 0 ? '+' : '') + dist.toFixed(1) + '%' : 'TREND N/A'} | FUNDING ${isNum(d.funding) ? Number(d.funding).toFixed(4) + '%' : 'N/A'}`;
+
   const cs = d.cvd_spot || {}, cp = d.cvd_perp || {};
   const vals = [cs['1h'], cs['4h'], cs['24h'], cp['1h'], cp['4h'], cp['24h']]
     .filter(v => isNum(v)).map(v => Math.abs(Number(v)));
   const maxAbs = Math.max(1, ...vals);
   $('cvd').innerHTML =
-    `<div class="lvl"><span class="nm"></span><span class="px dimv" style="font-size:10px">SPOT</span>
-       <span class="px dimv" style="font-size:10px">FUTURES</span></div>` +
-    cvdRow('1H', cs['1h'], cp['1h'], maxAbs) +
-    cvdRow('4H', cs['4h'], cp['4h'], maxAbs) +
-    cvdRow('24H', cs['24h'], cp['24h'], maxAbs);
+    cvdGroup('1 HOUR', cs['1h'], cp['1h'], maxAbs) +
+    cvdGroup('4 HOUR', cs['4h'], cp['4h'], maxAbs) +
+    cvdGroup('24 HOUR', cs['24h'], cp['24h'], maxAbs);
+
   const ratio = (isNum(cs['24h']) && isNum(cp['24h']) && Number(cs['24h']) !== 0)
-    ? Math.abs(cp['24h'] / cs['24h']) : null;
+    ? Math.abs(Number(cp['24h']) / Number(cs['24h'])) : null;
   const oiBits = [];
   if (isNum(d.oi_4h_chg)) oiBits.push(`<span class="${cls(d.oi_4h_chg)}">4H ${signed(d.oi_4h_chg, 2)}%</span>`);
   if (isNum(d.oi_24h_chg)) oiBits.push(`<span class="${cls(d.oi_24h_chg)}">24H ${signed(d.oi_24h_chg, 2)}%</span>`);
-  const oiLine = oiBits.length ? `Futures positions ${oiBits.join(' · ')}` : '';
   $('cvdnote').innerHTML = [
-    ratio === null ? '' : `Futures trading is <b>${ratio.toFixed(1)}×</b> the spot trading over 24 hours — above 3× means leveraged traders are driving the move, not people buying coins.`,
-    oiLine
+    ratio === null ? '' : `24H futures flow is <b>${ratio.toFixed(1)}x</b> spot flow (above 3x means borrowed-money traders are leading, not direct coin buyers).`,
+    oiBits.length ? `Open futures size change: ${oiBits.join(' | ')}` : ''
   ].filter(Boolean).join('<br>');
 
-  // liq ladder
+  // Drawer 3: Liquidations
   const up = d.liq_upper || [], dn = d.liq_lower || [];
-  const maxLiq = Math.max(1, ...[...up, ...dn].map(c => c.usd_m));
+  const maxLiq = Math.max(1, ...[...up, ...dn].map(c => Number(c.usd_m) || 0));
   $('liqUp').innerHTML = liqRows(up, maxLiq);
   $('liqDn').innerHTML = liqRows(dn, maxLiq);
-  $('liqnote').textContent = d.oi_usd_m
-    ? `Estimated from ${money(d.oi_usd_m, 0)}M of open futures, split by assumed leverage tiers. The prices are exact arithmetic; the dollar amounts are a guess. 10×–100× is how much borrowed money those traders used.`
-    : 'No open interest — ladder unavailable.';
+  $('liqnote').textContent = isNum(d.oi_usd_m)
+    ? `Estimated from ${money(d.oi_usd_m, 0)}M of open futures bets split across leverage tiers. Trigger prices are exact math; dollar sizes are estimates.`
+    : 'Open futures total unavailable — liquidation ladder unavailable.';
+  $('sumLiq').textContent = isNum(d.oi_usd_m) ? `EST. FROM ${money(d.oi_usd_m, 0)}M OPEN FUTURES` : 'UNAVAILABLE';
 
-  // sweep
-  const sw = d.sweep || {};
-  const sweepEl = $('sweep');
-  if (sw.flag && sw.flag !== 'NONE' && sw.flag !== 'UNAVAILABLE') {
-    sweepEl.className = 'hit';
-    sweepEl.innerHTML = `<b>${esc(sw.flag)}</b> at ${fmt(sw.level)}${sw.touches ? ` (touched ${sw.touches === 1 ? 'once' : sw.touches + ' times'})` : ''}<div class="dimv" style="font-size:11px">${stampDual(sw.at)}</div>`;
-  } else {
-    sweepEl.className = '';
-    sweepEl.innerHTML = sw.flag === 'UNAVAILABLE'
-      ? '<span class="dimv">UNAVAILABLE — no 1H bars</span>'
-      : '<span class="dimv">None — price did not poke through a level and fall back in the last hour</span>';
-  }
-
-  // volume nodes
-  const v7 = d.vp7 || {}, v30 = d.vp30 || {}, v4 = d.vp4h || {}, hv = d.hvn7 || {};
-  $('vp').innerHTML = `
-    <div class="lvl"><span class="nm">7 days</span><span class="px" style="min-width:0">high ${fmt(v7.vah)} · busiest ${fmt(v7.poc)} · low ${fmt(v7.val)}</span></div>
-    <div class="lvl"><span class="nm">30 days</span><span class="px dimv" style="min-width:0">high ${fmt(v30.vah)} · busiest ${fmt(v30.poc)} · low ${fmt(v30.val)}</span></div>
-    <div class="lvl"><span class="nm">4 hours</span><span class="px" style="min-width:0">high ${fmt(v4.vah)} · busiest ${fmt(v4.poc)} · low ${fmt(v4.val)}</span></div>
-    <div class="lvl"><span class="nm">busiest</span><span class="px" style="min-width:0">${isNum(hv.above) ? 'above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' · ' : ''}${isNum(hv.below) ? 'below ' + fmt(hv.below) : ''}</span></div>`;
-
-  // problems
+  // Problems log
   const probs = d.problems || [];
+  $('probsCount').textContent = String(probs.length);
   $('probsBody').innerHTML = probs.length
     ? probs.map(p => `<div>· ${esc(p)}</div>`).join('')
     : '<div>none</div>';
 
   paintAge();
+  renderGlance();
 }
 
 function paintAge() {
   if (!generated || isNaN(generated)) {
-    $('age').textContent = 'no timestamp';
+    $('age').textContent = 'NO TIMESTAMP';
     $('age').className = 'bad';
     return;
   }
-  const mins = (Date.now() - generated.getTime()) / 60000;
+  const mins = Math.max(0, (Date.now() - generated.getTime()) / 60000);
   const h = mins / 60;
   const el = $('age');
-  el.textContent = h < 1 ? `${Math.round(mins)} min old` : `${h.toFixed(1)} h old`;
+  el.textContent = h < 1 ? `${Math.round(mins)} MIN OLD` : `${h.toFixed(1)} H OLD`;
   el.className = h > 6 ? 'bad' : h > 1.5 ? 'warn' : '';
 }
 
-// GitHub Pages serves a 10-minute-old copy from its CDN even with a cache-busting query.
-// So read three mirrors concurrently and take whichever carries the newest generated_at —
-// never the first that answers, which is how a stale packet sneaks through.
 const SOURCES = [
   'https://raw.githubusercontent.com/aikeluargalee-tech/Salam/master/SALAM_DATA_HUB.json',
   'https://cdn.jsdelivr.net/gh/aikeluargalee-tech/Salam@master/SALAM_DATA_HUB.json',
   'SALAM_DATA_HUB.json'
 ];
+
 async function freshestJSON() {
   const tries = SOURCES.map(async u => {
     const sep = u.includes('?') ? '&' : '?';
@@ -1207,44 +1905,40 @@ async function freshestJSON() {
     if (!r.ok) throw new Error(u + ' HTTP ' + r.status);
     const j = await r.json();
     const ts = Date.parse(j.generated_at_utc || '');
-    // a truthy-but-unparseable stamp makes every comparison NaN and "newest" arbitrary
     if (!Number.isFinite(ts)) throw new Error(u + ' has no usable timestamp');
     return {j, ts};
   });
   const settle = pr => pr.then(value => ({status: 'fulfilled', value}),
                                reason => ({status: 'rejected', reason}));
-  const settled = await Promise.all(tries.map(settle));   // no Promise.allSettled requirement
+  const settled = await Promise.all(tries.map(settle));
   const ok = settled.filter(x => x.status === 'fulfilled').map(x => x.value).sort((a, b) => b.ts - a.ts);
   if (!ok.length) throw new Error('all mirrors failed');
   return ok[0].j;
 }
+
 let loadSeq = 0;
 async function load() {
   const seq = ++loadSeq;
   try {
     const j = await freshestJSON();
-    if (seq !== loadSeq) return;          // a newer load already started; drop this result
+    if (seq !== loadSeq) return;
     render(j);
     $('lmd').href = 'SALAM_DATA_HUB.md?t=' + Date.now();
     $('ljson').href = 'SALAM_DATA_HUB.json?t=' + Date.now();
   } catch (e) {
     if (seq !== loadSeq) return;
     $('state').className = 'bad';
-    $('state').textContent = generated
-      ? `packet fetch failed (${e.message}) — showing the last good packet from ${sgtTime(generated)} SGT`
-      : 'packet fetch failed: ' + e.message + ' — refusing to invent a packet';
-    $('age').textContent = generated ? 'refresh failed' : 'no data';
+    $('state').innerHTML = generated
+      ? `<div class="b1">[ERROR] REFRESH FAILED (${esc(e.message)})</div><div class="b2">Showing last loaded packet from ${sgtTime(generated)} SGT.</div>`
+      : `<div class="b1">[ERROR] PACKET FETCH FAILED: ${esc(e.message)}</div><div class="b2">Refusing to invent data when packet cannot load.</div>`;
+    $('age').textContent = generated ? 'REFRESH FAILED' : 'NO DATA';
     $('age').className = 'bad';
   }
 }
-$('ver').textContent = ' v1.7';
 
-// copy the canonical packet, not the rendered page: one paste block for any model,
-// and it can never drift from what the script actually published
+$('ver').textContent = 'v1.7';
+
 async function packetText() {
-  // Fetch every mirror's markdown, read the timestamp inside each, and hand back the one that
-  // matches the packet currently rendered. Falling back to "the first that answers" is how the
-  // paste block silently drifts a few minutes behind the screen.
   const md = [
     'https://raw.githubusercontent.com/aikeluargalee-tech/Salam/master/SALAM_DATA_HUB.md',
     'SALAM_DATA_HUB.md'
@@ -1259,49 +1953,59 @@ async function packetText() {
       const m = text.match(/\*\*Timestamp:\*\*\s*(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC/);
       const ts = m ? Date.parse(m[1] + 'T' + m[2] + 'Z') : NaN;
       got.push({text, ts});
-      if (Number.isFinite(ts) && want && Math.abs(ts - want) < 90_000) return text;   // same packet
+      if (Number.isFinite(ts) && want && Math.abs(ts - want) < 90_000) return text;
     } catch (e) { /* next mirror */ }
   }
   if (!got.length) throw new Error('no mirror served the packet');
   const newest = got.filter(g => Number.isFinite(g.ts)).sort((a, b) => b.ts - a.ts)[0];
-  if (newest) return newest.text;            // closest available, and the flash names its stamp
+  if (newest) return newest.text;
   return got[0].text;
 }
+
 function flash(msg, bad) {
   const el = $('copyState');
   el.textContent = msg;
-  el.style.color = bad ? 'var(--dn)' : 'var(--up)';
+  el.style.color = bad ? 'var(--dn)' : 'var(--acc)';
   clearTimeout(flash._t);
-  flash._t = setTimeout(() => { el.textContent = ''; }, 2600);
+  flash._t = setTimeout(() => { el.textContent = ''; }, 2800);
 }
-function flash2(msg, bad) {
-  const el = $('copyState2');
-  el.textContent = msg;
-  el.style.color = bad ? 'var(--dn)' : 'var(--up)';
-  clearTimeout(flash2._t);
-  flash2._t = setTimeout(() => { el.textContent = ''; }, 3000);
-}
-async function copyPacket(where) {
+
+async function copyPacket() {
   try {
     const t = await packetText();
     try { await navigator.clipboard.writeText(t); }
     catch (clipErr) {
       const ta = document.createElement('textarea');
-      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
+      ta.value = t;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
       const ok = document.execCommand('copy');
       ta.remove();
       if (!ok) throw clipErr;
     }
     const stamp = (t.match(/\*\*Timestamp:\*\*\s*([0-9:\- ]+)UTC/) || [])[1];
-    const msg = `copied ${(t.length / 1024).toFixed(1)} KB${stamp ? ' · packet ' + stamp.trim() + ' UTC' : ''}`;
-    if (where === 'card') flash2(msg); else flash(msg);
+    flash(`COPIED ${(t.length / 1024).toFixed(1)} KB${stamp ? ' · PACKET ' + stamp.trim() + ' UTC' : ''}`);
   } catch (e) {
-    if (where === 'card') flash2('copy failed: ' + e.message, true); else flash('copy failed: ' + e.message, true);
+    flash('COPY FAILED: ' + e.message, true);
   }
 }
-$('copy2').addEventListener('click', () => copyPacket('card'));
-$('copy').addEventListener('click', () => copyPacket('header'));
+
+$('copy').addEventListener('click', copyPacket);
+
+const drawers = () => [...document.querySelectorAll('details.drawer')];
+function syncToggleLabel() {
+  const allOpen = drawers().every(d => d.open);
+  $('toggleAll').textContent = allOpen ? '[ - ] COLLAPSE ALL DETAILS' : '[ + ] EXPAND ALL DETAILS';
+}
+drawers().forEach(d => d.addEventListener('toggle', syncToggleLabel));
+$('toggleAll').addEventListener('click', () => {
+  const allOpen = drawers().every(d => d.open);
+  drawers().forEach(d => { d.open = !allOpen; });
+  syncToggleLabel();
+});
+syncToggleLabel();
 
 setInterval(() => { renderAlert(); paintAge(); }, 15000);
 setInterval(load, 60000);
