@@ -12,9 +12,9 @@
  "deriv_src": "OKX",
  "price_src": "TICKER",
  "spot_check": {
-  "bin_price": 60778.36,
-  "okx_price": 60753.3,
-  "spread_pct": 0.0412,
+  "bin_price": 60112.54,
+  "okx_price": 60122.6,
+  "spread_pct": 0.0167,
   "ok": true
  },
  "oi_src": "OKX",
@@ -22,7 +22,7 @@
  "fund_src": "OKX",
  "fund_hist_src": "OKX",
  "lsr_src": "OKX",
- "price": 60778.36,
+ "price": 60112.54,
  "atr1d": 2967.8452165560484,
  "sma200": 71980.10924999996,
  "vp30": {
@@ -434,35 +434,32 @@
    "high": 61306.84,
    "center": 61030.92,
    "touches": 2,
-   "liq": null
+   "liq": [
+    "Shorts",
+    76.36051448875412,
+    50
+   ]
   },
   {
    "low": 61824.97,
    "high": 62742.47,
    "center": 62337.948749999996,
    "touches": 8,
-   "liq": null
+   "liq": [
+    "Shorts",
+    114.54077173313117,
+    25
+   ]
   },
   {
    "low": 63030.0,
    "high": 63100.0,
    "center": 63065.0,
    "touches": 2,
-   "liq": [
-    "Shorts",
-    116.80400358611676,
-    25
-   ]
+   "liq": null
   }
  ],
  "macro_sup": [
-  {
-   "low": 60000.0,
-   "high": 60000.0,
-   "center": 60000.0,
-   "touches": 1,
-   "liq": null
-  },
   {
    "low": 59130.91,
    "high": 59130.91,
@@ -475,14 +472,25 @@
    "high": 58115.01,
    "center": 57957.600000000006,
    "touches": 2,
+   "liq": [
+    "Longs",
+    114.54077173313117,
+    25
+   ]
+  },
+  {
+   "low": 55130.0,
+   "high": 55130.0,
+   "center": 55130.0,
+   "touches": 1,
    "liq": null
   }
  ],
  "sup_band": {
-  "low": 58249.137087102696,
-  "high": 59622.0729128973,
-  "touches": 4,
-  "center": 58935.604999999996,
+  "low": 57595.637087102696,
+  "high": 59019.472912897305,
+  "touches": 5,
+  "center": 58307.555,
   "score": 10,
   "why": [
    "POC",
@@ -491,33 +499,33 @@
   ],
   "liq": [
    "Longs",
-   116.80400358611676,
+   114.54077173313117,
    25
   ]
  },
  "res_band": {
-  "low": 62152.01708710269,
-  "high": 63802.63291289731,
-  "touches": 18,
-  "center": 62977.325,
+  "low": 60771.207087102695,
+  "high": 62344.34291289731,
+  "touches": 7,
+  "center": 61557.775,
   "score": 3,
   "why": [
    "round-1k"
   ],
   "liq": [
    "Shorts",
-   116.80400358611676,
-   25
+   76.36051448875412,
+   50
   ]
  },
  "inside_band": {
-  "low": 59866.62708710269,
-  "high": 61515.37291289731,
-  "touches": 7,
-  "center": 60691.0,
+  "low": 59068.62708710269,
+  "high": 60434.37291289731,
+  "touches": 3,
+  "center": 59751.5,
   "liq": [
    "Longs",
-   38.93466786203892,
+   38.18025724437706,
    100
   ]
  },
@@ -538,13 +546,7 @@
    "low": 57595.637087102696,
    "high": 59019.472912897305,
    "touches": 5,
-   "center": 58307.555
-  },
-  {
-   "low": 58249.137087102696,
-   "high": 59622.0729128973,
-   "touches": 4,
-   "center": 58935.604999999996,
+   "center": 58307.555,
    "score": 10,
    "why": [
     "POC",
@@ -553,21 +555,36 @@
    ],
    "liq": [
     "Longs",
-    116.80400358611676,
+    114.54077173313117,
     25
    ]
   },
   {
-   "low": 59068.62708710269,
-   "high": 60434.37291289731,
-   "touches": 3,
-   "center": 59751.5
+   "low": 58249.137087102696,
+   "high": 59622.0729128973,
+   "touches": 4,
+   "center": 58935.604999999996
+  },
+  {
+   "low": 59866.62708710269,
+   "high": 61515.37291289731,
+   "touches": 7,
+   "center": 60691.0
   },
   {
    "low": 60771.207087102695,
    "high": 62344.34291289731,
    "touches": 7,
-   "center": 61557.775
+   "center": 61557.775,
+   "score": 3,
+   "why": [
+    "round-1k"
+   ],
+   "liq": [
+    "Shorts",
+    76.36051448875412,
+    50
+   ]
   },
   {
    "low": 61418.62708710269,
@@ -579,16 +596,7 @@
    "low": 62152.01708710269,
    "high": 63802.63291289731,
    "touches": 18,
-   "center": 62977.325,
-   "score": 3,
-   "why": [
-    "round-1k"
-   ],
-   "liq": [
-    "Shorts",
-    116.80400358611676,
-    25
-   ]
+   "center": 62977.325
   },
   {
    "low": 62790.96708710269,
@@ -772,12 +780,12 @@
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32030.0415000001,
+ "oi_btc": 31757.314900000118,
  "oi_4h_chg": 0.624458585610177,
  "oi_24h_chg": 1.9871541969586293,
- "funding": 0.00356041922562,
+ "funding": 0.00375589210777,
  "funding_pct90": 35.0,
- "ls_ratio": 2.307423748321504,
+ "ls_ratio": 2.4819078268762635,
  "etf": {
   "latest_date": "27 Nov 2026",
   "one_day_m": 0.0,
@@ -788,49 +796,49 @@
   "five_day_days": 5,
   "twenty_day_m": -6034.299999999999
  },
- "oi_usd_m": 1946.7333931019461,
+ "oi_usd_m": 1909.012862218853,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 66856.19600000001,
-   "usd_m": 155.73867144815569
+   "price": 66123.79400000001,
+   "usd_m": 152.72102897750824
   },
   {
    "lev": 25,
-   "price": 63209.4944,
-   "usd_m": 116.80400358611676
+   "price": 62517.041600000004,
+   "usd_m": 114.54077173313117
   },
   {
    "lev": 50,
-   "price": 61993.9272,
-   "usd_m": 77.86933572407784
+   "price": 61314.7908,
+   "usd_m": 76.36051448875412
   },
   {
    "lev": 100,
-   "price": 61386.1436,
-   "usd_m": 38.93466786203892
+   "price": 60713.6654,
+   "usd_m": 38.18025724437706
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 54700.524000000005,
-   "usd_m": 155.73867144815569
+   "price": 54101.286,
+   "usd_m": 152.72102897750824
   },
   {
    "lev": 25,
-   "price": 58347.2256,
-   "usd_m": 116.80400358611676
+   "price": 57708.0384,
+   "usd_m": 114.54077173313117
   },
   {
    "lev": 50,
-   "price": 59562.7928,
-   "usd_m": 77.86933572407784
+   "price": 58910.2892,
+   "usd_m": 76.36051448875412
   },
   {
    "lev": 100,
-   "price": 60170.5764,
-   "usd_m": 38.93466786203892
+   "price": 59511.414600000004,
+   "usd_m": 38.18025724437706
   }
  ],
  "sleeve1": {
@@ -952,29 +960,29 @@
  "macro_weather": {
   "regime": "HEADWIND",
   "above_sma200": false,
-  "sma200_dist_pct": -15.56,
+  "sma200_dist_pct": -16.49,
   "etf_5d_m": -1923.3000000000002,
   "etf_1d_m": 0.0,
   "funding_pct90": 35.0,
   "crowded_long": false,
-  "summary": "Price -15.6% vs 200D SMA \u00b7 5D ETF -1,923.3M \u00b7 Funding pctile 35"
+  "summary": "Price -16.5% vs 200D SMA \u00b7 5D ETF -1,923.3M \u00b7 Funding pctile 35"
  },
  "rail_b_sizing": {
-  "ref_entry": 59622.07,
+  "ref_entry": 59019.47,
   "ref_source": "Tactical Floor High",
   "atr1h": 397.95,
   "stop_dist": 596.92,
-  "stop_price": 59025.15,
-  "stop_pct": 1.001,
-  "implied_port_pct": 74.91,
+  "stop_price": 58422.55,
+  "stop_pct": 1.011,
+  "implied_port_pct": 74.15,
   "cap_port_pct_50_50": 15.0,
   "cap_port_pct_100_usdt": 30.0,
-  "required_usdt_share_pct": 249.7,
+  "required_usdt_share_pct": 247.2,
   "vetoed_at_50_50": true,
   "vetoed_at_100_usdt": true
  },
- "generated_at_utc": "2026-11-27T14:37:16Z",
- "generated_at_sgt": "2026-11-27T22:37:16+08:00",
+ "generated_at_utc": "2026-11-27T14:45:34Z",
+ "generated_at_sgt": "2026-11-27T22:45:34+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
