@@ -12,9 +12,9 @@
  "deriv_src": "OKX",
  "price_src": "TICKER",
  "spot_check": {
-  "bin_price": 61639.38,
-  "okx_price": 61643.1,
-  "spread_pct": 0.006,
+  "bin_price": 61889.24,
+  "okx_price": 61889.6,
+  "spread_pct": 0.0006,
   "ok": true
  },
  "oi_src": "OKX",
@@ -22,7 +22,7 @@
  "fund_src": "OKX",
  "fund_hist_src": "OKX",
  "lsr_src": "OKX",
- "price": 61639.38,
+ "price": 61889.24,
  "atr1d": 2967.8452165560484,
  "sma200": 71980.10924999996,
  "vp30": {
@@ -289,7 +289,7 @@
  },
  "vp4h": {
   "poc": 60525.75683333333,
-  "val": 59978.05133333333,
+  "val": 60099.763666666666,
   "vah": 64603.12,
   "hist": [
    0.0,
@@ -307,7 +307,7 @@
    4899.34906,
    3259.26387,
    0.0,
-   2845.92288,
+   0.0,
    0.0,
    9790.69011,
    0.0,
@@ -327,7 +327,7 @@
    9456.33547,
    0.0,
    5095.2785,
-   4477.49938,
+   7428.53817,
    0.0,
    0.0,
    0.0,
@@ -422,11 +422,11 @@
   "above": null,
   "below": 59787.617333333335
  },
- "atr1h": 434.7603683654303,
+ "atr1h": 432.8217340194847,
  "px_chg": {
-  "1h": -0.1066571960990248,
-  "4h": 0.6393241686486251,
-  "24h": 1.9066206845531175
+  "1h": -0.06160929240545121,
+  "4h": 0.4273664327237636,
+  "24h": 1.9029017322359065
  },
  "macro_res": [
   {
@@ -436,7 +436,7 @@
    "touches": 8,
    "liq": [
     "Shorts",
-    40.24292548314077,
+    40.00935577110543,
     100
    ]
   },
@@ -447,7 +447,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    80.48585096628155,
+    80.01871154221087,
     50
    ]
   },
@@ -456,7 +456,11 @@
    "high": 65118.0,
    "center": 64584.05428571429,
    "touches": 7,
-   "liq": null
+   "liq": [
+    "Shorts",
+    120.02806731331628,
+    25
+   ]
   }
  ],
  "macro_sup": [
@@ -467,7 +471,7 @@
    "touches": 2,
    "liq": [
     "Longs",
-    40.24292548314077,
+    40.00935577110543,
     100
    ]
   },
@@ -497,7 +501,7 @@
   ],
   "liq": [
    "Longs",
-   120.72877644942233,
+   120.02806731331628,
    25
   ]
  },
@@ -512,8 +516,8 @@
   ],
   "liq": [
    "Shorts",
-   120.72877644942233,
-   25
+   80.01871154221087,
+   50
   ]
  },
  "inside_band": {
@@ -523,7 +527,7 @@
   "center": 61557.775,
   "liq": [
    "Longs",
-   40.24292548314077,
+   40.00935577110543,
    100
   ]
  },
@@ -563,7 +567,7 @@
    ],
    "liq": [
     "Longs",
-    120.72877644942233,
+    120.02806731331628,
     25
    ]
   },
@@ -596,8 +600,8 @@
    ],
    "liq": [
     "Shorts",
-    120.72877644942233,
-    25
+    80.01871154221087,
+    50
    ]
   },
   {
@@ -763,25 +767,25 @@
   "at": null
  },
  "cvd_spot": {
-  "1h": 40.425410000000056,
-  "4h": 222.76798000000002,
-  "24h": 507.24484
+  "1h": 32.89316000000008,
+  "4h": 128.84631000000007,
+  "24h": 624.9087100000002
  },
  "cvd_perp": {
-  "1h": -144.44860000000017,
-  "4h": 555.8379999999997,
-  "24h": 2368.1024999999995
+  "1h": 19.77930000000015,
+  "4h": 513.0459000000001,
+  "24h": 2302.5640999999996
  },
  "perp_src": "OKX-RUBIK",
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32643.84350000014,
+ "oi_btc": 32323.353600000122,
  "oi_4h_chg": 1.6560474144090565,
  "oi_24h_chg": 5.285805808178168,
- "funding": 0.006508405786120001,
- "funding_pct90": 58.0,
- "ls_ratio": 2.2709859783538513,
+ "funding": 0.00440543730502,
+ "funding_pct90": 40.0,
+ "ls_ratio": 2.256828373420302,
  "etf": {
   "latest_date": "25 Nov 2026",
   "one_day_m": -453.0,
@@ -792,49 +796,49 @@
   "five_day_days": 5,
   "twenty_day_m": -6017.099999999999
  },
- "oi_usd_m": 2012.1462741570388,
+ "oi_usd_m": 2000.4677885552715,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 67803.318,
-   "usd_m": 160.9717019325631
+   "price": 68078.164,
+   "usd_m": 160.03742308442173
   },
   {
    "lev": 25,
-   "price": 64104.9552,
-   "usd_m": 120.72877644942233
+   "price": 64364.8096,
+   "usd_m": 120.02806731331628
   },
   {
    "lev": 50,
-   "price": 62872.1676,
-   "usd_m": 80.48585096628155
+   "price": 63127.0248,
+   "usd_m": 80.01871154221087
   },
   {
    "lev": 100,
-   "price": 62255.773799999995,
-   "usd_m": 40.24292548314077
+   "price": 62508.132399999995,
+   "usd_m": 40.00935577110543
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 55475.441999999995,
-   "usd_m": 160.9717019325631
+   "price": 55700.316,
+   "usd_m": 160.03742308442173
   },
   {
    "lev": 25,
-   "price": 59173.8048,
-   "usd_m": 120.72877644942233
+   "price": 59413.670399999995,
+   "usd_m": 120.02806731331628
   },
   {
    "lev": 50,
-   "price": 60406.592399999994,
-   "usd_m": 80.48585096628155
+   "price": 60651.4552,
+   "usd_m": 80.01871154221087
   },
   {
    "lev": 100,
-   "price": 61022.9862,
-   "usd_m": 40.24292548314077
+   "price": 61270.3476,
+   "usd_m": 40.00935577110543
   }
  ],
  "sleeve1": {
@@ -844,18 +848,18 @@
   "weight_pct": 80,
   "bars_analyzed": 999,
   "last_closed_bar": {
-   "open_utc": "2026-11-27 00:00Z",
-   "close_utc": "2026-11-27 04:00Z",
-   "close_sgt": "2026-11-27 12:00 SGT"
+   "open_utc": "2026-11-27 04:00Z",
+   "close_utc": "2026-11-27 08:00Z",
+   "close_sgt": "2026-11-27 16:00 SGT"
   },
   "indicators": {
-   "close_price": 61411.0,
+   "close_price": 61673.45,
    "macro_120d_ema": 73205.18613241617,
-   "rolling_15d_vwap": 62767.14327855108,
-   "vwap_slope_12bar": -1264.0011679318923,
-   "atr_14": 1129.7921099079858,
-   "upper_buffer_price": 63332.03933350507,
-   "lower_buffer_price": 62202.247223597085
+   "rolling_15d_vwap": 62726.62217312737,
+   "vwap_slope_12bar": -1219.43781133632,
+   "atr_14": 1098.2548163431295,
+   "upper_buffer_price": 63275.74958129894,
+   "lower_buffer_price": 62177.4947649558
   },
   "conditions": {
    "above_macro_shield": false,
@@ -867,11 +871,11 @@
   "readiness": {
    "gates_passed": 0,
    "gates_total": 3,
-   "shield_dist_pct": -16.11,
-   "upper_buf_dist_pct": -3.03,
-   "lower_buf_dist_pct": -1.27,
+   "shield_dist_pct": -15.75,
+   "upper_buf_dist_pct": -2.53,
+   "lower_buf_dist_pct": -0.81,
    "price_hurdle": 73205.19,
-   "rally_to_hurdle_pct": 19.21
+   "rally_to_hurdle_pct": 18.7
   },
   "state": {
    "raw_signal": -1,
@@ -883,13 +887,13 @@
     "type": "SELL",
     "time_utc": "2026-10-11 04:00Z",
     "price": 82820.0,
-    "bars_ago": 281,
-    "days_ago": 47.0
+    "bars_ago": 282,
+    "days_ago": 47.2
    },
-   "exposure_pct": 35.9,
+   "exposure_pct": 35.8,
    "if_flat": "HOLD USDT (wait for BUY +1)",
    "if_long": "SELL BTC at next bar open",
-   "reference_3x_atr_sl": 58021.62367027604
+   "reference_3x_atr_sl": 58378.68555097061
   }
  },
  "sleeve2": {
@@ -956,29 +960,29 @@
  "macro_weather": {
   "regime": "HEADWIND",
   "above_sma200": false,
-  "sma200_dist_pct": -14.37,
+  "sma200_dist_pct": -14.02,
   "etf_5d_m": -2505.6,
   "etf_1d_m": -453.0,
-  "funding_pct90": 58.0,
+  "funding_pct90": 40.0,
   "crowded_long": false,
-  "summary": "Price -14.4% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 58"
+  "summary": "Price -14.0% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 40"
  },
  "rail_b_sizing": {
   "ref_entry": 60434.37,
   "ref_source": "Tactical Floor High",
-  "atr1h": 434.76,
-  "stop_dist": 652.14,
-  "stop_price": 59782.23,
-  "stop_pct": 1.079,
-  "implied_port_pct": 69.5,
+  "atr1h": 432.82,
+  "stop_dist": 649.23,
+  "stop_price": 59785.14,
+  "stop_pct": 1.074,
+  "implied_port_pct": 69.81,
   "cap_port_pct_50_50": 15.0,
   "cap_port_pct_100_usdt": 30.0,
-  "required_usdt_share_pct": 231.7,
+  "required_usdt_share_pct": 232.7,
   "vetoed_at_50_50": true,
   "vetoed_at_100_usdt": true
  },
- "generated_at_utc": "2026-11-27T07:37:14Z",
- "generated_at_sgt": "2026-11-27T15:37:14+08:00",
+ "generated_at_utc": "2026-11-27T08:07:15Z",
+ "generated_at_sgt": "2026-11-27T16:07:15+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
