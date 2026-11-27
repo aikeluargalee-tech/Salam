@@ -4,38 +4,38 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1c1f24">
+<meta name="theme-color" content="#e5e7eb">
 <title>SALAM PRO MAX · BTC Quant Workstation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #1c1f24;
-  --bg-grid: #2c313a;
-  --panel: #252930;
-  --panel-alt: #2e333c;
-  --panel-stripe: #1f2329;
-  --line: #434b57;
-  --line-dark: #0e1013;
-  --shadow: #0b0d10;
-  --bevel-hi: #4b5463;
-  --bevel-lo: #14171b;
-  --text: #eef1f6;
-  --muted: #a1aab8;
-  --dim: #737d8c;
-  --up: #42be65;
-  --up-bg: #14281d;
-  --up-line: #287544;
-  --dn: #ff6b6b;
-  --dn-bg: #2d1618;
-  --dn-line: #9a2a31;
-  --warn: #f1c21b;
-  --warn-bg: #2b2310;
-  --warn-line: #8f6f12;
-  --acc: #0f62fe;
-  --acc-bright: #337aff;
-  --acc-soft: #1a2a47;
+  --bg: #e5e7eb;
+  --bg-grid: #cfd4dc;
+  --panel: #f7f8fa;
+  --panel-alt: #dde1e7;
+  --panel-stripe: #eef0f4;
+  --line: #adb5c2;
+  --line-dark: #1b2026;
+  --shadow: #b6bcc6;
+  --bevel-hi: #ffffff;
+  --bevel-lo: #7a818c;
+  --text: #14181d;
+  --muted: #4b5563;
+  --dim: #5c6675;
+  --up: #0e6027;
+  --up-bg: #defbe6;
+  --up-line: #24a148;
+  --dn: #a2191f;
+  --dn-bg: #fff1f1;
+  --dn-line: #da1e28;
+  --warn: #8a4b08;
+  --warn-bg: #fff8e1;
+  --warn-line: #d29922;
+  --acc: #0043ce;
+  --acc-bright: #0f62fe;
+  --acc-soft: #d6e4ff;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
 }
 
@@ -56,7 +56,7 @@ html, body {
 }
 
 a {
-  color: #6ea8ff;
+  color: var(--acc);
   text-decoration: none;
 }
 
@@ -237,17 +237,17 @@ header.topbar {
 #state {
   background: repeating-linear-gradient(
     -45deg,
-    #2d1618,
-    #2d1618 10px,
-    #381a1d 10px,
-    #381a1d 20px
+    #fff1f1,
+    #fff1f1 10px,
+    #ffe0e0 10px,
+    #ffe0e0 20px
   );
   border: 1.5px dashed var(--dn);
   border-left: 5px solid var(--dn);
   box-shadow: 3px 3px 0 var(--shadow);
   padding: 9px 12px;
   margin-bottom: 10px;
-  color: #ffd5d5;
+  color: var(--dn);
 }
 
 #state.ok {
@@ -268,7 +268,7 @@ header.topbar {
   background: linear-gradient(135deg, var(--dn-bg) 0%, var(--panel) 45%);
   border: 1px solid var(--line-dark);
   border-left: 5px solid var(--dn);
-  color: #ffd5d5;
+  color: var(--dn);
 }
 
 #state .b1 {
@@ -367,7 +367,7 @@ header.topbar {
 .badge.fresh {
   background: var(--acc-soft);
   border-color: var(--acc-bright);
-  color: #8bb9ff;
+  color: var(--acc);
 }
 
 .up { color: var(--up); }
@@ -405,7 +405,7 @@ button, .btn, .chatlink {
 
 button:hover, .btn:hover, .chatlink:hover {
   background: var(--acc-soft);
-  color: #ffffff;
+  color: var(--acc);
   border-color: var(--acc-bright);
   text-decoration: none;
 }
@@ -539,7 +539,7 @@ button:active, .btn:active, .chatlink:active {
   border-bottom: 1px dashed var(--line);
   font-size: 10.5px;
   font-weight: 700;
-  color: #8bb9ff;
+  color: var(--acc);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -568,7 +568,7 @@ button:active, .btn:active, .chatlink:active {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #8bb9ff;
+  color: var(--acc);
   margin-bottom: 4px;
 }
 
@@ -596,9 +596,9 @@ button:active, .btn:active, .chatlink:active {
   height: 12px;
   background: linear-gradient(
     90deg,
-    rgba(66, 190, 101, 0.35) 0%,
-    rgba(241, 194, 27, 0.22) 50%,
-    rgba(255, 107, 107, 0.35) 100%
+    rgba(14, 96, 39, 0.25) 0%,
+    rgba(210, 153, 34, 0.22) 50%,
+    rgba(162, 25, 31, 0.25) 100%
   );
   border: 1px solid var(--line-dark);
   margin: 6px 0 4px;
@@ -609,8 +609,8 @@ button:active, .btn:active, .chatlink:active {
   top: -3px;
   width: 5px;
   height: 16px;
-  background: #ffffff;
-  border: 1px solid var(--line-dark);
+  background: var(--line-dark);
+  border: 1px solid var(--panel);
   transform: translateX(-50%);
 }
 
@@ -717,7 +717,7 @@ button:active, .btn:active, .chatlink:active {
 .rkey {
   font-size: 10.5px;
   font-weight: 700;
-  color: #8bb9ff;
+  color: var(--acc);
   text-transform: uppercase;
 }
 
@@ -827,7 +827,7 @@ details.drawer[open] > summary .sum-left::before {
   border-bottom: 1px solid var(--line);
   font-size: 10.5px;
   font-weight: 700;
-  color: #8bb9ff;
+  color: var(--acc);
   text-transform: uppercase;
 }
 
@@ -931,8 +931,8 @@ details.drawer[open] > summary .sum-left::before {
     -45deg,
     var(--panel-stripe),
     var(--panel-stripe) 4px,
-    #2e333c 4px,
-    #2e333c 8px
+    var(--panel-alt) 4px,
+    var(--panel-alt) 8px
   );
 }
 
@@ -949,7 +949,7 @@ details.drawer[open] > summary .sum-left::before {
 .subhead {
   font-size: 10px;
   font-weight: 700;
-  color: #8bb9ff;
+  color: var(--acc);
   text-transform: uppercase;
   margin-bottom: 4px;
 }
