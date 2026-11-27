@@ -1,5 +1,5 @@
 # SALAM PROTOCOL DATA HUB v1.7
-**Timestamp:** 2026-11-27 03:07:15 UTC / 2026-11-27 11:07:15 SGT (UTC+8) | **Spot Price:** $61,502.38 [BIN]
+**Timestamp:** 2026-11-27 03:37:16 UTC / 2026-11-27 11:37:16 SGT (UTC+8) | **Spot Price:** $61,529.04 [BIN]
 > ✅ **LIVE DATA — plans allowed** (state: FULL). Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ### AI EXECUTION PROTOCOL: SALAM ANALYST v1.7
@@ -58,13 +58,13 @@
 *Never forecast. State what the rules permit, name the trigger that would change the answer, and stop. Jargon is allowed in 1-7 and never in 0.*
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $61,502 (1D SMA200 71,980)
+*   **Current Price:** $61,529 (1D SMA200 71,980)
 *   **Tactical Bands:**
     *   Upper: $62,817 - $64,424 (Conf: 3/10, round-1k) [+$119M 25x Shorts]
     *   Lower: $58,249 - $59,288 (Conf: 10/10, POC+VAH/VAL+round-1k) [+$119M 25x Longs]
     *   Price is inside $60,477 - $61,810 [+$40M 100x Longs]
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $62,338 (8x) [+$40M 100x Shorts], $63,065 (2x), $64,584 (7x)
+    *   Resistance: $62,338 (8x) [+$40M 100x Shorts], $63,065 (2x) [+$79M 50x Shorts], $64,584 (7x)
     *   Support: $61,031 (2x) [+$40M 100x Longs], $60,000 (1x), $59,131 (1x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 61,840
@@ -72,17 +72,17 @@
 
 ## 2. THE FUEL (Liquidation Magnets) [ESTIMATED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $67,653 ($158.0M) / 25x $63,962 ($118.5M) / 50x $62,732 ($79.0M) / 100x $62,117 ($39.5M)
-*   **Lower Longs:** 10x $55,352 ($158.0M) / 25x $59,042 ($118.5M) / 50x $60,272 ($79.0M) / 100x $60,887 ($39.5M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,975.2M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
-*   **Long/Short account ratio (4H):** 2.32 [OKX]
+*   **Upper Shorts:** 10x $67,682 ($158.2M) / 25x $63,990 ($118.6M) / 50x $62,760 ($79.1M) / 100x $62,144 ($39.5M)
+*   **Lower Longs:** 10x $55,376 ($158.2M) / 25x $59,068 ($118.6M) / 50x $60,298 ($79.1M) / 100x $60,914 ($39.5M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,977.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
+*   **Long/Short account ratio (4H):** 2.30 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
 *   **Price Change (closed 1H [BIN]):** 1H: +0.97% | 4H: +1.27% | 24H: +0.99%
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 260.8 / 2,021.9 | 4H: 415.4 / 1,914.6 | 24H: 1,029.6 / 1,430.5
-*   **Open Interest:** 32,115 BTC [OKX] | 4H Change: -0.13% | 24H Change: 2.02%
+*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 260.8 / 2,022.1 | 4H: 415.4 / 1,914.8 | 24H: 1,029.6 / 1,430.7
+*   **Open Interest:** 32,133 BTC [OKX] | 4H Change: 1.36% | 24H Change: 3.16%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0082% per 8H [OKX] | percentile (100 pts): 64
+*   **Funding:** 0.0095% per 8H [OKX] | percentile (100 pts): 70
 *   **ATR 1H:** 438 (Rail B stop distance = 1.5 x this = 657)
 
 ## 4. THE TRIGGER
@@ -90,7 +90,7 @@
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-453.0M (25 Nov 2026, settled) | 5D: $-2,505.6M
-*   **Funding percentile:** 64 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 70 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
