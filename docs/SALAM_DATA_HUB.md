@@ -1,6 +1,6 @@
 # SALAM PROTOCOL DATA HUB v1.7
-**Timestamp:** 2026-11-27 01:37:15 UTC / 2026-11-27 09:37:15 SGT (UTC+8) | **Spot Price:** $60,760.01 [BIN]
-> ✅ **LIVE DATA — plans allowed.** Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
+**Timestamp:** 2026-11-27 01:50:11 UTC / 2026-11-27 09:50:11 SGT (UTC+8) | **Spot Price:** $60,716.89 [BIN]
+> ✅ **LIVE DATA — plans allowed** (state: FULL). Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ### AI EXECUTION PROTOCOL: SALAM ANALYST v1.7
 **Role:** elite spot-only BTC swing trader, Dual-Inventory (50/50 BTC/USDT), zero leverage. You do not decide anything: you describe what this packet's rules permit.
@@ -26,6 +26,7 @@
 *   Report a tier only when it overlaps a measured structure (volume node, >=2 touches, band edge, macro S/R) within 0.5%. List the overlaps; ignore the rest.
 *   Convert to coins: notional / price = BTC of forced orders, and as % of open interest.
 *   Fuel is symmetric by assumption: say so, and never infer direction from it. Only the terrain around it is asymmetric. Name the exhaust point.
+*   In your output, tag every DERIVED figure `estimated` and every venue-specific figure with its venue (`[BIN]` / `[OKX]`). This is a labelling rule for what you write, not a reason to discard a packet figure.
 
 **Trigger tests (confirmation only, only at an anchor)**
 *   Read spot vs perp CVD in 1H, 4H and 24H. Compute perp:spot 24H ratio; above 3x means futures-led, i.e. positioning rather than accumulation.
@@ -41,7 +42,7 @@
 
 **Execution Rules:**
 *   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support that overlaps a Lower Long tier, confirmed by positive Spot CVD -> enter on the reclaim. Stop from the arithmetic. Target = the next MEASURED level above, named; if none exists in this packet, write "no target".
-*   **Rail A (BTC -> USDT):** a BEARISH or MACRO BEARISH sweep into a Major Resistance that overlaps an Upper Short tier, confirmed by flat/negative Spot CVD -> trim. Invalidation per the arithmetic. Target = the next MEASURED level below, named.
+*   **Rail A (BTC -> USDT):** a BEARISH or MACRO BEARISH sweep into a Major Resistance that overlaps an Upper Short tier, confirmed by flat/negative Spot CVD -> trim. Invalidation per the arithmetic. Target = the next MEASURED level below, named; if none exists in this packet, write "no target".
 
 **Required Output Format (this exact order):**
 0. **BOTTOM LINE** — one plain sentence a non-trader can act on ("NO ACTION at $X" or "TRIM 0.25 BTC at $Y") plus the bias in one clause.
@@ -56,30 +57,30 @@
 *Never forecast. State what the rules permit, name the trigger that would change the answer, and stop. Jargon is allowed in 1-7 and never in 0.*
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $60,760 (1D SMA200 71,980)
+*   **Current Price:** $60,717 (1D SMA200 71,980)
 *   **Tactical Bands:**
     *   Upper: $61,103 - $62,582 (Conf: 3/10) [+$78M 50x Shorts]
     *   Lower: $58,249 - $59,288 (Conf: 10/10)
     *   Price is inside $59,396 - $60,905
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $61,031 (2x), $62,338 (8x), $63,065 (2x) [+$116M 25x Shorts]
-    *   Support: $60,000 (1x), $59,131 (1x), $57,958 (2x)
+    *   Resistance: $61,031 (2x) [+$39M 100x Shorts], $62,338 (8x), $63,065 (2x) [+$116M 25x Shorts]
+    *   Support: $60,000 (1x) [+$39M 100x Longs], $59,131 (1x), $57,958 (2x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 61,840
     *   4H (last 30 bars): VAH 64,603 · POC 60,526 · VAL 59,735
 
 ## 2. THE FUEL (Liquidation Magnets) [ESTIMATED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $66,836 ($155.2M) / 25x $63,190 ($116.4M) / 50x $61,975 ($77.6M) / 100x $61,368 ($38.8M)
-*   **Lower Longs:** 10x $54,684 ($155.2M) / 25x $58,330 ($116.4M) / 50x $59,545 ($77.6M) / 100x $60,152 ($38.8M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,940.4M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data.*
-*   **Long/Short account ratio (4H):** 2.34 [OKX]
+*   **Upper Shorts:** 10x $66,789 ($155.2M) / 25x $63,146 ($116.4M) / 50x $61,931 ($77.6M) / 100x $61,324 ($38.8M)
+*   **Lower Longs:** 10x $54,645 ($155.2M) / 25x $58,288 ($116.4M) / 50x $59,503 ($77.6M) / 100x $60,110 ($38.8M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,939.4M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
+*   **Long/Short account ratio (4H):** 2.33 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 192.5 / 53.2 | 4H: 207.0 / 71.5 | 24H: 1,030.3 / -554.2
-*   **Open Interest:** 31,935 BTC [OKX] | 4H Change: -0.80% | 24H Change: 2.47%
+*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 192.5 / -218.9 | 4H: 207.0 / 184.6 | 24H: 1,030.3 / -235.5
+*   **Open Interest:** 31,942 BTC [OKX] | 4H Change: -0.80% | 24H Change: 2.47%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0041% per 8H [OKX] | percentile (100 pts): 41
+*   **Funding:** 0.0046% per 8H [OKX] | percentile (100 pts): 45
 *   **ATR 1H:** 394 (Rail B stop distance = 1.5 x this = 590)
 
 ## 4. THE TRIGGER
@@ -87,7 +88,7 @@
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-453.0M (25 Nov 2026, settled) | 5D: $-2,505.6M
-*   **Funding percentile:** 41 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 45 of the last 100 readings (~33 days, OKX)
 
 ## DATA NOTES
 *   fd1 HTTP 451
