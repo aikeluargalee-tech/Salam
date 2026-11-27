@@ -2,88 +2,61 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SALAM PRO MAX ATM · BTC spot data packet</title>
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1c1f24">
+<title>SALAM PRO MAX · BTC Quant Workstation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --fs: 14px;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --bg: #040a06;
-  --surface: #08140d;
-  --inset: #0b1c12;
-  --inset-2: #0f2518;
-  --line: #1f5c37;
-  --line-subtle: #143b24;
-  --fg: #d8ffe8;
-  --acc: #3dff8b;
-  --muted: #7ec29a;
-  --dim: #4e8062;
-  --warn: #ffbe3b;
-  --warn-bg: #241904;
-  --warn-line: #996a0f;
-  --dn: #ff5c5c;
-  --dn-bg: #26090b;
-  --dn-line: #9e262b;
-  --up-bg: #0a2415;
-  --up-line: #28854f;
-  --shadow: #194d2e;
-  --maxw: 1120px;
-}
-
-@media (min-width: 900px) {
-  :root {
-    --fs: 15px;
-  }
+  --bg: #1c1f24;
+  --bg-grid: #2c313a;
+  --panel: #252930;
+  --panel-alt: #2e333c;
+  --panel-stripe: #1f2329;
+  --line: #434b57;
+  --line-dark: #0e1013;
+  --shadow: #0b0d10;
+  --bevel-hi: #4b5463;
+  --bevel-lo: #14171b;
+  --text: #eef1f6;
+  --muted: #a1aab8;
+  --dim: #737d8c;
+  --up: #42be65;
+  --up-bg: #14281d;
+  --up-line: #287544;
+  --dn: #ff6b6b;
+  --dn-bg: #2d1618;
+  --dn-line: #9a2a31;
+  --warn: #f1c21b;
+  --warn-bg: #2b2310;
+  --warn-line: #8f6f12;
+  --acc: #0f62fe;
+  --acc-bright: #337aff;
+  --acc-soft: #1a2a47;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
-html {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: var(--fs);
-  line-height: 1.5;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
+html, body {
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: var(--fs);
-  line-height: 1.5;
-  padding-bottom: 48px;
-  overflow-x: hidden;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--bg-grid) 1px, transparent 1px);
+  background-size: 16px 16px;
+  color: var(--text);
+  font: 12px/1.45 var(--mono);
   font-variant-numeric: tabular-nums;
-}
-
-/* Subtle CRT scanline overlay — purely visual, zero interaction impact */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 50;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.08) 2px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
-}
-
-button, a, input, select, textarea, h1, h2, h3, summary, details, code, pre, b, strong, span, div, p, section, header, main, footer {
-  font-family: var(--mono);
-  font-size: var(--fs);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a {
-  color: var(--acc);
+  color: #6ea8ff;
   text-decoration: none;
 }
 
@@ -92,292 +65,159 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--acc);
+  outline: 2px solid var(--acc-bright);
   outline-offset: 2px;
 }
 
-/* ── TOP STICKY GATE BANNER (fail-closed default before JS loads) ─────────── */
-.status-bar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--bg);
-  border-bottom: 2px solid var(--line);
-  padding: 8px 10px;
-}
-
-#state {
-  max-width: var(--maxw);
+.wrap {
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 10px 12px;
-  border: 2px dashed var(--dn);
-  border-left: 6px solid var(--dn);
-  background: repeating-linear-gradient(
-    -45deg,
-    #26090b,
-    #26090b 10px,
-    #310c0f 10px,
-    #310c0f 20px
-  );
-  color: #ffd6d6;
+  padding: 12px 12px 44px;
 }
 
-#state.ok {
-  background: var(--up-bg);
-  border: 2px solid var(--up-line);
-  border-left: 6px solid var(--acc);
-  color: var(--fg);
-}
-
-#state.warn {
-  background: var(--warn-bg);
-  border: 2px solid var(--warn-line);
-  border-left: 6px solid var(--warn);
-  color: #ffe9b8;
-}
-
-#state.bad {
-  background: var(--dn-bg);
-  border: 2px solid var(--dn-line);
-  border-left: 6px solid var(--dn);
-  color: #ffd6d6;
-}
-
-#state .b1 {
-  font-weight: 700;
-  letter-spacing: .04em;
-}
-
-#state .b2 {
-  margin-top: 4px;
-  color: var(--muted);
-}
-
-#state.warn .b2 {
-  color: #f3cc7a;
-}
-
-#state.bad .b2 {
-  color: #f2a8a8;
-}
-
-/* ── MAIN ATM CHASSIS ─────────────────────────────────────────────────────── */
-.atm-wrap {
-  max-width: var(--maxw);
-  margin: 12px auto 0;
-  padding: 0 10px;
-}
-
-.atm-chassis {
-  background: var(--surface);
-  border: 2px solid var(--line);
-  box-shadow: 0 0 0 1px var(--line-subtle), inset 0 0 0 1px var(--line-subtle);
-  padding: 12px;
-}
-
-.atm-head {
+/* ── WORKSTATION TITLEBAR ─────────────────────────────────────────────────── */
+.ws-titlebar {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px 12px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--line);
-}
-
-.brand {
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--acc);
+  color: #ffffff;
+  border: 1px solid var(--line-dark);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.25), 3px 3px 0 var(--shadow);
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--acc);
-  letter-spacing: .08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.ver {
-  color: var(--muted);
-  font-weight: 400;
-  letter-spacing: .02em;
-  text-transform: none;
+.ws-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.spacer {
-  flex: 1 1 auto;
+.ws-title-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 #age {
-  padding: 2px 8px;
-  border: 1px solid var(--up-line);
-  background: var(--up-bg);
+  display: inline-block;
+  padding: 2px 7px;
+  background: #ffffff;
   color: var(--acc);
+  border: 1px solid var(--line-dark);
+  font-size: 10.5px;
   font-weight: 700;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 #age.warn {
   background: var(--warn-bg);
-  border-color: var(--warn-line);
   color: var(--warn);
+  border-color: var(--warn);
 }
 
 #age.bad {
   background: var(--dn-bg);
-  border-color: var(--dn-line);
   color: var(--dn);
+  border-color: var(--dn);
 }
 
 .ts {
-  color: var(--dim);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10.5px;
+  font-weight: 500;
 }
 
-/* ── SCREEN BLOCKS & INVERTED HEADER BARS ─────────────────────────────────── */
-.screen {
-  margin-top: 14px;
-  border: 2px solid var(--line);
-  background: var(--inset);
-}
-
-.screen-bar {
+/* ── TOPBAR (BRAND + LIVE FEED) ───────────────────────────────────────────── */
+header.topbar {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 6px 12px;
-  padding: 6px 10px;
-  background: var(--acc);
-  color: var(--bg);
-  font-weight: 700;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-
-.screen-bar .tag {
-  font-weight: 700;
-}
-
-.screen.warn {
-  border-color: var(--warn-line);
-}
-
-.screen.warn > .screen-bar {
-  background: var(--warn);
-  color: var(--bg);
-}
-
-.screen.bad {
-  border-color: var(--dn-line);
-}
-
-.screen.bad > .screen-bar {
-  background: var(--dn);
-  color: var(--bg);
-}
-
-.screen-body {
-  padding: 12px;
-}
-
-/* ── SCREEN 1: 5-SECOND QUICK GLANCE ──────────────────────────────────────── */
-.verdict-box {
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line-dark);
+  box-shadow: 3px 3px 0 var(--shadow);
   padding: 10px 12px;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.verdict-box.active {
-  border-color: var(--acc);
-  background: var(--up-bg);
+.brand {
+  min-width: 0;
+  flex: 1 1 340px;
 }
 
-.verdict-box.quiet {
-  border-color: var(--line);
-  background: var(--surface);
-}
-
-.verdict-box.wait {
-  border-color: var(--warn-line);
-  background: var(--warn-bg);
-}
-
-.verdict-box.stop {
-  border-color: var(--dn-line);
-  background: var(--dn-bg);
-}
-
-.verdict-main {
-  font-weight: 700;
-  color: var(--fg);
-  letter-spacing: .02em;
-}
-
-.verdict-box.active .verdict-main {
-  color: var(--acc);
-}
-
-.verdict-box.wait .verdict-main {
-  color: var(--warn);
-}
-
-.verdict-box.stop .verdict-main {
-  color: var(--dn);
-}
-
-.verdict-sub {
-  margin-top: 4px;
-  color: var(--muted);
-}
-
-.verdict-box.wait .verdict-sub {
-  color: #f3cc7a;
-}
-
-.verdict-box.stop .verdict-sub {
-  color: #f2a8a8;
-}
-
-.price-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.panel {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 10px 12px;
-}
-
-.panel-label {
-  color: var(--dim);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  margin-bottom: 6px;
-}
-
-.price-row {
+.page-head-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.page-purpose {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.live-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--line-dark);
+  background: var(--dim);
+  margin-right: 5px;
+}
+
+.dot.live {
+  background: var(--up);
+  box-shadow: 0 0 0 2px var(--up-bg);
 }
 
 #livetag {
-  padding: 1px 6px;
-  border: 1px solid var(--up-line);
-  background: var(--up-bg);
-  color: var(--acc);
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--up);
 }
 
 #livetag.snap {
-  border-color: var(--warn-line);
-  background: var(--warn-bg);
   color: var(--warn);
 }
 
 #live {
+  font-size: 17px;
   font-weight: 700;
-  color: var(--acc);
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 #live.frozen {
@@ -385,253 +225,499 @@ a:hover {
 }
 
 #pkt {
-  margin-top: 6px;
+  font-size: 10.5px;
   color: var(--muted);
-  overflow-wrap: anywhere;
 }
 
 #pkt.stale {
   color: var(--warn);
 }
 
-#locBody {
-  color: var(--fg);
-  overflow-wrap: anywhere;
+/* ── STICKY / TOP GATE STATUS BANNER (FAIL-CLOSED DEFAULT) ────────────────── */
+#state {
+  background: repeating-linear-gradient(
+    -45deg,
+    #2d1618,
+    #2d1618 10px,
+    #381a1d 10px,
+    #381a1d 20px
+  );
+  border: 1.5px dashed var(--dn);
+  border-left: 5px solid var(--dn);
+  box-shadow: 3px 3px 0 var(--shadow);
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  color: #ffd5d5;
 }
 
-#locBody b {
-  color: var(--acc);
+#state.ok {
+  background: linear-gradient(135deg, var(--up-bg) 0%, var(--panel) 45%);
+  border: 1px solid var(--line-dark);
+  border-left: 5px solid var(--up);
+  color: var(--text);
+}
+
+#state.warn {
+  background: linear-gradient(135deg, var(--warn-bg) 0%, var(--panel) 45%);
+  border: 1px solid var(--line-dark);
+  border-left: 5px solid var(--warn);
+  color: var(--text);
+}
+
+#state.bad {
+  background: linear-gradient(135deg, var(--dn-bg) 0%, var(--panel) 45%);
+  border: 1px solid var(--line-dark);
+  border-left: 5px solid var(--dn);
+  color: #ffd5d5;
+}
+
+#state .b1 {
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-#posGauge {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--line-subtle);
-}
-
-.gauge-labels {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 10px;
+#state .b2 {
+  font-size: 11px;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-top: 3px;
 }
 
-.gauge-track {
-  position: relative;
-  height: 16px;
-  border: 1px solid var(--line);
-  background: var(--inset);
+/* ── WORKSTATION CARDS & HEADERS ──────────────────────────────────────────── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line-dark);
+  box-shadow: 3px 3px 0 var(--shadow);
+  padding: 11px 12px;
+  margin-bottom: 10px;
 }
 
-.gauge-fill {
-  height: 100%;
-  background: var(--line);
-}
-
-.gauge-pin {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 6px;
-  transform: translateX(-50%);
-  background: var(--acc);
-}
-
-.gauge-note {
-  margin-top: 4px;
-  color: var(--dim);
-}
-
-/* 3-line beginner quick checks */
-.checks-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.check-item {
-  border: 1px solid var(--line-subtle);
-  background: var(--surface);
-  padding: 10px 12px;
-}
-
-.check-item.warn {
-  border: 2px solid var(--warn);
-  background: var(--warn-bg);
-}
-
-.check-item.bad {
-  border: 2px solid var(--dn);
-  background: var(--dn-bg);
-}
-
-.check-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 10px;
-  color: var(--muted);
+.card > h2 {
+  margin: -11px -12px 10px;
+  padding: 6px 10px;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--line-dark);
+  font-size: 10.5px;
   font-weight: 700;
+  color: var(--text);
   text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.check-item.warn .check-head {
-  color: var(--warn);
-}
-
-.check-item.bad .check-head {
-  color: var(--dn);
-}
-
-#alertBig {
-  font-weight: 700;
-  color: var(--fg);
-}
-
-#alertBig.warn {
-  color: var(--warn);
-}
-
-#alertBig.bad {
-  color: var(--dn);
-}
-
-.alertrow {
-  margin-top: 6px;
-  color: var(--dim);
-}
-
-.tier b {
-  color: var(--muted);
-}
-
-#alertNote {
-  margin-top: 4px;
-  color: var(--muted);
-}
-
-#sweep {
-  color: var(--fg);
-}
-
-#sweep.hit {
-  padding: 6px 8px;
-  border: 1px solid var(--warn-line);
-  border-left: 4px solid var(--warn);
-  background: var(--warn-bg);
-  color: #ffe9b8;
-}
-
-#quickStatus {
-  font-weight: 700;
-  color: var(--fg);
-}
-
-/* ── SCREEN 2: ATM KEYPAD (COPY TO AI) ────────────────────────────────────── */
-.keypad-row {
+  letter-spacing: 0.07em;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card > h2 .h2-title::before {
+  content: "▪ ";
+  color: var(--acc-bright);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 840px) {
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── BADGES & SEMANTIC TEXT ───────────────────────────────────────────────── */
+.badge, .chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid var(--line-dark);
+  background: var(--panel-alt);
+  color: var(--text);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge.up, .chip.ok, .chip.long {
+  background: var(--up-bg);
+  border-color: var(--up-line);
+  color: var(--up);
+}
+
+.badge.dn, .chip.bad {
+  background: var(--dn-bg);
+  border-color: var(--dn-line);
+  color: var(--dn);
+}
+
+.badge.warn, .chip.short {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+
+.badge.fresh {
+  background: var(--acc-soft);
+  border-color: var(--acc-bright);
+  color: #8bb9ff;
+}
+
+.up { color: var(--up); }
+.dn { color: var(--dn); }
+.warn-txt { color: var(--warn); }
+.dimv { color: var(--dim); }
+.mut { color: var(--muted); font-size: 11px; }
+
+/* ── BEVELED WORKSTATION BUTTONS ──────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
 }
 
 button, .btn, .chatlink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 8px 14px;
-  border: 2px solid var(--line);
-  background: var(--inset-2);
-  color: var(--fg);
-  font-weight: 700;
+  min-height: 36px;
+  background: var(--panel-alt);
+  color: var(--text);
+  border: 1px solid var(--line-dark);
+  box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-lo), 2px 2px 0 var(--shadow);
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 3px 3px 0 var(--shadow);
-  transition: transform .08s, box-shadow .08s, border-color .12s;
 }
 
 button:hover, .btn:hover, .chatlink:hover {
-  border-color: var(--acc);
-  color: var(--acc);
+  background: var(--acc-soft);
+  color: #ffffff;
+  border-color: var(--acc-bright);
   text-decoration: none;
 }
 
 button:active, .btn:active, .chatlink:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--shadow);
+  transform: translate(1px, 1px);
+  box-shadow: inset 1px 1px 0 var(--bevel-lo);
 }
 
 .btn-primary {
   background: var(--acc);
-  color: var(--bg);
-  border-color: var(--acc);
-  box-shadow: 3px 3px 0 #155c31;
+  color: #ffffff;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.25), inset -1px -1px 0 #002375, 2px 2px 0 var(--shadow);
 }
 
 .btn-primary:hover {
-  background: #6effa9;
-  border-color: #6effa9;
-  color: var(--bg);
+  background: var(--acc-bright);
+  color: #ffffff;
 }
 
 #copyState {
-  color: var(--acc);
+  font-size: 11px;
   font-weight: 700;
+  color: var(--up);
 }
 
-.steps-guide {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line-subtle);
-  display: grid;
-  gap: 8px;
-}
-
-.step-line {
+.handoff-strip {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 
-.step-line b {
-  color: var(--fg);
+/* ── QUICK-GLANCE DECISION HERO & 3 VERDICTS ──────────────────────────────── */
+.verdict-box {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: var(--panel-stripe);
+  margin-bottom: 10px;
 }
 
-.ai-keys {
-  display: flex;
-  flex-wrap: wrap;
+.verdict-box.active {
+  border-color: var(--up-line);
+  border-left: 4px solid var(--up);
+  background: var(--up-bg);
+}
+
+.verdict-box.quiet {
+  border-color: var(--line);
+  border-left: 4px solid var(--acc);
+  background: var(--panel-stripe);
+}
+
+.verdict-box.wait {
+  border-color: var(--warn-line);
+  border-left: 4px solid var(--warn);
+  background: var(--warn-bg);
+}
+
+.verdict-box.stop {
+  border-color: var(--dn-line);
+  border-left: 4px solid var(--dn);
+  background: var(--dn-bg);
+}
+
+.verdict-main {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.verdict-box.active .verdict-main { color: var(--up); }
+.verdict-box.wait .verdict-main { color: var(--warn); }
+.verdict-box.stop .verdict-main { color: var(--dn); }
+
+.verdict-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.verdicts-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  align-items: center;
+  margin-bottom: 10px;
 }
 
-/* ── SCREEN 3: PLAIN-ENGLISH RULES ────────────────────────────────────────── */
+@media (max-width: 840px) {
+  .verdicts-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.v-card {
+  background: var(--panel-stripe);
+  border: 1px solid var(--line-dark);
+  padding: 8px 10px;
+}
+
+.v-card.buy {
+  background: var(--up-bg);
+  border-color: var(--up);
+  border-left: 4px solid var(--up);
+}
+
+.v-card.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+  border-left: 4px solid var(--warn);
+}
+
+.v-card.bad {
+  background: var(--dn-bg);
+  border-color: var(--dn);
+  border-left: 4px solid var(--dn);
+}
+
+.v-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  border-bottom: 1px dashed var(--line);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8bb9ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.v-card.buy .v-head { color: var(--up); }
+.v-card.warn .v-head { color: var(--warn); }
+.v-card.bad .v-head { color: var(--dn); }
+
+.v-body {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+/* Location gauge */
+.panel-inset {
+  background: var(--panel-stripe);
+  border: 1px solid var(--line);
+  padding: 9px 10px;
+  margin-bottom: 10px;
+}
+
+.panel-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8bb9ff;
+  margin-bottom: 4px;
+}
+
+#locBody {
+  font-size: 11.5px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+#posGauge {
+  margin-top: 8px;
+}
+
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.gauge-track {
+  position: relative;
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(66, 190, 101, 0.35) 0%,
+    rgba(241, 194, 27, 0.22) 50%,
+    rgba(255, 107, 107, 0.35) 100%
+  );
+  border: 1px solid var(--line-dark);
+  margin: 6px 0 4px;
+}
+
+.gauge-pin {
+  position: absolute;
+  top: -3px;
+  width: 5px;
+  height: 16px;
+  background: #ffffff;
+  border: 1px solid var(--line-dark);
+  transform: translateX(-50%);
+}
+
+.gauge-note {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* 3 quick checks */
+.check-item {
+  background: var(--panel-stripe);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+}
+
+.check-item.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+  border-left: 4px solid var(--warn);
+}
+
+.check-item.bad {
+  background: var(--dn-bg);
+  border-color: var(--dn);
+  border-left: 4px solid var(--dn);
+}
+
+.check-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+#alertBig {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#alertBig.warn { color: var(--warn); }
+#alertBig.bad { color: var(--dn); }
+
+.alertrow, #alertNote {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+#sweep {
+  font-size: 11px;
+  color: var(--text);
+}
+
+#sweep.hit {
+  padding: 5px 7px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+}
+
+#quickStatus {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── RULES PANEL ──────────────────────────────────────────────────────────── */
+.read {
+  border-left: 5px solid var(--up);
+}
+
 .read.suspended {
-  background: #17090b;
+  border-left: 5px solid var(--dn);
 }
 
 .rrow {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-  padding: 9px 0;
-  border-bottom: 1px dashed var(--line-subtle);
+  grid-template-columns: 15ch 1fr;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--line);
+  align-items: baseline;
 }
 
 .rrow:first-child {
-  padding-top: 2px;
+  border-top: 0;
+  padding-top: 0;
 }
 
 .rrow:last-child {
-  border-bottom: 0;
-  padding-bottom: 2px;
+  padding-bottom: 0;
+}
+
+@media (max-width: 600px) {
+  .rrow {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
 }
 
 .rkey {
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--acc);
+  color: #8bb9ff;
   text-transform: uppercase;
 }
 
@@ -640,190 +726,199 @@ button:active, .btn:active, .chatlink:active {
 }
 
 .rval {
-  color: var(--fg);
+  font-size: 11.5px;
+  color: var(--text);
   overflow-wrap: anywhere;
 }
 
-.rval b {
-  color: var(--acc);
-  font-weight: 700;
-}
-
-/* ── SCREEN 4: COLLAPSIBLE SUPPORTING DATA DRAWERS ────────────────────────── */
+/* ── DRAWERS (COLLAPSIBLE WORKSTATION CARDS) ──────────────────────────────── */
 .drawers-head {
-  margin-top: 18px;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 8px;
 }
 
 .drawers-title {
-  color: var(--muted);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: .06em;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 details.drawer {
-  margin-top: 10px;
-  border: 2px solid var(--line);
-  background: var(--inset);
+  background: var(--panel);
+  border: 1px solid var(--line-dark);
+  box-shadow: 3px 3px 0 var(--shadow);
+  margin-bottom: 10px;
 }
 
 details.drawer > summary {
-  list-style: none;
-  cursor: pointer;
-  min-height: 44px;
-  padding: 8px 12px;
-  background: var(--inset-2);
-  color: var(--fg);
-  font-weight: 700;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
-  gap: 4px 12px;
-  border-bottom: 1px solid transparent;
-}
-
-details.drawer[open] > summary {
-  border-bottom: 2px solid var(--line);
-  color: var(--acc);
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  cursor: pointer;
+  list-style: none;
+  padding: 7px 10px;
+  background: var(--panel-alt);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 details.drawer > summary::-webkit-details-marker {
   display: none;
 }
 
+details.drawer[open] > summary {
+  border-bottom: 1px solid var(--line-dark);
+}
+
 .sum-left::before {
-  content: "[+] ";
-  color: var(--acc);
+  content: "▸ ";
+  color: var(--acc-bright);
+  margin-right: 4px;
 }
 
 details.drawer[open] > summary .sum-left::before {
-  content: "[-] ";
+  content: "▾ ";
 }
 
 .sum-meta {
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--muted);
-  font-weight: 400;
 }
 
 .drawer-body {
-  padding: 12px;
+  padding: 11px 12px;
 }
 
 .plain-hint {
-  margin-bottom: 12px;
-  padding: 8px 10px;
-  border: 1px dashed var(--line);
-  background: var(--surface);
-  color: var(--muted);
-}
-
-.plain-hint b {
-  color: var(--acc);
-}
-
-.subgrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  margin-bottom: 10px;
+  padding: 7px 10px;
+  background: var(--acc-soft);
+  border: 1px solid var(--acc);
+  font-size: 11px;
+  color: var(--text);
 }
 
 .subcard {
+  background: var(--panel-stripe);
   border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 10px 12px;
+  padding: 9px 10px;
 }
 
 .subcard-head {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 6px 10px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding-bottom: 6px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--line-subtle);
-  color: var(--acc);
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
   font-weight: 700;
+  color: #8bb9ff;
   text-transform: uppercase;
 }
 
-/* Stats grid */
+/* Stats tiles */
 .stats {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 840px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stat {
+  background: var(--panel-stripe);
   border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 9px 10px;
+  padding: 7px 9px;
 }
 
 .stat .k {
-  color: var(--muted);
+  font-size: 10px;
   font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .stat .v {
-  margin-top: 3px;
-  color: var(--fg);
+  font-size: 14px;
   font-weight: 700;
+  margin: 2px 0;
+  color: var(--text);
 }
 
 .stat .hint {
-  margin-top: 3px;
+  font-size: 10.5px;
   color: var(--dim);
 }
 
-/* Data rows & bars */
+/* Rows & bars */
 .lvl {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
-  padding: 7px 0;
-  border-bottom: 1px dashed var(--line-subtle);
+  padding: 6px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 11px;
 }
 
-.lvl:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+.lvl:first-of-type {
+  border-top: 0;
+  padding-top: 2px;
 }
 
 .lvl .nm {
-  color: var(--muted);
+  font-size: 10px;
   font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
   min-width: 7ch;
 }
 
 .lvl .px {
-  color: var(--fg);
   font-weight: 700;
+  color: var(--text);
 }
 
 .bar {
-  flex: 1 1 64px;
-  min-width: 48px;
-  height: 12px;
-  border: 1px solid var(--line);
-  background: var(--inset);
+  flex: 1 1 60px;
+  min-width: 44px;
+  height: 9px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line-dark);
   overflow: hidden;
 }
 
 .bar i {
   display: block;
   height: 100%;
-  background: var(--acc);
+  background: var(--acc-bright);
 }
 
 .bar.alt i {
@@ -834,57 +929,45 @@ details.drawer[open] > summary .sum-left::before {
   border: 1px dashed var(--dim);
   background: repeating-linear-gradient(
     -45deg,
-    var(--inset),
-    var(--inset) 4px,
-    #1b3524 4px,
-    #1b3524 8px
+    var(--panel-stripe),
+    var(--panel-stripe) 4px,
+    #2e333c 4px,
+    #2e333c 8px
   );
 }
 
-.chip {
-  padding: 1px 6px;
-  border: 1px solid var(--line);
-  background: var(--inset-2);
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.chip.ok, .chip.long {
-  border-color: var(--up-line);
-  background: var(--up-bg);
-  color: var(--acc);
-  font-weight: 700;
-}
-
-.chip.short {
-  border-color: var(--warn-line);
-  background: var(--warn-bg);
-  color: var(--warn);
-}
-
-/* CVD beginner rows */
 .cvd-group {
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--line-subtle);
+  padding: 7px 0;
+  border-top: 1px dashed var(--line);
 }
 
-.cvd-group:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+.cvd-group:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.subhead {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8bb9ff;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 .cvd-line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 6px 8px;
   margin-top: 3px;
+  font-size: 11px;
 }
 
 .cvd-line .nm {
   min-width: 7ch;
-  color: var(--muted);
+  font-size: 10px;
   font-weight: 700;
+  color: var(--muted);
 }
 
 .cvd-line .px {
@@ -892,157 +975,56 @@ details.drawer[open] > summary .sum-left::before {
   font-weight: 700;
 }
 
-/* Liquidation two-column area */
-.tiers {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.subhead {
-  color: var(--acc);
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-/* 3-Verdict Quick Strip & Project F Sleeve Cards */
-.verdicts-strip {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.v-card {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 9px 10px;
-}
-
-.v-card.buy {
-  border: 2px solid var(--acc);
-  background: var(--up-bg);
-}
-
-.v-card.warn {
-  border-color: var(--warn-line);
-  background: var(--warn-bg);
-}
-
-.v-card.bad {
-  border-color: var(--dn-line);
-  background: var(--dn-bg);
-}
-
-.v-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 8px;
-  color: var(--muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.v-card.buy .v-head {
-  color: var(--acc);
-}
-
-.v-card.warn .v-head {
-  color: var(--warn);
-}
-
-.v-card.bad .v-head {
-  color: var(--dn);
-}
-
-.v-body {
-  color: var(--fg);
-  overflow-wrap: anywhere;
-}
-
 .sleeve-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   margin-top: 8px;
-}
-
-.chip.bad {
-  border-color: var(--dn-line);
-  background: var(--dn-bg);
-  color: var(--dn);
-  font-weight: 700;
 }
 
 .glossary-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .g-item {
-  border: 1px solid var(--line-subtle);
-  background: var(--surface);
-  padding: 8px 10px;
-}
-
-.g-item b {
-  color: var(--acc);
-}
-
-.up {
-  color: var(--acc);
-}
-
-.dn {
-  color: var(--dn);
-}
-
-.warn-txt {
-  color: var(--warn);
-}
-
-.dimv {
-  color: var(--dim);
+  background: var(--panel-stripe);
+  border: 1px solid var(--line);
+  padding: 7px 9px;
+  font-size: 11px;
 }
 
 .note {
-  margin-top: 10px;
+  margin-top: 8px;
+  font-size: 11px;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
 
 /* Footer */
-footer {
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 2px solid var(--line);
-  color: var(--dim);
-}
-
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+footer.ws-foot {
+  background: var(--panel);
+  border: 1px solid var(--line-dark);
+  box-shadow: 3px 3px 0 var(--shadow);
+  padding: 10px 12px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 #probs {
-  margin-top: 10px;
+  margin-top: 8px;
   border: 1px solid var(--line);
-  background: var(--inset);
+  background: var(--panel-stripe);
 }
 
 #probs > summary {
-  list-style: none;
   cursor: pointer;
-  min-height: 44px;
-  padding: 8px 10px;
-  color: var(--muted);
+  list-style: none;
+  padding: 6px 9px;
+  font-size: 10.5px;
   font-weight: 700;
-  display: flex;
-  align-items: center;
+  color: var(--text);
 }
 
 #probs > summary::-webkit-details-marker {
@@ -1050,343 +1032,258 @@ footer {
 }
 
 #probs > summary::before {
-  content: "[+] ";
-  color: var(--acc);
-  margin-right: 6px;
+  content: "▸ ";
+  color: var(--acc-bright);
+  margin-right: 4px;
 }
 
 #probs[open] > summary::before {
-  content: "[-] ";
+  content: "▾ ";
 }
 
 #probsBody {
-  padding: 10px;
-  border-top: 1px dashed var(--line-subtle);
-  color: var(--fg);
+  padding: 8px 9px;
+  border-top: 1px dashed var(--line);
+  font-size: 10.5px;
+  color: var(--text);
   overflow-wrap: anywhere;
-}
-
-/* ── RESPONSIVE BREAKPOINTS ───────────────────────────────────────────────── */
-@media (min-width: 600px) {
-  .rrow {
-    grid-template-columns: 16ch 1fr;
-    gap: 10px;
-    align-items: baseline;
-  }
-  .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .tiers {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-}
-
-@media (min-width: 860px) {
-  .atm-wrap {
-    padding: 0 18px;
-  }
-  .atm-chassis {
-    padding: 16px;
-  }
-  .price-grid {
-    grid-template-columns: 0.9fr 1.1fr;
-  }
-  .checks-list, .verdicts-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .subgrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (min-width: 900px) {
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::after {
-    display: none;
-  }
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
 }
 </style>
 </head>
 <body>
-
-<div class="status-bar">
-  <div id="state" role="status" aria-live="polite">
-    <div class="b1">[!!] CHECKING DATA... DO NOT ACT UNTIL PACKET LOADS</div>
-    <div class="b2">Waiting for verified data packet before showing any status.</div>
-  </div>
-</div>
-
-<div class="atm-wrap">
-  <div class="atm-chassis">
-
-    <header class="atm-head">
-      <span class="brand">SALAM PRO MAX ATM // BTC-USDT SPOT <span class="ver" id="ver"></span></span>
-      <span id="age">LOADING...</span>
+<div class="wrap">
+  <div class="ws-titlebar">
+    <span class="ws-brand">&#9632; SALAM PRO MAX <span id="ver">v1.7</span> &middot; QUANT WORKSTATION</span>
+    <div class="ws-title-right">
+      <span id="age">LOADING…</span>
       <span class="ts" id="ts">WAITING FOR TIMESTAMP</span>
-      <span class="spacer"></span>
-    </header>
+    </div>
+  </div>
 
-    <main>
-      <!-- SCREEN 1: 5-SECOND QUICK GLANCE -->
-      <section class="screen" id="glanceScreen">
-        <div class="screen-bar">
-          <span>SCREEN 1 // 5-SECOND QUICK GLANCE</span>
-          <span class="tag">3 VERDICTS · SHOULD YOU COPY TO AI NOW?</span>
-        </div>
-        <div class="screen-body">
-          <div id="glanceVerdict" class="verdict-box wait">
-            <div class="verdict-main">CHECKING PACKET...</div>
-            <div class="verdict-sub">Loading latest market snapshot and rules.</div>
-          </div>
-
-          <div class="verdicts-strip" id="threeVerdicts">
-            <div class="v-card" id="v1Card">
-              <div class="v-head"><span>VERDICT 1 // SALAM</span><span id="v1Badge">—</span></div>
-              <div class="v-body" id="v1Body">Checking...</div>
-            </div>
-            <div class="v-card" id="v2Card">
-              <div class="v-head"><span>VERDICT 2 // SLEEVE #1 (4H · 80%)</span><span id="v2Badge">—</span></div>
-              <div class="v-body" id="v2Body">Checking...</div>
-            </div>
-            <div class="v-card" id="v3Card">
-              <div class="v-head"><span>VERDICT 3 // SLEEVE #2 (1D · 20%)</span><span id="v3Badge">—</span></div>
-              <div class="v-body" id="v3Body">Checking...</div>
-            </div>
-          </div>
-
-          <div class="price-grid">
-            <div class="panel">
-              <div class="panel-label">CURRENT BTC PRICE</div>
-              <div class="price-row">
-                <span id="livetag">[LIVE]</span>
-                <span id="live">—</span>
-              </div>
-              <div id="pkt">Packet loading...</div>
-            </div>
-
-            <div class="panel" id="loc">
-              <div class="panel-label">WHERE PRICE SITS RIGHT NOW</div>
-              <div id="locBody">—</div>
-              <div id="posGauge"></div>
-            </div>
-          </div>
-
-          <div class="checks-list">
-            <div class="check-item" id="alertCard">
-              <div class="check-head">
-                <span>1. 5-MIN SPEED</span>
-                <span>WATCH +/-$500</span>
-              </div>
-              <div id="alertBig">—</div>
-              <div class="alertrow" id="alertTiers"></div>
-              <div id="alertNote">Waiting for price history...</div>
-            </div>
-
-            <div class="check-item">
-              <div class="check-head">
-                <span>2. LAST-HOUR BREAK</span>
-                <span>POKE &amp; BOUNCE</span>
-              </div>
-              <div id="sweep">—</div>
-            </div>
-
-            <div class="check-item">
-              <div class="check-head">
-                <span>3. BUY / SELL STATUS</span>
-                <span>RULE CHECK</span>
-              </div>
-              <div id="quickStatus">Checking...</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SCREEN 2: ATM ACTION KEYPAD -->
-      <section class="screen">
-        <div class="screen-bar">
-          <span>SCREEN 2 // ATM ACTION KEYPAD</span>
-          <span class="tag">SEND TO YOUR AI</span>
-        </div>
-        <div class="screen-body">
-          <div class="keypad-row">
-            <button id="copy" class="btn-primary" type="button">[ &gt; ] COPY DATA PACKET FOR AI</button>
-            <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener">[ &gt; ] RUN FRESH UPDATE (GITHUB)</a>
-            <span id="copyState" aria-live="polite"></span>
-          </div>
-
-          <div class="steps-guide">
-            <div class="step-line"><b>STEP 1:</b> Press <b>[ &gt; ] COPY DATA PACKET FOR AI</b> above.</div>
-            <div class="ai-keys">
-              <span class="step-line"><b>STEP 2:</b> Open an AI -&gt;</span>
-              <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">[ CHATGPT ]</a>
-              <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">[ CLAUDE ]</a>
-              <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">[ GEMINI ]</a>
-              <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">[ DEEPSEEK ]</a>
-            </div>
-            <div class="step-line"><b>STEP 3:</b> Paste the packet and send (ask: <b>"Read this packet and give me the 3 verdicts (SALAM, Sleeve #1, and Sleeve #2) right now."</b>).</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SCREEN 3: PLAIN-ENGLISH RULES -->
-      <section class="screen read" id="readCard">
-        <div class="screen-bar">
-          <span>SCREEN 3 // WHAT THE RULES SAY</span>
-          <span class="tag">RULES ONLY · NO GUESSING</span>
-        </div>
-        <div class="screen-body" id="read">
-          <div class="rrow">
-            <span class="rkey">STATUS</span>
-            <span class="rval">Loading rule check...</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- SCREEN 4: SUPPORTING DATA DRAWERS -->
-      <div class="drawers-head">
-        <span class="drawers-title">SCREEN 4 // SUPPORTING DATA DRAWERS</span>
-        <button id="toggleAll" type="button">[ + ] EXPAND ALL DETAILS</button>
+  <header class="topbar">
+    <div class="brand">
+      <div class="page-head-row">
+        <h1>BTC 1.0x Spot Workstation (3 Verdicts)</h1>
+        <span class="badge fresh">SPOT ONLY · NO LEVERAGE</span>
       </div>
+      <div class="page-purpose">Start with the 3-Verdict summary below, then click Copy to send the packet to an AI for full analysis.</div>
+    </div>
+    <div class="live-bar">
+      <div>
+        <span class="dot" id="liveDot"></span>
+        <span id="livetag">LIVE</span>
+      </div>
+      <div id="live">—</div>
+      <div id="pkt">packet loading…</div>
+    </div>
+  </header>
 
-      <!-- Drawer 0: Project F Systematic Sleeves (Open by default) -->
-      <details class="drawer" open>
-        <summary>
-          <span class="sum-left">PROJECT F // SYSTEMATIC SLEEVES #1 (80%) &amp; #2 (20%)</span>
-          <span class="sum-meta" id="sumSleeves">Loading sleeves...</span>
-        </summary>
-        <div class="drawer-body">
-          <div class="plain-hint"><b>In plain English:</b> Two strict rule-based Spot engines tested on 5.9 years of Bitcoin history. They use only closed Binance Spot candles and never stop if futures data goes down.</div>
-          <div class="subgrid">
-            <div class="subcard" id="sleeve1Box">
-              <div class="subcard-head"><span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span><span class="chip">—</span></div>
-              <div class="dimv">Loading Sleeve #1...</div>
-            </div>
-            <div class="subcard" id="sleeve2Box">
-              <div class="subcard-head"><span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span><span class="chip">—</span></div>
-              <div class="dimv">Loading Sleeve #2...</div>
-            </div>
-          </div>
-          <div class="note">
-            <b>80/20 Rebalance Rule:</b> Keep separate ledgers for Sleeve #1 (80%) and Sleeve #2 (20%, hard cap 15%–20%). Check weights every Jan 1, Apr 1, Jul 1, and Oct 1 at 00:00 UTC (08:00 SGT) and rebalance only if drift goes outside 77%–83% (+/-3%).
-          </div>
+  <div id="state" role="status" aria-live="polite">
+    <div class="b1">[!!] CHECKING DATA… DO NOT ACT UNTIL PACKET LOADS</div>
+    <div class="b2">Waiting for verified market snapshot before showing status.</div>
+  </div>
+
+  <!-- COPY & AI HANDOFF BAR -->
+  <section class="card">
+    <h2><span class="h2-title">Action Bar &amp; AI Handoff</span><span class="badge">STEP 1–3 FOR BEGINNERS</span></h2>
+    <div class="actions">
+      <button id="copy" class="btn-primary" type="button">[Copy Data Packet for AI]</button>
+      <a class="btn" href="https://github.com/aikeluargalee-tech/Salam/actions/workflows/salam.yml" target="_blank" rel="noopener">[Run Fresh Update]</a>
+      <span id="copyState" aria-live="polite"></span>
+    </div>
+    <div class="handoff-strip">
+      <span><b>1.</b> Click Copy</span>
+      <span><b>2.</b> Open AI:</span>
+      <a class="chatlink" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
+      <a class="chatlink" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a>
+      <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a>
+      <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
+      <span><b>3.</b> Paste and ask: <i>"Read this packet and give me the 3 verdicts (SALAM, Sleeve #1, and Sleeve #2) right now."</i></span>
+    </div>
+  </section>
+
+  <!-- 5-SECOND QUICK GLANCE + 3 VERDICTS -->
+  <section class="card" id="glanceScreen">
+    <h2><span class="h2-title">5-Second Quick Glance · Should You Copy To AI?</span><span class="badge fresh">3 VERDICTS</span></h2>
+    <div id="glanceVerdict" class="verdict-box wait">
+      <div class="verdict-main">Checking packet…</div>
+      <div class="verdict-sub">Loading latest snapshot and rules.</div>
+    </div>
+
+    <div class="verdicts-strip" id="threeVerdicts">
+      <div class="v-card" id="v1Card">
+        <div class="v-head"><span>Verdict 1 · SALAM</span><span id="v1Badge">—</span></div>
+        <div class="v-body" id="v1Body">Checking…</div>
+      </div>
+      <div class="v-card" id="v2Card">
+        <div class="v-head"><span>Verdict 2 · Sleeve #1 (4H · 80%)</span><span id="v2Badge">—</span></div>
+        <div class="v-body" id="v2Body">Checking…</div>
+      </div>
+      <div class="v-card" id="v3Card">
+        <div class="v-head"><span>Verdict 3 · Sleeve #2 (1D · 20%)</span><span id="v3Badge">—</span></div>
+        <div class="v-body" id="v3Body">Checking…</div>
+      </div>
+    </div>
+
+    <div class="panel-inset" id="loc">
+      <div class="panel-kicker">Where Price Sits Between Nearest Floor &amp; Ceiling</div>
+      <div id="locBody">—</div>
+      <div id="posGauge"></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="check-item" id="alertCard">
+        <div class="check-head"><span>1. 5-Min Speed</span><span>Alert +/-$500</span></div>
+        <div id="alertBig">—</div>
+        <div class="alertrow" id="alertTiers"></div>
+        <div id="alertNote">Waiting for price history…</div>
+      </div>
+      <div class="check-item">
+        <div class="check-head"><span>2. Last-Hour Break</span><span>Poke &amp; Bounce</span></div>
+        <div id="sweep">—</div>
+      </div>
+      <div class="check-item">
+        <div class="check-head"><span>3. SALAM Buy / Sell</span><span>Rule Check</span></div>
+        <div id="quickStatus">Checking…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT THE RULES SAY -->
+  <section class="card read" id="readCard">
+    <h2><span class="h2-title">What The SALAM Rules Say (Plain English)</span><span class="badge">RULES ONLY · NO FORECAST</span></h2>
+    <div id="read">
+      <div class="rrow"><span class="rkey">STATUS</span><span class="rval">Loading rule check…</span></div>
+    </div>
+  </section>
+
+  <!-- SUPPORTING DATA DRAWERS -->
+  <div class="drawers-head">
+    <span class="drawers-title">Supporting Data Drawers</span>
+    <button id="toggleAll" type="button">[+] Expand All Details</button>
+  </div>
+
+  <!-- Drawer 0: Project F Sleeves (Open) -->
+  <details class="drawer" open>
+    <summary>
+      <span class="sum-left">Project F · Systematic Sleeves #1 (80%) &amp; #2 (20%)</span>
+      <span class="sum-meta" id="sumSleeves">Loading sleeves…</span>
+    </summary>
+    <div class="drawer-body">
+      <div class="plain-hint"><b>In plain English:</b> Two rule-based Spot engines tested on 5.9 years of Bitcoin history. They use closed Binance Spot candles only and stay active even when futures data is down.</div>
+      <div class="grid-2">
+        <div class="subcard" id="sleeve1Box">
+          <div class="subcard-head"><span>Sleeve #1 · 4H VWAP Shield (80%)</span><span class="chip">—</span></div>
+          <div class="dimv">Loading Sleeve #1…</div>
         </div>
-      </details>
-
-      <!-- Drawer 1 (Open by default) -->
-      <details class="drawer" open>
-        <summary>
-          <span class="sum-left">KEY PRICE FLOORS &amp; CEILINGS</span>
-          <span class="sum-meta" id="sumLevels">Loading levels...</span>
-        </summary>
-        <div class="drawer-body">
-          <div class="plain-hint"><b>In plain English:</b> Floors are areas where buyers stepped in before. Ceilings are areas where sellers stepped in before.</div>
-          <div class="subcard" style="margin-bottom:12px;">
-            <div class="subcard-head">
-              <span>NEAREST BUY &amp; SELL ZONES</span>
-              <span class="chip" id="insidechip">—</span>
-            </div>
-            <div id="bands"></div>
-            <div class="note" id="bandsnote">Scores rate how many clues agree on a zone (out of 10).</div>
-          </div>
-
-          <div class="subgrid">
-            <div class="subcard">
-              <div class="subcard-head"><span>BIG FLOORS &amp; CEILINGS (NEAREST 3)</span></div>
-              <div id="macro"></div>
-            </div>
-            <div class="subcard">
-              <div class="subcard-head"><span>BUSIEST TRADING AREAS</span></div>
-              <div id="vp"></div>
-            </div>
-          </div>
+        <div class="subcard" id="sleeve2Box">
+          <div class="subcard-head"><span>Sleeve #2 · 1D TTM Squeeze (20%)</span><span class="chip">—</span></div>
+          <div class="dimv">Loading Sleeve #2…</div>
         </div>
-      </details>
-
-      <!-- Drawer 2 (Collapsed by default) -->
-      <details class="drawer">
-        <summary>
-          <span class="sum-left">MARKET HEALTH &amp; WHO IS BUYING</span>
-          <span class="sum-meta" id="sumHealth">Loading metrics...</span>
-        </summary>
-        <div class="drawer-body">
-          <div class="plain-hint"><b>In plain English:</b> Shows whether normal coin buyers (Spot) or borrowed-money traders (Futures) are driving price.</div>
-          <div class="stats" id="stats"></div>
-          <div class="subcard">
-            <div class="subcard-head"><span>SPOT VS FUTURES BUYING PRESSURE</span></div>
-            <div id="cvd"></div>
-            <div class="note" id="cvdnote"></div>
-          </div>
-        </div>
-      </details>
-
-      <!-- Drawer 3 (Collapsed by default) -->
-      <details class="drawer">
-        <summary>
-          <span class="sum-left">ESTIMATED LIQUIDATION MAP [ESTIMATED]</span>
-          <span class="sum-meta" id="sumLiq">Loading map...</span>
-        </summary>
-        <div class="drawer-body">
-          <div class="plain-hint"><b>In plain English:</b> Prices where borrowed-money traders may get forced out, causing fast price spikes. Dollar sizes are estimates, not measurements.</div>
-          <div class="tiers">
-            <div class="subcard">
-              <div class="subhead">ABOVE PRICE · SHORTS FORCED TO BUY</div>
-              <div id="liqUp"></div>
-            </div>
-            <div class="subcard">
-              <div class="subhead">BELOW PRICE · LONGS FORCED TO SELL</div>
-              <div id="liqDn"></div>
-            </div>
-          </div>
-          <div class="note" id="liqnote"></div>
-        </div>
-      </details>
-
-      <!-- Drawer 4 (Collapsed by default) -->
-      <details class="drawer">
-        <summary>
-          <span class="sum-left">BEGINNER GLOSSARY — 6 TERMS IN 30 SECONDS</span>
-          <span class="sum-meta">PLAIN DEFINITIONS</span>
-        </summary>
-        <div class="drawer-body">
-          <div class="glossary-list">
-            <div class="g-item"><b>SPOT VS FUTURES:</b> Spot is buying real Bitcoin directly. Futures is betting on price with borrowed money (often moves faster and reverses sharply).</div>
-            <div class="g-item"><b>FLOOR &amp; CEILING:</b> A floor (support) is a price area where drops previously bounced. A ceiling (resistance) is a price area where rallies previously stalled.</div>
-            <div class="g-item"><b>SWEEP (POKE &amp; BOUNCE):</b> Price briefly pokes past a floor or ceiling and closes right back inside — a sign of trapped traders.</div>
-            <div class="g-item"><b>FUNDING RATE:</b> Small fee paid between futures buyers and sellers. High positive means many traders are betting on up moves; negative means many bet down.</div>
-            <div class="g-item"><b>LIQUIDATIONS:</b> Forced closes when a trader with borrowed money runs out of margin (10x–100x leverage). Clusters act like magnets for fast wicks.</div>
-            <div class="g-item"><b>WHY "WAIT" IS COMMON:</b> Most hours have no valid trigger. Staying patient protects you from buying or selling in the middle of noise.</div>
-          </div>
-        </div>
-      </details>
-    </main>
-
-    <footer>
-      <div class="footer-links">
-        <a id="lmd" href="SALAM_DATA_HUB.md">[ RAW TEXT: SALAM_DATA_HUB.md ]</a>
-        <a id="ljson" href="SALAM_DATA_HUB.json">[ RAW JSON: SALAM_DATA_HUB.json ]</a>
       </div>
       <div class="note">
-        No third-party libraries. Only completed candles. Anything missing prints UNAVAILABLE instead of a guess. Liquidation amounts are estimated, not measured.
+        <b>80/20 Rebalance Rule:</b> Keep separate ledgers for Sleeve #1 (80%) and Sleeve #2 (20%, hard cap 15%–20%). Check weights every Jan 1, Apr 1, Jul 1, and Oct 1 at 00:00 UTC (08:00 SGT) and rebalance only if drift goes outside 77%–83% (+/-3%).
       </div>
-      <details id="probs">
-        <summary>SYSTEM LOG / WARNINGS (<span id="probsCount">0</span>)</summary>
-        <div id="probsBody">none</div>
-      </details>
-    </footer>
+    </div>
+  </details>
 
-  </div>
+  <!-- Drawer 1: Key Floors & Ceilings (Open) -->
+  <details class="drawer" open>
+    <summary>
+      <span class="sum-left">Key Price Floors &amp; Ceilings</span>
+      <span class="sum-meta" id="sumLevels">Loading levels…</span>
+    </summary>
+    <div class="drawer-body">
+      <div class="plain-hint"><b>In plain English:</b> Floors are areas where buyers stepped in before. Ceilings are areas where sellers stepped in before.</div>
+      <div class="subcard" style="margin-bottom:10px;">
+        <div class="subcard-head">
+          <span>Nearest Buy &amp; Sell Zones</span>
+          <span class="chip" id="insidechip">—</span>
+        </div>
+        <div id="bands"></div>
+        <div class="note" id="bandsnote">Scores rate how many clues agree on a zone (out of 10).</div>
+      </div>
+      <div class="grid-2">
+        <div class="subcard">
+          <div class="subcard-head"><span>Big Floors &amp; Ceilings (Nearest 3)</span></div>
+          <div id="macro"></div>
+        </div>
+        <div class="subcard">
+          <div class="subcard-head"><span>Busiest Trading Areas</span></div>
+          <div id="vp"></div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Drawer 2: Market Health & CVD (Collapsed) -->
+  <details class="drawer">
+    <summary>
+      <span class="sum-left">Market Health &amp; Who Is Buying</span>
+      <span class="sum-meta" id="sumHealth">Loading metrics…</span>
+    </summary>
+    <div class="drawer-body">
+      <div class="plain-hint"><b>In plain English:</b> Shows whether direct coin buyers (Spot) or borrowed-money traders (Futures) are driving price.</div>
+      <div class="stats" id="stats"></div>
+      <div class="subcard">
+        <div class="subcard-head"><span>Spot vs Futures Buying Pressure</span></div>
+        <div id="cvd"></div>
+        <div class="note" id="cvdnote"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Drawer 3: Liquidations (Collapsed) -->
+  <details class="drawer">
+    <summary>
+      <span class="sum-left">Estimated Liquidation Map [Estimated]</span>
+      <span class="sum-meta" id="sumLiq">Loading map…</span>
+    </summary>
+    <div class="drawer-body">
+      <div class="plain-hint"><b>In plain English:</b> Prices where borrowed-money traders may get forced out, causing fast spikes. Dollar amounts are estimates, not measurements.</div>
+      <div class="grid-2">
+        <div class="subcard">
+          <div class="subhead">Above Price · Shorts Forced To Buy</div>
+          <div id="liqUp"></div>
+        </div>
+        <div class="subcard">
+          <div class="subhead">Below Price · Longs Forced To Sell</div>
+          <div id="liqDn"></div>
+        </div>
+      </div>
+      <div class="note" id="liqnote"></div>
+    </div>
+  </details>
+
+  <!-- Drawer 4: Beginner Glossary (Collapsed) -->
+  <details class="drawer">
+    <summary>
+      <span class="sum-left">Beginner Glossary — 6 Terms In 30 Seconds</span>
+      <span class="sum-meta">Plain Definitions</span>
+    </summary>
+    <div class="drawer-body">
+      <div class="glossary-list">
+        <div class="g-item"><b>Spot vs Futures:</b> Spot is buying real Bitcoin directly. Futures is betting on price with borrowed money (faster moves and sharp reversals).</div>
+        <div class="g-item"><b>Floor &amp; Ceiling:</b> A floor (support) is where drops previously bounced. A ceiling (resistance) is where rallies previously stalled.</div>
+        <div class="g-item"><b>Sweep (Poke &amp; Bounce):</b> Price briefly pokes past a floor or ceiling and closes back inside — trapping late traders.</div>
+        <div class="g-item"><b>Funding Rate:</b> Small fee between futures buyers and sellers. Positive means more bets on up moves; negative means more bets down.</div>
+        <div class="g-item"><b>Liquidations:</b> Forced closes when leveraged traders (10x–100x) run out of margin. Clusters act like short-term magnets.</div>
+        <div class="g-item"><b>Why "Wait" Is Common:</b> Most hours have no trigger. Waiting protects you from trading noise in the middle of a range.</div>
+      </div>
+    </div>
+  </details>
+
+  <footer class="ws-foot">
+    <div class="actions">
+      <a class="btn" id="lmd" href="SALAM_DATA_HUB.md">SALAM_DATA_HUB.md</a>
+      <a class="btn" id="ljson" href="SALAM_DATA_HUB.json">SALAM_DATA_HUB.json</a>
+      <span>No third-party JS libraries · Closed bars only · Missing data shows UNAVAILABLE · Liquidation dollars are estimated.</span>
+    </div>
+    <details id="probs">
+      <summary>System Log / Warnings (<span id="probsCount">0</span>)</summary>
+      <div id="probsBody">none</div>
+    </details>
+  </footer>
 </div>
 
 <script>
@@ -1456,13 +1353,13 @@ function renderAlert() {
   const m = move5m();
   const card = $('alertCard'), big = $('alertBig');
   const NAMES = {notable: 'warn', cascade: 'big', extreme: 'extreme'};
-  $('alertTiers').innerHTML = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name}: +/-${money(t.usd)}`).join(' | ')}</span>`;
+  $('alertTiers').innerHTML = `<span class="tier">${ALERT_TIERS.map(t => `${NAMES[t.name] || t.name}: +/-${money(t.usd)}`).join(' · ')}</span>`;
 
   if (!m) {
-    big.textContent = 'WAITING...';
+    big.textContent = 'WAITING…';
     big.className = '';
     card.className = 'check-item';
-    $('alertNote').textContent = 'Collecting live 5-min prices...';
+    $('alertNote').textContent = 'Collecting live 5-min prices…';
     renderGlance();
     return;
   }
@@ -1470,21 +1367,21 @@ function renderAlert() {
   const abs = Math.abs(m.move);
   const hit = [...ALERT_TIERS].reverse().find(t => abs >= t.usd) || null;
   const arrow = m.move >= 0 ? '▲' : '▼';
-  big.textContent = `${arrow} ${m.move >= 0 ? '+' : '-'}${money(abs)} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%) in ${m.full ? '5' : Math.max(1, Math.round(m.span))} min`;
+  big.textContent = `${arrow} ${m.move >= 0 ? '+' : '-'}${money(abs)} (${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%) in ${m.full ? '5' : Math.max(1, Math.round(m.span))}m`;
   big.className = hit ? hit.cls : '';
   card.className = 'check-item' + (hit ? ' ' + hit.cls : '');
 
   if (hit) {
     lastAlert[hit.name] = {t: Date.now(), move: m.move};
-    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM PRO MAX ATM`;
-  } else if (document.title !== 'SALAM PRO MAX ATM · BTC spot data packet') {
-    document.title = 'SALAM PRO MAX ATM · BTC spot data packet';
+    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM PRO MAX`;
+  } else if (document.title !== 'SALAM PRO MAX · BTC Quant Workstation') {
+    document.title = 'SALAM PRO MAX · BTC Quant Workstation';
   }
 
   const last = ALERT_TIERS.map(t => lastAlert[t.name]).filter(Boolean).sort((a, b) => b.t - a.t)[0];
   $('alertNote').innerHTML = [
-    m.full ? 'Normal calm 5-min move is around $61.' : `History is ${Math.max(1, Math.round(m.span))} min old — still warming up.`,
-    last ? `Last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '-'}${money(Math.abs(last.move))}).` : 'No sudden spikes yet.'
+    m.full ? 'Calm 5m avg is ~$61.' : `${Math.max(1, Math.round(m.span))}m warm-up.`,
+    last ? `Last alert ${sgtTime(new Date(last.t))} SGT (${last.move >= 0 ? '+' : '-'}${money(Math.abs(last.move))}).` : 'No sudden spikes.'
   ].join(' ');
 
   renderGlance();
@@ -1515,14 +1412,15 @@ async function tickLive() {
       renderAlert();
       $('live').textContent = '$' + fmt(p);
       $('live').classList.remove('frozen');
-      $('livetag').textContent = '[LIVE]';
+      $('livetag').textContent = `LIVE [${src}]`;
       $('livetag').classList.remove('snap');
+      $('liveDot').classList.add('live');
       liveOK = true;
       const nowSgt = sgtTime(new Date());
       const drift = (isNum(packetPrice) && Number(packetPrice) !== 0) ? (p / Number(packetPrice) - 1) * 100 : null;
-      $('pkt').textContent = `Live ${nowSgt} SGT [${src}]`
+      $('pkt').textContent = `${nowSgt} SGT`
         + (drift === null ? '' : ` (${drift >= 0 ? '+' : ''}${drift.toFixed(2)}% vs snapshot)`)
-        + (isNum(packetPrice) ? ` · Snapshot ${money(packetPrice)} [${packetSrc}]` : '');
+        + (isNum(packetPrice) ? ` · Snap ${money(packetPrice)} [${packetSrc}]` : '');
       $('pkt').classList.toggle('stale', drift !== null && Math.abs(drift) > 0.4);
       return;
     } catch (e) { /* next venue */ }
@@ -1530,10 +1428,11 @@ async function tickLive() {
   liveOK = false;
   $('live').textContent = isNum(packetPrice) ? '$' + fmt(packetPrice) : '—';
   $('live').classList.add('frozen');
-  $('livetag').textContent = '[SNAPSHOT]';
+  $('livetag').textContent = 'SNAPSHOT';
   $('livetag').classList.add('snap');
+  $('liveDot').classList.remove('live');
   $('pkt').textContent = isNum(packetPrice)
-    ? `Snapshot ${money(packetPrice)} [${packetSrc}] · Live ticker unavailable`
+    ? `${money(packetPrice)} [${packetSrc}] · Live ticker unavailable`
     : 'No live or snapshot price available';
 }
 
@@ -1553,12 +1452,10 @@ function bandBounds(b) {
 
 function renderGlance() {
   const box = $('glanceVerdict');
-  const screen = $('glanceScreen');
   if (!lastPacket) {
     box.className = 'verdict-box wait';
-    box.innerHTML = `<div class="verdict-main">CHECKING PACKET...</div>
+    box.innerHTML = `<div class="verdict-main">Checking packet…</div>
       <div class="verdict-sub">Waiting for verified market data before giving a read.</div>`;
-    screen.className = 'screen';
     return;
   }
 
@@ -1579,7 +1476,6 @@ function renderGlance() {
       box.className = 'verdict-box active';
       box.innerHTML = `<div class="verdict-main">DECISION: PROJECT F TRIGGERED (SALAM INCOMPLETE) — COPY TO AI FOR SLEEVES #1/#2</div>
         <div class="verdict-sub">${fired.join(' · ')}. SALAM tactical rules stay suspended while futures flow is incomplete.</div>`;
-      screen.className = 'screen';
       return;
     }
     const why = state === 'PARTIAL'
@@ -1590,15 +1486,14 @@ function renderGlance() {
     box.className = state === 'PARTIAL' ? 'verdict-box wait' : 'verdict-box stop';
     box.innerHTML = `<div class="verdict-main">DECISION: WAIT — DATA IS INCOMPLETE (NO NEED TO COPY YET)</div>
       <div class="verdict-sub">${why} Neither Project F sleeve triggered a BUY (+1).</div>`;
-    screen.className = state === 'PARTIAL' ? 'screen warn' : 'screen bad';
     return;
   }
 
   const price = isNum(d.price) ? Number(d.price) : null;
   const supB = bandBounds(d.sup_band);
   const resB = bandBounds(d.res_band);
-  const supLo = supB ? supB.hi : null;   // top edge of floor (met first on drop)
-  const resHi = resB ? resB.lo : null;   // bottom edge of ceiling (met first on rise)
+  const supLo = supB ? supB.hi : null;
+  const resHi = resB ? resB.lo : null;
   const sw = d.sweep || {};
   const flag = String(sw.flag || '');
   const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
@@ -1630,7 +1525,6 @@ function renderGlance() {
     box.className = 'verdict-box active';
     box.innerHTML = `<div class="verdict-main">DECISION: ACTIVE MOMENT — GOOD TIME TO COPY TO AI</div>
       <div class="verdict-sub">${reasons.join(' · ')}.</div>`;
-    screen.className = 'screen';
   } else {
     const quietParts = [];
     if (gap !== null) quietParts.push(`Sell zone is +${gap.toFixed(1)}% higher at ${fmt(resHi)}`);
@@ -1641,7 +1535,6 @@ function renderGlance() {
     box.className = 'verdict-box quiet';
     box.innerHTML = `<div class="verdict-main">DECISION: QUIET MARKET — NOTHING TRIGGERED YET</div>
       <div class="verdict-sub">${quietParts.join(' · ')}.</div>`;
-    screen.className = 'screen';
   }
 }
 
@@ -1692,7 +1585,7 @@ function renderSleeves(d, state) {
 
     $('sleeve1Box').innerHTML = `
       <div class="subcard-head">
-        <span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span>
+        <span>Sleeve #1 · 4H VWAP Shield (80%)</span>
         <span class="chip ${sig1 === 1 ? 'ok' : ''}">${esc(st1.action || '—')} (${sig1 > 0 ? '+1' : sig1})</span>
       </div>
       <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind1.close_price, 2)}</span><span class="dimv">${esc(bar1.close_sgt || '')} (${isNum(s1.bars_analyzed) ? s1.bars_analyzed : '?'} bars)</span></div>
@@ -1712,7 +1605,7 @@ function renderSleeves(d, state) {
     v2c.className = 'v-card bad';
     v2b.textContent = 'UNAVAILABLE';
     v2t.textContent = s1.reason || 'Sleeve #1 spot data missing.';
-    $('sleeve1Box').innerHTML = `<div class="subcard-head"><span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span><span class="chip bad">UNAVAILABLE</span></div>
+    $('sleeve1Box').innerHTML = `<div class="subcard-head"><span>Sleeve #1 · 4H VWAP Shield (80%)</span><span class="chip bad">UNAVAILABLE</span></div>
       <div class="dimv">${esc(s1.reason || 'Insufficient closed 4H Spot candles.')}</div>`;
   }
 
@@ -1730,7 +1623,7 @@ function renderSleeves(d, state) {
 
     $('sleeve2Box').innerHTML = `
       <div class="subcard-head">
-        <span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span>
+        <span>Sleeve #2 · 1D TTM Squeeze (20%)</span>
         <span class="chip ${sig2 === 1 ? 'ok' : ''}">${esc(st2.action || '—')} (${sig2 > 0 ? '+1' : sig2})</span>
       </div>
       <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind2.close_price, 2)}</span><span class="dimv">${esc(bar2.close_sgt || '')} (${isNum(s2.bars_analyzed) ? s2.bars_analyzed : '?'} bars)</span></div>
@@ -1751,7 +1644,7 @@ function renderSleeves(d, state) {
     v3c.className = 'v-card bad';
     v3b.textContent = 'UNAVAILABLE';
     v3t.textContent = s2.reason || 'Sleeve #2 daily data missing.';
-    $('sleeve2Box').innerHTML = `<div class="subcard-head"><span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span><span class="chip bad">UNAVAILABLE</span></div>
+    $('sleeve2Box').innerHTML = `<div class="subcard-head"><span>Sleeve #2 · 1D TTM Squeeze (20%)</span><span class="chip bad">UNAVAILABLE</span></div>
       <div class="dimv">${esc(s2.reason || 'Insufficient closed 1D Spot candles.')}</div>`;
   }
 
@@ -1835,13 +1728,13 @@ function render(d) {
     : (d.price_src === 'TICKER' ? 'Binance' : 'source unknown');
 
   $('pkt').textContent = price !== null
-    ? `Snapshot ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
+    ? `Snap ${money(price)} [${packetSrc}] · ${generated ? sgtTime(generated) + ' SGT' : 'time unknown'}`
     : 'Snapshot —';
 
   if (!liveOK) {
     $('live').textContent = price !== null ? '$' + fmt(price) : '—';
     $('live').classList.add('frozen');
-    $('livetag').textContent = '[SNAPSHOT]';
+    $('livetag').textContent = 'SNAPSHOT';
     $('livetag').classList.add('snap');
   }
 
@@ -1860,17 +1753,17 @@ function render(d) {
       'Prices and buying/selling data are live (spot from Binance, futures from OKX).'],
     MANUAL: [`[OK] HAND-UPDATED DATA @ ${esc(d.manual_at) || '—'} — SAFE TO COPY TO AI`,
       'You typed in the futures number from a screenshot and verified it yourself.'],
-    PARTIAL: ['[WAIT] HALF DATA ONLY — NO TRADE PLANS YET',
-      `Price levels are live, but futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}. No entry, stop, or size is published.`],
-    NONE: ['[STOP] FUTURES DATA MISSING — PRICE MAP ONLY',
-      'We cannot measure who is buying futures right now. Price levels stay visible, trade plans stay locked.'],
+    PARTIAL: ['[WAIT] HALF DATA ONLY — SALAM PLANS LOCKED',
+      `Price levels are live, but futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}. Project F Sleeves #1/#2 stay live.`],
+    NONE: ['[STOP] FUTURES DATA MISSING — SALAM PRICE MAP ONLY',
+      'Futures buying/selling data is unavailable. SALAM plans stay locked while Project F Sleeves #1/#2 stay live.'],
     UNKNOWN: [`[ERROR] UNREADABLE PACKET${d.exec_state ? ' (' + esc(d.exec_state) + ')' : ''} — DO NOT TRUST`,
       'The packet arrived without a valid quality flag. Treated as unsafe: levels only, plans withheld.'],
   };
   const [line1, line2] = BANNER[state];
   st.innerHTML = `<div class="b1">${line1}</div><div class="b2">${line2}</div>`;
 
-  // Quick status + Screen 3 plain-English rules
+  // Quick status + Plain-English Rules
   const suspended = !(state === 'FULL' || state === 'MANUAL');
   const supB = bandBounds(d.sup_band);
   const resB = bandBounds(d.res_band);
@@ -1895,11 +1788,11 @@ function render(d) {
 
   (() => {
     const box = $('read'), el = $('readCard');
-    el.className = 'screen read ' + (suspended ? 'bad suspended' : '');
+    el.className = 'card read ' + (suspended ? 'suspended' : '');
     if (suspended) {
       box.innerHTML = `<div class="rrow"><span class="rkey">PLANS LOCKED</span><span class="rval">
         <b>Withheld.</b> Futures buying/selling data is ${state === 'PARTIAL' ? 'yesterday\'s archive' : state === 'NONE' ? 'unavailable' : 'untrusted'},
-        so the rules forbid naming an entry, a stop, or a trade size. Check the live price map below, and wait until data is live again.</span></div>`;
+        so SALAM rules forbid naming an entry, a stop, or a trade size. Check the live price map and Project F Sleeves below.</span></div>`;
       return;
     }
 
@@ -2012,7 +1905,6 @@ function render(d) {
           <span>CEILING ${money(resHi)}</span>
         </div>
         <div class="gauge-track" aria-label="${posNote}">
-          <div class="gauge-fill" style="width:${clamped.toFixed(1)}%"></div>
           <div class="gauge-pin" style="left:${clamped.toFixed(1)}%"></div>
         </div>
         <div class="gauge-note">${posNote}</div>`;
@@ -2041,9 +1933,9 @@ function render(d) {
 
   const res = d.macro_res || [], sup = d.macro_sup || [];
   $('macro').innerHTML =
-    `<div class="subhead">ABOVE PRICE (CEILINGS)</div>` +
+    `<div class="subhead">Above Price (Ceilings)</div>` +
     (res.length ? res.map(macroRow).join('') : '<div class="dimv">UNAVAILABLE</div>') +
-    `<div class="subhead" style="margin-top:10px">BELOW PRICE (FLOORS)</div>` +
+    `<div class="subhead" style="margin-top:8px">Below Price (Floors)</div>` +
     (sup.length ? sup.map(macroRow).join('') : '<div class="dimv">UNAVAILABLE</div>');
 
   const v7 = d.vp7 || {}, v30 = d.vp30 || {}, v4 = d.vp4h || {}, hv = d.hvn7 || {};
@@ -2053,7 +1945,7 @@ function render(d) {
     <div class="lvl"><span class="nm">4 HOURS</span><span class="px">Top ${fmt(v4.vah)} | Busiest ${fmt(v4.poc)} | Bottom ${fmt(v4.val)}</span></div>
     <div class="lvl"><span class="nm">HOTSPOT</span><span class="px">${isNum(hv.above) ? 'Above ' + fmt(hv.above) : ''}${isNum(hv.above) && isNum(hv.below) ? ' | ' : ''}${isNum(hv.below) ? 'Below ' + fmt(hv.below) : (!isNum(hv.above) ? 'None nearby' : '')}</span></div>`;
 
-  // Drawer 2: Market Health & CVD (per-field provenance!)
+  // Drawer 2: Market Health & CVD (per-field provenance)
   const sma = d.sma200;
   const dist = (price !== null && isNum(sma) && Number(sma) !== 0) ? (price / Number(sma) - 1) * 100 : null;
   const etf = d.etf || {};
@@ -2205,7 +2097,7 @@ async function packetText() {
 function flash(msg, bad) {
   const el = $('copyState');
   el.textContent = msg;
-  el.style.color = bad ? 'var(--dn)' : 'var(--acc)';
+  el.style.color = bad ? 'var(--dn)' : 'var(--up)';
   clearTimeout(flash._t);
   flash._t = setTimeout(() => { el.textContent = ''; }, 2800);
 }
@@ -2237,7 +2129,7 @@ $('copy').addEventListener('click', copyPacket);
 const drawers = () => [...document.querySelectorAll('details.drawer')];
 function syncToggleLabel() {
   const allOpen = drawers().every(d => d.open);
-  $('toggleAll').textContent = allOpen ? '[ - ] COLLAPSE ALL DETAILS' : '[ + ] EXPAND ALL DETAILS';
+  $('toggleAll').textContent = allOpen ? '[-] Collapse All Details' : '[+] Expand All Details';
 }
 drawers().forEach(d => d.addEventListener('toggle', syncToggleLabel));
 $('toggleAll').addEventListener('click', () => {
