@@ -17,6 +17,7 @@ Discipline:
 from __future__ import annotations
 
 import argparse
+import enum
 import json
 import math
 import sys
@@ -75,18 +76,20 @@ def dump_bars(csv_lines: list[str]) -> list[dict]:
             for r in rows]
 
 
-def okx_perp_cvd():
+def okx_perp_cvd(fetch=None, now_ms: float | None = None):
     """Live perp CVD from OKX's Rubik taker-volume endpoint — measured, not modelled.
 
     OKX klines carry no taker split, but rubik/stat/taker-volume-contract does:
     data rows are [ts, sellVolume, buyVolume] in coin units, newest first.
     """
+    fetch = fetch or get_json
     url = (f"{OKX}/api/v5/rubik/stat/taker-volume-contract"
            f"?instId=BTC-USDT-SWAP&period=1H&unit=0&limit=100")
-    rows = (get_json(url) or {}).get("data") or []
+    rows = (fetch(url) or {}).get("data") or []
     if len(rows) < 24:
         raise ValueError(f"only {len(rows)} taker-volume rows")
-    bars = closed_bars(rows, datetime.now(timezone.utc).timestamp() * 1000)
+    now_ms = datetime.now(timezone.utc).timestamp() * 1000 if now_ms is None else now_ms
+    bars = closed_bars(rows, now_ms)
     if len(bars) < 24:
         raise ValueError(f"only {len(bars)} closed taker-volume rows")
     return {"cvd_1h": cvd(bars, 1), "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24),
@@ -310,7 +313,19 @@ def confluence(band: dict, vp: dict | None) -> tuple[int, list[str]]:
     return score, why
 
 
-def closed_bars(rows: list[list], now_ms: float) -> list[dict]:
+def cvd_complete(d) -> bool:
+    """True only when all three windows carry a finite number.
+
+    A failed series arrives as {'1h': None, '4h': None, '24h': None} — truthy as a dict, which is how
+    a spot-feed failure slipped past a `bool()` test and still printed plans.
+    """
+    if not isinstance(d, dict) or not d:
+        return False
+    return all(isinstance(d.get(k), (int, float)) and math.isfinite(d[k])
+               for k in ("1h", "4h", "24h"))
+
+
+def closed_bars(rows: list[list], now_ms: float, max_age_ms: float = 7_200_000) -> list[dict]:
     """Taker-volume rows older than one hour, oldest first.
 
     OKX publishes the CURRENT, still-forming hour as its newest row. Summing it would make cvd_1h a
@@ -322,6 +337,10 @@ def closed_bars(rows: list[list], now_ms: float) -> list[dict]:
         t = int(r[0])
         if t + 3_600_000 <= now_ms:
             out.append({"t": t, "v": float(r[1]) + float(r[2]), "taker_buy": float(r[2])})
+    if out and now_ms - (out[-1]["t"] + 3_600_000) > max_age_ms:
+        # a 30-day-old archive is not a live reading: refuse rather than average history
+        stale_min = int((now_ms - (out[-1]["t"] + 3_600_000)) / 60_000)
+        raise ValueError(f"stale taker-volume archive (last closed bar {stale_min} min old)")
     return out
 
 
@@ -377,20 +396,23 @@ def parse_manual(s: str | None) -> tuple[dict, bool]:
         at_raw = (parts.get("at") or "").strip().upper()
         if at_raw.endswith("Z"):
             when = None
+            time_only = False
             for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%H:%M"):
                 try:
                     when = datetime.strptime(at_raw[:-1].strip(), fmt)
+                    time_only = fmt == "%H:%M"      # the year is a strptime artefact, not evidence
                     break
                 except ValueError:
                     continue
             if when is not None:
                 now = datetime.now(timezone.utc)
-                time_only = when.year == 1900
                 if time_only:                              # time-only: anchor to today
                     when = when.replace(year=now.year, month=now.month, day=now.day)
                 when = when.replace(tzinfo=timezone.utc)
                 if time_only and when > now + timedelta(minutes=5):
                     when -= timedelta(days=1)              # 23:50Z typed just after midnight
+                elif time_only and when > now:
+                    when = now                             # a few seconds of clock skew is not a future
                 age = now - when
                 # a future stamp is never evidence: the gate needs an age between 0 and the ceiling
                 ok = timedelta(0) <= age <= timedelta(hours=MANUAL_MAX_AGE_H)
@@ -676,7 +698,8 @@ def analyse(d: dict) -> dict:
         op = d["okx_perp"]
         out["cvd_perp"] = {"1h": op["cvd_1h"], "4h": op["cvd_4h"], "24h": op["cvd_24h"]}
     out["perp_src"] = d.get("perp_src")
-    out["perp_cvd_ok"] = all(v is not None for v in out["cvd_perp"].values())
+    out["spot_cvd_ok"] = cvd_complete(out["cvd_spot"])
+    out["perp_cvd_ok"] = cvd_complete(out["cvd_perp"])
     out["perp_dump"] = d.get("perp_dump")
     out["oi_btc"], out["oi_4h_chg"], out["oi_24h_chg"] = d["oi_btc"], d["oi_4h_chg"], d["oi_24h_chg"]
     out["funding"], out["funding_pct90"], out["ls_ratio"] = d["funding"], d["funding_pct90"], d["ls_ratio"]
@@ -785,11 +808,19 @@ def render(a: dict) -> str:
     # A whitelist, not a default: a missing or unrecognised state is NONE. The old default was
     # "FULL", so a packet with no state at all printed plans under a healthy banner.
     raw_state = a.get("exec_state")
-    state = raw_state if raw_state in ("FULL", "MANUAL", "PARTIAL", "NONE") else "NONE"
-    # FULL and MANUAL also require BOTH halves of the flow: the trigger cannot be confirmed with
-    # spot alone, so a missing spot series demotes the state rather than passing quietly.
-    if state in ("FULL", "MANUAL") and not (a.get("cvd_spot") and a.get("cvd_perp")):
+    state = raw_state if (type(raw_state) is str and raw_state in ("FULL", "MANUAL", "PARTIAL", "NONE")) else "NONE"
+    # FULL needs BOTH halves complete. MANUAL needs a complete spot series plus the typed reading —
+    # requiring cvd_perp there broke hand-entered packets, where perp klines have failed by definition.
+    if state == "FULL" and not (cvd_complete(a.get("cvd_spot")) and cvd_complete(a.get("cvd_perp"))):
         state = "NONE"
+    elif state == "MANUAL":
+        man_val = (a.get("manual") or {}).get("perp_cvd_24h")
+        try:
+            typed_ok = man_val is not None and math.isfinite(float(man_val))
+        except (TypeError, ValueError):
+            typed_ok = False
+        if not (cvd_complete(a.get("cvd_spot")) and typed_ok):
+            state = "NONE"
     state_tag = f" (state: {state}"
     if raw_state not in (None, "FULL", "MANUAL", "PARTIAL", "NONE"):
         state_tag += f", packet said {raw_state!r}"
@@ -808,9 +839,9 @@ def render(a: dict) -> str:
                  f"{a.get('manual_at')}. "
                  f"Human-supplied from a screenshot, not machine-verified. "
                  f"Perp CVD 24H = {a['manual'].get('perp_cvd_24h')} BTC.")
-    elif dump:
+    elif state == "PARTIAL" and dump:
         L.append(f"> ⚠️ **PARTIAL ORDER FLOW**{state_tag} — perp CVD is Binance's archive for {dump['date']} "
-                 f"(T+1), not live.** Live perp klines are blocked on this host. Intraday perp "
+                 f"(T+1), not live. Live perp klines are blocked on this host. Intraday perp "
                  f"reads are one day old; spot and levels are live.")
     else:
         why = ("CI host: Binance Futures refused this runner (HTTP 451)"
@@ -982,8 +1013,9 @@ def render(a: dict) -> str:
     L.append("*   Convert to coins: notional / price = BTC of forced orders, and as % of open interest.")
     L.append("*   Fuel is symmetric by assumption: say so, and never infer direction from it. Only "
              "the terrain around it is asymmetric. Name the exhaust point.")
-    L.append("*   Every DERIVED figure carries `estimated`; every measured figure carries its venue. "
-             "A number without its label is not usable.")
+    L.append("*   In your output, tag every DERIVED figure `estimated` and every venue-specific "
+             "figure with its venue (`[BIN]` / `[OKX]`). This is a labelling rule for what you "
+             "write, not a reason to discard a packet figure.")
     L.append("")
     L.append("**Trigger tests (confirmation only, only at an anchor)**")
     L.append("*   Read spot vs perp CVD in 1H, 4H and 24H. Compute perp:spot 24H ratio; above 3x means "
@@ -1144,11 +1176,62 @@ def selftest() -> int:
     check("a finite manual value still unlocks",
           parse_manual(f"perp_cvd_24h=+2663,at={_recent}")[1] is True)
 
+    # the shape analyse() emits when the spot feed fails: a TRUTHY dict of Nones, which is why a
+    # bool() test let this through. These assertions use production shapes, not {}.
+    dead_spot = {"1h": None, "4h": None, "24h": None}
     no_spot = render(dict(base, perp_cvd_ok=True, exec_state="FULL",
-                          cvd_perp=flows["cvd_perp"], cvd_spot={}))
-    check("FULL without spot flow is demoted to NONE",
+                          cvd_perp=flows["cvd_perp"], cvd_spot=dead_spot))
+    check("FULL with a dead spot series is demoted to NONE",
           "Execution Rules" not in no_spot and "state: NONE" in no_spot)
     check("the banner stops claiming both halves are measured", "both measured" not in no_spot)
+    half_spot = render(dict(base, exec_state="FULL", cvd_perp=flows["cvd_perp"],
+                            cvd_spot={"1h": 0.0}))
+    check("a spot series with only 1h is not enough for FULL", "Execution Rules" not in half_spot)
+    zero_spot = render(dict(base, exec_state="FULL", cvd_perp=flows["cvd_perp"],
+                            cvd_spot={"1h": 0.0, "4h": 0.0, "24h": 0.0}))
+    check("a genuinely balanced spot series still unlocks", "Execution Rules" in zero_spot)
+    man_hand = render(dict(base, exec_state="MANUAL", cvd_perp={}, manual_at=fresh,
+                           manual={"perp_cvd_24h": "+2663", "at": fresh}))
+    check("MANUAL survives an empty cvd_perp (hand entry is the whole point)",
+          "Execution Rules" in man_hand and "state: MANUAL" in man_hand)
+    _hm = datetime.now(timezone.utc).strftime("%H:%M")
+    check("an explicit 1900 date is not mistaken for the time-only form",
+          parse_manual(f"perp_cvd_24h=+500,at=1900-06-15T{_hm}Z")[1] is False)
+    _skew = (datetime.now(timezone.utc) + timedelta(minutes=3)).strftime("%H:%M")
+    check("three minutes of clock skew still unlocks",
+          parse_manual(f"perp_cvd_24h=+500,at={_skew}Z")[1] is True)
+    dump_state = render(dict(base, exec_state="GARBAGE", cvd_spot={}, cvd_perp={},
+                             perp_dump={"date": "2026-11-26", "bars": 24, "cvd_4h": 10.0,
+                                        "cvd_24h": 50.0}))
+    check("a demoted packet does not wear the PARTIAL banner",
+          "spot and levels are live" not in dump_state)
+
+    class _StrState(str, enum.Enum):
+        FULL = "FULL"
+    _enum_md = render(dict(base, exec_state=_StrState.FULL))
+    check("a str-enum state cannot smuggle a token into the banner",
+          "Execution Rules" not in _enum_md and "S.FULL)" not in _enum_md)
+
+    _old_rows = [[str(1_700_000_000_000 + h * 3600_000), "1", "2"] for h in range(23, -1, -1)]
+    try:
+        closed_bars(_old_rows, 1_700_000_000_000 + 30 * 86400_000)
+        _stale_blocked = False
+    except ValueError:
+        _stale_blocked = True
+    check("a month-old archive is refused, not averaged", _stale_blocked)
+
+    _open_rows_24 = [[str(1_700_000_000_000 + h * 3600_000), "1", "2"] for h in range(23, -1, -1)]
+    try:
+        okx_perp_cvd(fetch=lambda url: {"data": _open_rows_24},
+                     now_ms=1_700_000_000_000 + 23 * 3600_000 + 600_000)
+        _perp_blocked = False
+    except ValueError:
+        _perp_blocked = True
+    check("okx_perp_cvd refuses a window with only 23 closed rows", _perp_blocked)
+    _good_rows = [[str(1_700_000_000_000 + h * 3600_000), "1", "2"] for h in range(24, -1, -1)]
+    _good = okx_perp_cvd(fetch=lambda url: {"data": _good_rows},
+                         now_ms=1_700_000_000_000 + 24 * 3600_000 + 600_000)
+    check("okx_perp_cvd returns windows when 24 closed rows exist", _good["bars"] == 24)
 
     check("oi_change with one sample returns None, not an exception",
           oi_change([100.0], [0], 4) is None)
@@ -1301,9 +1384,11 @@ def main(argv: list[str] | None = None) -> int:
     a["generated_at_sgt"] = (_g + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S+08:00")
     man, man_ok = parse_manual(args.manual)
     a["manual"], a["manual_ok"], a["manual_at"] = (man or None), man_ok, man.get("at")
-    if a.get("perp_cvd_ok"):
+    # the JSON carries exec_state too, and the page reads it: the gate must be decided once, here,
+    # from BOTH halves — otherwise the markdown says NONE while the JSON says FULL
+    if a.get("spot_cvd_ok") and a.get("perp_cvd_ok"):
         a["exec_state"] = "FULL"
-    elif man_ok:
+    elif a.get("spot_cvd_ok") and man_ok:
         a["exec_state"] = "MANUAL"
     elif a.get("perp_dump"):
         a["exec_state"] = "PARTIAL"
