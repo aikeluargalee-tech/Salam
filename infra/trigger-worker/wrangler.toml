@@ -3,6 +3,9 @@ name = "salam-trigger"
 main = "src/index.js"
 compatibility_date = "2026-11-20"
 
+[triggers]
+crons = ["*/30 * * * *"]
+
 # Cooldown state. Create with:  wrangler kv namespace create SALAM_KV
 [[kv_namespaces]]
 binding = "SALAM_KV"
@@ -15,7 +18,9 @@ REF = "master"
 COOLDOWN_S = "90"          # private route: /s/<TRIGGER_SECRET>
 PUBLIC_COOLDOWN_S = "300"  # public route: /
 FRESH_MIN = "8"            # never spend a run when the packet is already this fresh
+MAX_STALE_MIN = "180"      # 3h dead-man's threshold reported by /health
 
 # Secrets (never in this file):
 #   wrangler secret put GH_TOKEN          fine-grained PAT, Actions: read+write, this repo only
 #   wrangler secret put TRIGGER_SECRET    long random string used in the private route
+#   wrangler secret put ALERT_WEBHOOK_URL optional webhook for cron failures / >3h staleness

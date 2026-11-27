@@ -67,6 +67,75 @@ async function dispatch(env, ref) {
   return { ok: res.status === 204, status: res.status, text: res.status === 204 ? '' : await res.text() };
 }
 
+async function maybeAlert(env, message) {
+  if (!env.ALERT_WEBHOOK_URL) return;
+  try {
+    const now = Date.now();
+    const lastAlert = Number((await env.SALAM_KV.get('last_alert_at')) || 0);
+    if (now - lastAlert < 30 * 60_000) return;
+    await fetch(env.ALERT_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+      body: message,
+    });
+    await env.SALAM_KV.put('last_alert_at', String(now), { expirationTtl: 86400 });
+  } catch {
+    // alert delivery failure must never crash the trigger or cron handler
+  }
+}
+
+async function triggerIfNeeded(env, { enforceCooldown = false, cooldownS = 300 } = {}) {
+  const now = Date.now();
+  const last = Number((await env.SALAM_KV.get('last_dispatch')) || 0);
+  const age = await packetAgeMinutes(env.REPO);
+
+  // A caller asking "is it already fresh?" should not pay for a run.
+  const freshEnough = age !== null && age <= Number(env.FRESH_MIN || 8);
+  const inCooldown = enforceCooldown && (now - last < cooldownS * 1000);
+  if (inCooldown || freshEnough) {
+    const reason = freshEnough ? 'packet already fresh' : 'cooldown';
+    const retry = freshEnough ? 0 : Math.ceil((cooldownS * 1000 - (now - last)) / 1000);
+    return {
+      status: 200,
+      body: {
+        ok: true, triggered: false, reason, packet_age_min: age, retry_in_s: retry,
+        hint: 're-read https://raw.githubusercontent.com/' + env.REPO + '/master/SALAM_DATA_HUB.json',
+      },
+    };
+  }
+
+  const out = await dispatch(env, env.REF || 'master');
+  if (!out.ok) {
+    const errMsg = `HTTP ${out.status}: ${out.text.slice(0, 200)}`;
+    await env.SALAM_KV.put('last_error', errMsg, { expirationTtl: 86400 });
+    await maybeAlert(env, `SALAM trigger failed (${errMsg}), packet_age_min=${age}`);
+    return {
+      status: 502,
+      body: {
+        ok: false, error: 'github refused the dispatch', status: out.status,
+        body: out.text.slice(0, 400), packet_age_min: age,
+      },
+    };
+  }
+
+  await env.SALAM_KV.put('last_dispatch', String(now), { expirationTtl: 3600 });
+  await env.SALAM_KV.delete('last_error');
+  const maxStale = Number(env.MAX_STALE_MIN || 180);
+  if (age === null || age > maxStale) {
+    await maybeAlert(env, `SALAM packet stale (packet_age_min=${age}, limit=${maxStale})`);
+  }
+  return {
+    status: 200,
+    body: {
+      ok: true, triggered: true, packet_age_min: age,
+      note: 'run queued. The packet lands in ~40-90 s; raw.githubusercontent serves it within a few '
+          + 'minutes and GitHub Pages within ~10. Poll the raw URL, not the Pages URL.',
+      raw: 'https://raw.githubusercontent.com/' + env.REPO + '/master/SALAM_DATA_HUB.json',
+      run: `https://github.com/${env.REPO}/actions`,
+    },
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -75,39 +144,33 @@ export default {
       return cors(json({ ok: false, error: 'GET only' }, 405));
     }
 
+    if (url.pathname === '/health') {
+      const age = await packetAgeMinutes(env.REPO);
+      const maxStale = Number(env.MAX_STALE_MIN || 180);
+      const lastError = await env.SALAM_KV.get('last_error');
+      const lastDispatchMs = Number((await env.SALAM_KV.get('last_dispatch')) || 0);
+      const stale = age === null || age > maxStale;
+      const ok = !stale && !lastError;
+      return cors(json({
+        ok,
+        stale,
+        packet_age_min: age,
+        max_stale_min: maxStale,
+        last_error: lastError,
+        last_dispatch_utc: lastDispatchMs ? new Date(lastDispatchMs).toISOString() : null,
+      }, ok ? 200 : 503));
+    }
+
     const isPrivate = env.TRIGGER_SECRET && url.pathname === `/s/${env.TRIGGER_SECRET}`;
     const isPublic = url.pathname === '/' || url.pathname === '/trigger';
     if (!isPrivate && !isPublic) return cors(json({ ok: false, error: 'not found' }, 404));
 
     const cooldownS = Number(isPrivate ? env.COOLDOWN_S || 90 : env.PUBLIC_COOLDOWN_S || 300);
-    const now = Date.now();
-    const last = Number((await env.SALAM_KV.get('last_dispatch')) || 0);
-    const age = await packetAgeMinutes(env.REPO);
+    const result = await triggerIfNeeded(env, { enforceCooldown: true, cooldownS });
+    return cors(json(result.body, result.status));
+  },
 
-    // A caller asking "is it already fresh?" should not pay for a run.
-    const freshEnough = age !== null && age <= Number(env.FRESH_MIN || 8);
-    if (now - last < cooldownS * 1000 || freshEnough) {
-      const reason = freshEnough ? 'packet already fresh' : 'cooldown';
-      const retry = freshEnough ? 0 : Math.ceil((cooldownS * 1000 - (now - last)) / 1000);
-      return cors(json({
-        ok: true, triggered: false, reason, packet_age_min: age, retry_in_s: retry,
-        hint: 're-read https://raw.githubusercontent.com/' + env.REPO + '/master/SALAM_DATA_HUB.json',
-      }));
-    }
-
-    const out = await dispatch(env, env.REF || 'master');
-    if (!out.ok) {
-      return cors(json({ ok: false, error: 'github refused the dispatch', status: out.status,
-                         body: out.text.slice(0, 400), packet_age_min: age }, 502));
-    }
-
-    await env.SALAM_KV.put('last_dispatch', String(now), { expirationTtl: 3600 });
-    return cors(json({
-      ok: true, triggered: true, packet_age_min: age,
-      note: 'run queued. The packet lands in ~40-90 s; raw.githubusercontent serves it within a few '
-          + 'minutes and GitHub Pages within ~10. Poll the raw URL, not the Pages URL.',
-      raw: 'https://raw.githubusercontent.com/' + env.REPO + '/master/SALAM_DATA_HUB.json',
-      run: `https://github.com/${env.REPO}/actions`,
-    }));
+  async scheduled(_event, env, _ctx) {
+    await triggerIfNeeded(env, { enforceCooldown: false });
   },
 };
