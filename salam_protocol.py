@@ -17,6 +17,7 @@ Discipline:
 from __future__ import annotations
 
 import argparse
+import bisect
 import enum
 import json
 import math
@@ -509,12 +510,429 @@ def etf_flows():
     }
 
 
+# ───────────────────────── Project F dual sleeves ─────────────────────────
+def _f_ewm(vals: list[float | None], alpha: float, min_periods: int) -> list[float | None]:
+    """Causal exponential moving average matching pandas ewm(alpha=alpha, adjust=False)."""
+    out: list[float | None] = []
+    cur: float | None = None
+    cnt = 0
+    for v in vals:
+        if v is None or not math.isfinite(v):
+            out.append(None)
+        else:
+            cnt += 1
+            cur = v if cur is None else (alpha * v + (1.0 - alpha) * cur)
+            out.append(cur if cnt >= min_periods else None)
+    return out
+
+
+def _f_ema(vals: list[float | None], length: int) -> list[float | None]:
+    return _f_ewm(vals, 2.0 / (length + 1.0), length)
+
+
+def _f_rma(vals: list[float | None], length: int) -> list[float | None]:
+    return _f_ewm(vals, 1.0 / float(length), length)
+
+
+def _f_atr(bars: list[dict], length: int) -> list[float | None]:
+    if not bars:
+        return []
+    trs: list[float | None] = [bars[0]["h"] - bars[0]["l"]]
+    for i in range(1, len(bars)):
+        pc, b = bars[i - 1]["c"], bars[i]
+        trs.append(max(b["h"] - b["l"], abs(b["h"] - pc), abs(b["l"] - pc)))
+    return _f_rma(trs, length)
+
+
+def _f_sma(vals: list[float | None], window: int) -> list[float | None]:
+    out: list[float | None] = []
+    for i in range(len(vals)):
+        if i + 1 < window:
+            out.append(None)
+        else:
+            w = vals[i - window + 1 : i + 1]
+            out.append(None if any(x is None for x in w) else sum(w) / window)  # type: ignore[arg-type]
+    return out
+
+
+def _f_std_pop(vals: list[float | None], window: int) -> list[float | None]:
+    out: list[float | None] = []
+    for i in range(len(vals)):
+        if i + 1 < window:
+            out.append(None)
+        else:
+            w = vals[i - window + 1 : i + 1]
+            if any(x is None for x in w):
+                out.append(None)
+            else:
+                m = sum(w) / window  # type: ignore[arg-type]
+                out.append(math.sqrt(sum((x - m) ** 2 for x in w) / window))  # type: ignore[operator]
+    return out
+
+
+def _f_linreg_end(vals: list[float | None], window: int = 20) -> list[float | None]:
+    """Causal rolling OLS linear-regression endpoint matching ta.linreg(vals, window, 0)."""
+    xm = (window - 1) / 2.0
+    sxx = sum((i - xm) ** 2 for i in range(window))
+    weights = [(1.0 / window) + ((i - xm) * ((window - 1) - xm) / sxx) for i in range(window)]
+    out: list[float | None] = []
+    for i in range(len(vals)):
+        if i + 1 < window:
+            out.append(None)
+        else:
+            w = vals[i - window + 1 : i + 1]
+            out.append(None if any(x is None for x in w)
+                       else sum(v * wt for v, wt in zip(w, weights)))  # type: ignore[operator]
+    return out
+
+
+def _f_bar_stamps(bar: dict, step_hours: int) -> dict:
+    open_dt = datetime.fromtimestamp(bar["open_time"] / 1000.0, tz=timezone.utc)
+    close_dt = open_dt + timedelta(hours=step_hours)
+    return {
+        "open_utc": open_dt.strftime("%Y-%m-%d %H:%MZ"),
+        "close_utc": close_dt.strftime("%Y-%m-%d %H:%MZ"),
+        "close_sgt": (close_dt + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M SGT"),
+    }
+
+
+def _f_simulate_spot(
+    bars: list[dict],
+    signals: list[int],
+    sls: list[float | None],
+    initial_capital_usdt: float = 10000.0,
+    initial_btc_alloc: float = 0.5,
+    fee_rate: float = 0.001,
+    slippage_rate: float = 0.0005,
+) -> dict:
+    """Deterministic 4-state spot simulator matching ctc_backtest_lab/engine.py."""
+    open_0 = bars[0]["o"]
+    btc_start_usdt = initial_capital_usdt * initial_btc_alloc
+    cash_usdt = initial_capital_usdt - btc_start_usdt
+    btc_qty = btc_start_usdt / open_0 if (btc_start_usdt > 0.0 and open_0 > 0.0) else 0.0
+    active_sl: float | None = None
+    prev_signal = 0
+    prev_sl: float | None = None
+
+    for i, b in enumerate(bars):
+        o_i, l_i = b["o"], b["l"]
+        if i > 0:
+            if prev_signal == 1 and cash_usdt > 0.0 and o_i > 0.0:
+                fill_price = o_i * (1.0 + slippage_rate)
+                net_spent = cash_usdt * (1.0 - fee_rate)
+                btc_qty += net_spent / fill_price
+                cash_usdt = 0.0
+                active_sl = prev_sl
+            elif prev_signal == -1 and btc_qty > 0.0:
+                fill_price = o_i * (1.0 - slippage_rate)
+                cash_usdt += (btc_qty * fill_price) * (1.0 - fee_rate)
+                btc_qty = 0.0
+                active_sl = None
+            elif btc_qty > 0.0 and prev_signal == 0 and prev_sl is not None:
+                active_sl = prev_sl
+
+        if btc_qty > 0.0 and active_sl is not None and l_i <= active_sl:
+            raw_exit = o_i if o_i <= active_sl else active_sl
+            fill_price = raw_exit * (1.0 - slippage_rate)
+            cash_usdt += (btc_qty * fill_price) * (1.0 - fee_rate)
+            btc_qty = 0.0
+            active_sl = None
+
+        prev_signal = signals[i]
+        cand_sl = sls[i]
+        prev_sl = (float(cand_sl)
+                   if cand_sl is not None and math.isfinite(cand_sl) and cand_sl > 0.0
+                   else None)
+
+    holding_btc = btc_qty > 0.0
+    holding_usdt = cash_usdt > 0.0
+    last_signal = signals[-1]
+    raw_entry_sl = prev_sl
+
+    if last_signal == 1:
+        if holding_usdt:
+            action, active_stop_loss = "BUY BTC", raw_entry_sl
+        else:
+            action, active_stop_loss = "HOLD BTC", active_sl
+    elif last_signal == -1:
+        action = "SELL BTC" if holding_btc else "HOLD USDT"
+        active_stop_loss = None
+    else:
+        action = "HOLD BTC" if holding_btc else "HOLD USDT"
+        active_stop_loss = active_sl if holding_btc else None
+
+    prior_pos = ("BTC" if holding_btc and not holding_usdt
+                 else ("50/50" if holding_btc and holding_usdt else "USDT"))
+    return {
+        "raw_signal": last_signal,
+        "prior_position": prior_pos,
+        "action": action,
+        "active_stop_loss": active_stop_loss,
+        "if_flat": "BUY BTC at next bar open" if last_signal == 1 else "HOLD USDT (wait for BUY +1)",
+        "if_long": "SELL BTC at next bar open" if last_signal == -1 else "HOLD BTC (keep entry stop-loss active)",
+    }
+
+
+def _sleeve1_signals(
+    h4: list[dict],
+    d1: list[dict] | None = None,
+    vwap_window: int = 90,
+    slope_window: int = 12,
+    macro_ema_days: int = 120,
+    atr_len: int = 14,
+    buffer_atr: float = 0.50,
+    atr_sl_mult: float = 3.0,
+) -> tuple[list[int], list[float | None], dict]:
+    """Core signal vectors for Project F Sleeve #1 (tier1_5_vwap_shield)."""
+    tp = [(b["h"] + b["l"] + b["c"]) / 3.0 for b in h4]
+    pv = [t * b["v"] for t, b in zip(tp, h4)]
+    vols = [b["v"] for b in h4]
+
+    rvwap: list[float | None] = []
+    for i in range(len(h4)):
+        if i + 1 < vwap_window:
+            rvwap.append(None)
+        else:
+            vs = sum(vols[i - vwap_window + 1 : i + 1])
+            rvwap.append(sum(pv[i - vwap_window + 1 : i + 1]) / vs if vs > 0.0 else None)
+
+    slope: list[float | None] = [
+        None if (i < slope_window or rvwap[i] is None or rvwap[i - slope_window] is None)
+        else (rvwap[i] - rvwap[i - slope_window])  # type: ignore[operator]
+        for i in range(len(h4))
+    ]
+    atr4 = _f_atr(h4, atr_len)
+
+    # Resample 4H closes by UTC day for causal 1-day-shifted 120D EMA (prepending d1 only when h4 < 121 days)
+    day_closes: dict[int, float] = {}
+    for b in h4:
+        day_closes[b["open_time"] // 86_400_000] = b["c"]
+    if len(day_closes) < macro_ema_days + 1 and d1:
+        first_h4_day = min(day_closes.keys()) if day_closes else None
+        for b in d1:
+            dk = b["open_time"] // 86_400_000
+            if first_h4_day is None or dk < first_h4_day:
+                day_closes[dk] = b["c"]
+    days_sorted = sorted(day_closes.keys())
+    d_ema = _f_ema([day_closes[dk] for dk in days_sorted], macro_ema_days)
+    day_to_shifted_ema: dict[int, float | None] = {}
+    prev_e: float | None = None
+    for dk, e_val in zip(days_sorted, d_ema):
+        day_to_shifted_ema[dk] = prev_e
+        prev_e = e_val
+
+    macro_ema: list[float | None] = []
+    for b in h4:
+        dk = b["open_time"] // 86_400_000
+        pos = bisect.bisect_right(days_sorted, dk) - 1
+        macro_ema.append(day_to_shifted_ema.get(days_sorted[pos]) if pos >= 0 else None)
+
+    sigs: list[int] = []
+    sls: list[float | None] = []
+    for i, b in enumerate(h4):
+        c, rv, slp, at, me = b["c"], rvwap[i], slope[i], atr4[i], macro_ema[i]
+        if None in (rv, slp, at, me):
+            sigs.append(0)
+            sls.append(None)
+        else:
+            ex = (c < me) or (c < rv - buffer_atr * at)        # type: ignore[operator]
+            en = (c > me) and (c > rv + buffer_atr * at) and (slp > 0.0)  # type: ignore[operator]
+            s = 1 if en else (-1 if ex else 0)
+            sigs.append(s)
+            sls.append(c - atr_sl_mult * at if s == 1 else None)  # type: ignore[operator]
+
+    last = {
+        "close": h4[-1]["c"] if h4 else None,
+        "rolling_vwap": rvwap[-1] if rvwap else None,
+        "vwap_slope": slope[-1] if slope else None,
+        "atr_14": atr4[-1] if atr4 else None,
+        "macro_120d_ema": macro_ema[-1] if macro_ema else None,
+    }
+    return sigs, sls, last
+
+
+def sleeve1_vwap_shield(h4: list[dict], d1: list[dict] | None = None) -> dict:
+    """Compute Project F Sleeve #1 (tier1_5_vwap_shield, 4H, 80% weight)."""
+    if len(h4) < 102:
+        return {"status": "UNAVAILABLE", "reason": f"insufficient closed 4H bars ({len(h4)} < 102)"}
+    sigs, sls, last = _sleeve1_signals(h4, d1=d1)
+    c, rv, slp, at, me = (last["close"], last["rolling_vwap"], last["vwap_slope"],
+                          last["atr_14"], last["macro_120d_ema"])
+    if None in (c, rv, slp, at, me):
+        return {"status": "UNAVAILABLE", "reason": "insufficient warmup history for 120D EMA / VWAP(90)"}
+
+    upper = rv + 0.50 * at       # type: ignore[operator]
+    lower = rv - 0.50 * at       # type: ignore[operator]
+    ref_sl = c - 3.0 * at        # type: ignore[operator]
+    sim = _f_simulate_spot(h4, sigs, sls)
+    sim["reference_3x_atr_sl"] = ref_sl
+    return {
+        "status": "LIVE",
+        "strategy": "tier1_5_vwap_shield",
+        "timeframe": "4h",
+        "weight_pct": 80,
+        "bars_analyzed": len(h4),
+        "last_closed_bar": _f_bar_stamps(h4[-1], 4),
+        "indicators": {
+            "close_price": c,
+            "macro_120d_ema": me,
+            "rolling_15d_vwap": rv,
+            "vwap_slope_12bar": slp,
+            "atr_14": at,
+            "upper_buffer_price": upper,
+            "lower_buffer_price": lower,
+        },
+        "conditions": {
+            "above_macro_shield": bool(c > me),                  # type: ignore[operator]
+            "above_upper_buffer": bool(c > upper),
+            "below_lower_buffer": bool(c < lower),
+            "vwap_slope_positive": bool(slp > 0.0),              # type: ignore[operator]
+            "exit_triggered": bool((c < me) or (c < lower)),     # type: ignore[operator]
+        },
+        "state": sim,
+    }
+
+
+def _sleeve2_signals(
+    d1: list[dict],
+    bb_len: int = 20,
+    bb_mult: float = 2.0,
+    kc_len: int = 20,
+    kc_mult: float = 1.5,
+    squeeze_bars: int = 3,
+    mom_len: int = 20,
+    exit_sma_len: int = 21,
+    atr_sl_len: int = 14,
+    atr_sl_mult: float = 2.0,
+) -> tuple[list[int], list[float | None], dict]:
+    """Core signal vectors for Project F Sleeve #2 (tier14_ttm_squeeze_1d)."""
+    c1 = [b["c"] for b in d1]
+    h1 = [b["h"] for b in d1]
+    l1 = [b["l"] for b in d1]
+
+    bb_mid = _f_sma(c1, bb_len)
+    bb_std = _f_std_pop(c1, bb_len)
+    bb_up = [None if (m is None or s is None) else m + bb_mult * s for m, s in zip(bb_mid, bb_std)]
+    bb_lo = [None if (m is None or s is None) else m - bb_mult * s for m, s in zip(bb_mid, bb_std)]
+
+    kc_mid = _f_ema(c1, kc_len)
+    atr20 = _f_atr(d1, kc_len)
+    kc_up = [None if (m is None or a is None) else m + kc_mult * a for m, a in zip(kc_mid, atr20)]
+    kc_lo = [None if (m is None or a is None) else m - kc_mult * a for m, a in zip(kc_mid, atr20)]
+
+    sq_on = [None if None in (bu, bl, ku, kl) else (1.0 if (bu < ku and bl > kl) else 0.0)
+             for bu, bl, ku, kl in zip(bb_up, bb_lo, kc_up, kc_lo)]
+    don_mid: list[float | None] = [
+        None if i + 1 < mom_len else 0.5 * (max(h1[i - mom_len + 1 : i + 1]) + min(l1[i - mom_len + 1 : i + 1]))
+        for i in range(len(d1))
+    ]
+    delta = [None if (dm is None or bm is None) else (c - 0.5 * (dm + bm))
+             for c, dm, bm in zip(c1, don_mid, bb_mid)]
+    mom = _f_linreg_end(delta, mom_len)
+    sma21 = _f_sma(c1, exit_sma_len)
+    atr14 = _f_atr(d1, atr_sl_len)
+
+    sigs: list[int] = []
+    sls: list[float | None] = []
+    last_flags = {"squeeze_on": False, "prior_sq": 0, "had_sq3": False, "release": False, "exit": False}
+    for i in range(len(d1)):
+        prev_sq = [sq_on[i - j] for j in range(1, squeeze_bars + 1)] if i >= squeeze_bars else [None]
+        prev_m = mom[i - 1] if i >= 1 else None
+        if (sq_on[i] is None or any(x is None for x in prev_sq) or mom[i] is None
+                or prev_m is None or sma21[i] is None or atr14[i] is None or kc_mid[i] is None):
+            sigs.append(0)
+            sls.append(None)
+        else:
+            prior_cnt = int(sum(prev_sq))                          # type: ignore[arg-type]
+            had_sq = prior_cnt == squeeze_bars
+            rel = (sq_on[i] == 0.0) and had_sq
+            ex = (c1[i] < sma21[i]) or (mom[i] < 0.0)              # type: ignore[operator]
+            bu = ((not ex) and rel and (mom[i] > 0.0)              # type: ignore[operator]
+                  and (mom[i] > prev_m) and (c1[i] > kc_mid[i]))   # type: ignore[operator]
+            s = 1 if bu else (-1 if ex else 0)
+            sigs.append(s)
+            sls.append(c1[i] - atr_sl_mult * atr14[i] if s == 1 else None)  # type: ignore[operator]
+            if i == len(d1) - 1:
+                last_flags = {
+                    "squeeze_on": sq_on[i] == 1.0,
+                    "prior_sq": prior_cnt,
+                    "had_sq3": had_sq,
+                    "release": rel,
+                    "exit": ex,
+                }
+
+    last = {
+        "close": c1[-1] if c1 else None,
+        "bb_upper": bb_up[-1] if bb_up else None,
+        "bb_mid": bb_mid[-1] if bb_mid else None,
+        "bb_lower": bb_lo[-1] if bb_lo else None,
+        "kc_upper": kc_up[-1] if kc_up else None,
+        "kc_mid": kc_mid[-1] if kc_mid else None,
+        "kc_lower": kc_lo[-1] if kc_lo else None,
+        "mom": mom[-1] if mom else None,
+        "prev_mom": mom[-2] if len(mom) >= 2 else None,
+        "sma_21": sma21[-1] if sma21 else None,
+        "atr_14": atr14[-1] if atr14 else None,
+        **last_flags,
+    }
+    return sigs, sls, last
+
+
+def sleeve2_ttm_squeeze(d1: list[dict]) -> dict:
+    """Compute Project F Sleeve #2 (tier14_ttm_squeeze_1d, 1D, 20% weight, no 120D shield)."""
+    if len(d1) < 40:
+        return {"status": "UNAVAILABLE", "reason": f"insufficient closed 1D bars ({len(d1)} < 40)"}
+    sigs, sls, last = _sleeve2_signals(d1)
+    req = ("close", "bb_upper", "bb_mid", "bb_lower", "kc_upper", "kc_mid",
+           "kc_lower", "mom", "prev_mom", "sma_21", "atr_14")
+    if any(last[k] is None for k in req):
+        return {"status": "UNAVAILABLE", "reason": "insufficient warmup history for TTM Squeeze indicators"}
+
+    c = last["close"]
+    at = last["atr_14"]
+    ref_sl = c - 2.0 * at
+    sim = _f_simulate_spot(d1, sigs, sls)
+    sim["reference_2x_atr_sl"] = ref_sl
+    return {
+        "status": "LIVE",
+        "strategy": "tier14_ttm_squeeze_1d",
+        "timeframe": "1d",
+        "weight_pct": 20,
+        "bars_analyzed": len(d1),
+        "last_closed_bar": _f_bar_stamps(d1[-1], 24),
+        "indicators": {
+            "close_price": c,
+            "bb_upper": last["bb_upper"],
+            "bb_mid": last["bb_mid"],
+            "bb_lower": last["bb_lower"],
+            "kc_upper": last["kc_upper"],
+            "kc_mid": last["kc_mid"],
+            "kc_lower": last["kc_lower"],
+            "prior_3d_squeeze_bars": last["prior_sq"],
+            "mom": last["mom"],
+            "prev_mom": last["prev_mom"],
+            "sma_21": last["sma_21"],
+            "atr_14": at,
+        },
+        "conditions": {
+            "squeeze_on_now": bool(last["squeeze_on"]),
+            "had_squeeze_3d": bool(last["had_sq3"]),
+            "squeeze_release": bool(last["release"]),
+            "mom_positive": bool(last["mom"] > 0.0),
+            "mom_rising": bool(last["mom"] > last["prev_mom"]),
+            "above_kc_mid": bool(c > last["kc_mid"]),
+            "exit_triggered": bool(last["exit"]),
+        },
+        "state": sim,
+    }
+
+
 # ─────────────────────────────── collection ───────────────────────────────
 def collect() -> tuple[dict, list[str]]:
     now_ms = datetime.now(timezone.utc).timestamp() * 1000
     jobs = {
         "d1": f"{SPOT}/klines?symbol=BTCUSDT&interval=1d&limit={MACRO_LOOKBACK}",
-        "h4": f"{SPOT}/klines?symbol=BTCUSDT&interval=4h&limit=500",
+        "h4": f"{SPOT}/klines?symbol=BTCUSDT&interval=4h&limit=1000",
         "h1": f"{SPOT}/klines?symbol=BTCUSDT&interval=1h&limit=200",
         "fd1": f"{FAPI}/fapi/v1/klines?symbol=BTCUSDT&interval=1d&limit=200",
         "fh1": f"{FAPI}/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=200",
@@ -784,6 +1202,8 @@ def analyse(d: dict) -> dict:
             b["liq"] = overlay_span(b["low"], b["high"])
     for c in out.get("macro_res", []) + out.get("macro_sup", []):
         c["liq"] = overlay_span(c["center"], c["center"]) if c["touches"] >= 2 else None
+    out["sleeve1"] = sleeve1_vwap_shield(d.get("h4") or [], d.get("d1") or [])
+    out["sleeve2"] = sleeve2_ttm_squeeze(d.get("d1") or [])
     return out
 
 
@@ -837,7 +1257,7 @@ def render(a: dict) -> str:
     now = (_n.strftime("%Y-%m-%d %H:%M:%S UTC")
            + " / " + (_n + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S SGT (UTC+8)"))
     if a.get("fatal"):
-        return f"# SALAM PROTOCOL DATA HUB v1.7\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
+        return f"# SALAM PRO MAX DATA HUB v1.7\n**Timestamp:** {now} | **FATAL:** {a['fatal']}\n"
     p = a["price"]
     sb, rb = a.get("sup_band"), a.get("res_band")
     inside = a.get("inside_band")
@@ -853,7 +1273,7 @@ def render(a: dict) -> str:
           "ARCHIVE": "[BIN-DUMP]"}.get(a.get("perp_src"), "[UNAVAILABLE]")
 
     L: list[str] = []
-    L.append("# SALAM PROTOCOL DATA HUB v1.7")
+    L.append("# SALAM PRO MAX DATA HUB v1.7")
     PT = "[BIN-CLOSE 1D]" if a.get("price_src") == "CLOSE-1D" else "[BIN]"
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}")
     dump = a.get("perp_dump")
@@ -1036,18 +1456,112 @@ def render(a: dict) -> str:
              + ("  <- tail" if ((a.get("funding_pct90") or 0) >= 95 and not okx_src) else ""))
     L.append("")
 
+    sig_fmt = lambda s: f"{s:+d}" if s else "0"
+    s1 = a.get("sleeve1") or {}
+    L.append("## 6. PROJECT F — SLEEVE #1 (4H Rolling VWAP Shield · 80% Weight)")
+    if s1.get("status") == "LIVE":
+        ind1, cond1, st1 = s1["indicators"], s1["conditions"], s1["state"]
+        bar1 = s1["last_closed_bar"]
+        sl1_line = (f" | Active Entry Stop: ${st1['active_stop_loss']:,.2f}"
+                    if st1.get("active_stop_loss") is not None else "")
+        L.append("*   **Strategy:** `tier1_5_vwap_shield` (Spot BTC/USDT, zero leverage, 4H closed bars)")
+        L.append(f"*   **Last Closed 4H Bar:** {bar1['open_utc']} -> {bar1['close_utc']} / "
+                 f"{bar1['close_sgt']} ({s1['bars_analyzed']} closed 4H bars)")
+        L.append(f"*   **Indicators:** Close ${ind1['close_price']:,.2f} | "
+                 f"120D EMA Shield ${ind1['macro_120d_ema']:,.2f} | "
+                 f"15D Rolling VWAP (90b) ${ind1['rolling_15d_vwap']:,.2f} "
+                 f"(12b Slope {ind1['vwap_slope_12bar']:+,.2f}) | "
+                 f"Band +/-0.50 ATR: ${ind1['lower_buffer_price']:,.2f} to "
+                 f"${ind1['upper_buffer_price']:,.2f} | 4H ATR(14) ${ind1['atr_14']:,.2f}")
+        L.append(f"*   **Checks:** [{'PASS' if cond1['above_macro_shield'] else 'FAIL'}] Close > 120D EMA | "
+                 f"[{'PASS' if cond1['above_upper_buffer'] else 'FAIL'}] Close > Upper Buffer | "
+                 f"[{'PASS' if cond1['vwap_slope_positive'] else 'FAIL'}] 12b VWAP Slope > 0 | "
+                 f"[{'TRIGGERED' if cond1['exit_triggered'] else 'CLEAR'}] Exit Rule")
+        L.append(f"*   **Signal & Simulated State:** raw_signal = {sig_fmt(st1['raw_signal'])} | "
+                 f"Sim Prior Pos = {st1['prior_position']} -> Action: {st1['action']} | "
+                 f"Reference 3.0x ATR Stop: ${st1['reference_3x_atr_sl']:,.2f}{sl1_line}")
+        L.append(f"*   **Action by Actual Account State:** If currently FLAT (USDT): {st1['if_flat']} | "
+                 f"If currently LONG (BTC): {st1['if_long']}")
+    else:
+        L.append(f"*   **Status:** UNAVAILABLE ({s1.get('reason', 'missing 4H/1D Spot bars')})")
+    L.append("")
+
+    s2 = a.get("sleeve2") or {}
+    L.append("## 7. PROJECT F — SLEEVE #2 (1D TTM Volatility Squeeze · 20% Weight)")
+    if s2.get("status") == "LIVE":
+        ind2, cond2, st2 = s2["indicators"], s2["conditions"], s2["state"]
+        bar2 = s2["last_closed_bar"]
+        sl2_line = (f" | Active Entry Stop: ${st2['active_stop_loss']:,.2f}"
+                    if st2.get("active_stop_loss") is not None else "")
+        sq_txt = "ON" if cond2["squeeze_on_now"] else "OFF"
+        rel_txt = "YES" if cond2["squeeze_release"] else "NO"
+        L.append("*   **Strategy:** `tier14_ttm_squeeze_1d` (Spot BTC/USDT, zero leverage, "
+                 "NO 120D EMA shield, 1D closed bars)")
+        L.append(f"*   **Last Closed 1D Bar:** {bar2['open_utc']} -> {bar2['close_utc']} / "
+                 f"{bar2['close_sgt']} ({s2['bars_analyzed']} closed 1D bars)")
+        L.append(f"*   **Indicators:** Close ${ind2['close_price']:,.2f} | "
+                 f"BB(20,2.0) ${ind2['bb_lower']:,.2f} to ${ind2['bb_upper']:,.2f} | "
+                 f"KC(20,1.5) ${ind2['kc_lower']:,.2f} to ${ind2['kc_upper']:,.2f} "
+                 f"(Mid ${ind2['kc_mid']:,.2f}) | Squeeze Now: {sq_txt} "
+                 f"(Prior 3D: {ind2['prior_3d_squeeze_bars']}/3, Release: {rel_txt}) | "
+                 f"OLS Mom(20): {ind2['mom']:+,.2f} (Prev {ind2['prev_mom']:+,.2f}) | "
+                 f"Exit SMA(21): ${ind2['sma_21']:,.2f} | 1D ATR(14): ${ind2['atr_14']:,.2f}")
+        L.append(f"*   **Checks:** [{'PASS' if cond2['squeeze_release'] else 'FAIL'}] Squeeze Release (after >=3d) | "
+                 f"[{'PASS' if cond2['mom_positive'] else 'FAIL'}] Mom > 0 | "
+                 f"[{'PASS' if cond2['mom_rising'] else 'FAIL'}] Mom Rising | "
+                 f"[{'PASS' if cond2['above_kc_mid'] else 'FAIL'}] Close > KC Mid | "
+                 f"[{'TRIGGERED' if cond2['exit_triggered'] else 'CLEAR'}] Exit (Close < SMA21 or Mom < 0)")
+        L.append(f"*   **Signal & Simulated State:** raw_signal = {sig_fmt(st2['raw_signal'])} | "
+                 f"Sim Prior Pos = {st2['prior_position']} -> Action: {st2['action']} | "
+                 f"Reference 2.0x ATR Stop: ${st2['reference_2x_atr_sl']:,.2f}{sl2_line}")
+        L.append(f"*   **Action by Actual Account State:** If currently FLAT (USDT): {st2['if_flat']} | "
+                 f"If currently LONG (BTC): {st2['if_long']}")
+        L.append("*   **Portfolio Rule:** Segregated virtual ledgers (80% Sleeve #1 / 20% Sleeve #2, "
+                 "hard cap 15%-20% on #2); quarterly rebalance on Jan 1 / Apr 1 / Jul 1 / Oct 1 at "
+                 "00:00 UTC if drift exceeds +/-3% ([77%, 83%]). Models 0.30% RT friction.")
+    else:
+        L.append(f"*   **Status:** UNAVAILABLE ({s2.get('reason', 'missing 1D Spot bars')})")
+    L.append("")
+
     if a["problems"]:
         L.append("## DATA NOTES")
         for pr in a["problems"]:
             L.append(f"*   {pr}")
         L.append("")
 
-    L.append("### AI EXECUTION PROTOCOL: SALAM ANALYST v1.7")
-    L.append("**Role:** elite spot-only BTC swing trader, Dual-Inventory (50/50 BTC/USDT), zero "
-             "leverage. You do not decide anything: you describe what this packet's rules permit.")
+    L.append("### AI EXECUTION PROTOCOL: SALAM PRO MAX v1.7 (3-VERDICT EDITION)")
+    L.append("**Role:** quantitative analyst for a spot-only BTC/USDT operator running three "
+             "independent systems inside one packet: (1) SALAM Protocol tactical structure/flow "
+             "(Sections 1-5), (2) Project F Sleeve #1 — 4H Rolling VWAP Shield, 80% weight "
+             "(Section 6), and (3) Project F Sleeve #2 — 1D TTM Volatility Squeeze, 20% weight "
+             "(Section 7).")
     L.append("**Primary Directive:** use only numbers present in this packet. No external data, no "
-             "recall, no forecasting. A missing number is UNAVAILABLE (never zero) — state what "
-             "its absence costs the verdict.")
+             "recall, no forecasting, no recomputing indicators from memory. A missing number is "
+             "UNAVAILABLE (never zero) — state what its absence costs the verdict.")
+    L.append("")
+    L.append("**THREE-VERDICT MANDATE & STRICT FIREWALL (NON-NEGOTIABLE):**")
+    L.append("Start every response with a **3-VERDICT SUMMARY TABLE** covering all three systems, "
+             "then present the detail sections. Each verdict is strictly walled off from the other two:")
+    L.append("1. **Verdict 1 — SALAM Tactical (Sections 1-5):** Governed ONLY by the SALAM gate banner, "
+             "Four Pillars, and SALAM rules below. Never use Project F to trigger or cancel SALAM. If "
+             "SALAM's gate is PARTIAL or NONE, Verdict 1 MUST remain SUSPENDED / WAIT even if Sleeves #1 or #2 fire.")
+    L.append("2. **Verdict 2 — Project F Sleeve #1 (Section 6 · 4H VWAP Shield · 80%):** Purely mechanical "
+             "Spot OHLCV system (`tier1_5_vwap_shield`). Output BOTH the If-FLAT action and If-LONG action "
+             "verbatim from Section 6, quote its key numbers (Close vs 120D EMA Shield, 15D Rolling VWAP, "
+             "Upper/Lower Buffers, 3.0x ATR Stop), and state the last closed 4H bar timestamp. **FIREWALL:** "
+             "You are FORBIDDEN from overriding, delaying, or altering Verdict 2 using ETF flows, CVD, open "
+             "interest, funding, L/S ratios, liquidation tiers, or SALAM's PARTIAL/NONE order-flow gate "
+             "(Sleeve #1 uses only Spot klines and stays live 24/7).")
+    L.append("3. **Verdict 3 — Project F Sleeve #2 (Section 7 · 1D TTM Squeeze · 20%):** Purely mechanical "
+             "Spot OHLCV breakout system (`tier14_ttm_squeeze_1d`). Output BOTH the If-FLAT action and If-LONG "
+             "action verbatim from Section 7, quote Squeeze state/release, OLS Momentum vs prior bar, Close vs "
+             "KC Mid & SMA(21), and 2.0x ATR Stop, and state the last closed 1D bar timestamp. **FIREWALL:** "
+             "Sleeve #2 intentionally has NO 120D EMA shield — you are FORBIDDEN from vetoing or altering "
+             "Verdict 3 using the 120D EMA, 200D SMA, ETF flows, CVD, funding, or SALAM bands.")
+    L.append("*End with a 2-line **Portfolio Alignment & Quarterly Rebalance Note** (informational only — "
+             "never changes any verdict): state how many verdicts are active vs waiting, and remind the user of "
+             "the 80/20 segregated ledger & quarterly rebalance schedule (Jan 1 / Apr 1 / Jul 1 / Oct 1 at 00:00 UTC, "
+             "+/-3% drift band `[77%, 83%]`).*")
     L.append("")
     L.append("**THE FOUR PILLARS — the only drivers. Nothing else may start a trade.**")
     L.append("1. **Structure A — S/R:** tactical bands with confluence scores, macro S/R with touches.")
@@ -1132,7 +1646,8 @@ def render(a: dict) -> str:
                  "Invalidation per the arithmetic. Target = the next MEASURED level below, named; "
                  "if none exists in this packet, write \"no target\".")
         L.append("")
-        L.append("**Required Output Format (this exact order):**")
+        L.append("**Required Output Format (present the 3-VERDICT SUMMARY TABLE first, "
+                 "followed by Verdict 1 details 0-7 and Verdict 2/3 summaries):**")
         L.append("0. **BOTTOM LINE** — one plain sentence a non-trader can act on "
                  "(\"NO ACTION at $X\" or \"TRIM 0.25 BTC at $Y\") plus the bias in one clause.")
         L.append("1. **Market State** — regime, where price sits against structure, sweep status, gate.")
@@ -1546,6 +2061,104 @@ def selftest() -> int:
     check("manual with an unparseable time does NOT unlock", ok_junk is False)
     check("manual older than the freshness ceiling does NOT unlock", ok_stale is False)
     check("manual with no time does NOT unlock", ok_noat is False)
+
+    # ── Project F Sleeve #1 & #2 + 3-Verdict Pro Max checks ──
+    _s1_t0 = 1_700_000_000_000 - (1_700_000_000_000 % 86_400_000)
+    _s1_bull = []
+    for _i in range(780):
+        _c = 100.0 + (0.2 if _i % 2 == 0 else -0.2) if _i < 765 else 100.0 + (_i - 764) * 1.5
+        _s1_bull.append({
+            "open_time": _s1_t0 + _i * 14_400_000,
+            "o": _c - 0.1, "h": _c + 0.5, "l": _c - 0.5, "c": _c, "v": 10.0,
+            "close_time": _s1_t0 + (_i + 1) * 14_400_000 - 1, "taker_buy": 5.0,
+        })
+    _res1 = sleeve1_vwap_shield(_s1_bull)
+    check("Sleeve #1 bullish breakout fires +1 with 3.0x ATR stop",
+          _res1.get("status") == "LIVE"
+          and _res1["state"]["raw_signal"] == 1
+          and _res1["state"]["if_flat"] == "BUY BTC at next bar open"
+          and _res1["state"]["reference_3x_atr_sl"] < _res1["indicators"]["close_price"],
+          str(_res1.get("state")))
+
+    _s1_bear = []
+    for _i in range(780):
+        _c = 200.0 + (0.2 if _i % 2 == 0 else -0.2) if _i < 732 else 100.0 + (_i - 732) * 0.25
+        _s1_bear.append({
+            "open_time": _s1_t0 + _i * 14_400_000,
+            "o": _c - 0.1, "h": _c + 0.5, "l": _c - 0.5, "c": _c, "v": 10.0,
+            "close_time": _s1_t0 + (_i + 1) * 14_400_000 - 1, "taker_buy": 5.0,
+        })
+    _res1_bear = sleeve1_vwap_shield(_s1_bear)
+    check("Sleeve #1 macro shield blocks buys when below 120D EMA",
+          _res1_bear.get("status") == "LIVE"
+          and not _res1_bear["conditions"]["above_macro_shield"]
+          and _res1_bear["state"]["raw_signal"] == -1)
+
+    _s1_full_sigs, _, _ = _sleeve1_signals(_s1_bull)
+    _s1_cut_sigs, _, _ = _sleeve1_signals(_s1_bull[:770])
+    check("Sleeve #1 passes bit-for-bit truncation invariance",
+          _s1_cut_sigs == _s1_full_sigs[:770])
+
+    _s2_bars = []
+    for _i in range(66):
+        if _i < 45:
+            _c = 100.0 + (3.0 if _i % 2 == 0 else -3.0)
+            _rng = 4.0
+        elif _i < 65:
+            _c = 100.0 + (0.05 if _i % 2 == 0 else -0.05) + (0.2 if _i >= 63 else 0.0)
+            _rng = 0.1
+        else:
+            _c = 118.0
+            _rng = 1.0
+        _s2_bars.append({
+            "open_time": _s1_t0 + _i * 86_400_000,
+            "o": 101.0 if _i == 65 else _c,
+            "h": _c + _rng,
+            "l": 101.0 if _i == 65 else _c - _rng,
+            "c": _c, "v": 100.0,
+            "close_time": _s1_t0 + (_i + 1) * 86_400_000 - 1, "taker_buy": 50.0,
+        })
+    _res2 = sleeve2_ttm_squeeze(_s2_bars)
+    check("Sleeve #2 3-day squeeze release fires +1 with 2.0x ATR stop",
+          _res2.get("status") == "LIVE"
+          and _res2["conditions"]["squeeze_release"]
+          and _res2["state"]["raw_signal"] == 1
+          and _res2["state"]["reference_2x_atr_sl"] < 118.0,
+          str((_res2.get("conditions"), _res2.get("state"))))
+
+    _s2_short_sq = _s2_bars[:47] + [_s2_bars[65]]
+    _s2_short_sq[-1] = dict(_s2_short_sq[-1], open_time=_s1_t0 + 47 * 86_400_000,
+                            close_time=_s1_t0 + 48 * 86_400_000 - 1)
+    _res2_short = sleeve2_ttm_squeeze(_s2_short_sq)
+    check("Sleeve #2 rejects squeeze release with fewer than 3 squeeze days",
+          _res2_short.get("status") == "LIVE" and _res2_short["state"]["raw_signal"] != 1)
+
+    _s2_exit = _s2_bars + [{
+        "open_time": _s1_t0 + 66 * 86_400_000, "o": 117.0, "h": 117.0, "l": 90.0, "c": 91.0,
+        "v": 100.0, "close_time": _s1_t0 + 67 * 86_400_000 - 1, "taker_buy": 20.0,
+    }]
+    _res2_exit = sleeve2_ttm_squeeze(_s2_exit)
+    check("Sleeve #2 exits (-1) when close drops below SMA(21)",
+          _res2_exit.get("status") == "LIVE" and _res2_exit["state"]["raw_signal"] == -1)
+
+    _s2_full_sigs, _, _ = _sleeve2_signals(_s2_bars)
+    _s2_cut_sigs, _, _ = _sleeve2_signals(_s2_bars[:60])
+    check("Sleeve #2 passes bit-for-bit truncation invariance",
+          _s2_cut_sigs == _s2_full_sigs[:60])
+
+    _pm_full = render(dict(full, sleeve1=_res1, sleeve2=_res2))
+    _pm_part = render(dict(part, sleeve1=_res1, sleeve2=_res2))
+    check("SALAM Pro Max FULL packet renders 3-Verdict sections",
+          "SALAM PRO MAX" in _pm_full
+          and "3-VERDICT SUMMARY TABLE" in _pm_full
+          and "PROJECT F — SLEEVE #1" in _pm_full
+          and "PROJECT F — SLEEVE #2" in _pm_full)
+    check("SALAM Pro Max PARTIAL keeps Sleeves #1/#2 live while SALAM gate stays suspended",
+          "EXECUTION SUSPENDED" in _pm_part
+          and "PROJECT F — SLEEVE #1" in _pm_part
+          and "PROJECT F — SLEEVE #2" in _pm_part
+          and "Execution Rules" not in _pm_part
+          and "Binding Arithmetic" not in _pm_part)
 
     print("live")
     try:

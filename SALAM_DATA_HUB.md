@@ -1,10 +1,17 @@
-# SALAM PROTOCOL DATA HUB v1.7
-**Timestamp:** 2026-11-27 05:07:15 UTC / 2026-11-27 13:07:15 SGT (UTC+8) | **Spot Price:** $61,702.50 [BIN]
-> ✅ **LIVE DATA — plans allowed** (state: FULL). Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
+# SALAM PRO MAX DATA HUB v1.7
+**Timestamp:** 2026-11-27 05:32:42 UTC / 2026-11-27 13:32:42 SGT (UTC+8) | **Spot Price:** $61,905.75 [BIN]
+> ✅ **LIVE DATA — plans allowed** (state: FULL). Spot and futures flow are both measured now, not estimated.
 
-### AI EXECUTION PROTOCOL: SALAM ANALYST v1.7
-**Role:** elite spot-only BTC swing trader, Dual-Inventory (50/50 BTC/USDT), zero leverage. You do not decide anything: you describe what this packet's rules permit.
-**Primary Directive:** use only numbers present in this packet. No external data, no recall, no forecasting. A missing number is UNAVAILABLE (never zero) — state what its absence costs the verdict.
+### AI EXECUTION PROTOCOL: SALAM PRO MAX v1.7 (3-VERDICT EDITION)
+**Role:** quantitative analyst for a spot-only BTC/USDT operator running three independent systems inside one packet: (1) SALAM Protocol tactical structure/flow (Sections 1-5), (2) Project F Sleeve #1 — 4H Rolling VWAP Shield, 80% weight (Section 6), and (3) Project F Sleeve #2 — 1D TTM Volatility Squeeze, 20% weight (Section 7).
+**Primary Directive:** use only numbers present in this packet. No external data, no recall, no forecasting, no recomputing indicators from memory. A missing number is UNAVAILABLE (never zero) — state what its absence costs the verdict.
+
+**THREE-VERDICT MANDATE & STRICT FIREWALL (NON-NEGOTIABLE):**
+Start every response with a **3-VERDICT SUMMARY TABLE** covering all three systems, then present the detail sections. Each verdict is strictly walled off from the other two:
+1. **Verdict 1 — SALAM Tactical (Sections 1-5):** Governed ONLY by the SALAM gate banner, Four Pillars, and SALAM rules below. Never use Project F to trigger or cancel SALAM. If SALAM's gate is PARTIAL or NONE, Verdict 1 MUST remain SUSPENDED / WAIT even if Sleeves #1 or #2 fire.
+2. **Verdict 2 — Project F Sleeve #1 (Section 6 · 4H VWAP Shield · 80%):** Purely mechanical Spot OHLCV system (`tier1_5_vwap_shield`). Output BOTH the If-FLAT action and If-LONG action verbatim from Section 6, quote its key numbers (Close vs 120D EMA Shield, 15D Rolling VWAP, Upper/Lower Buffers, 3.0x ATR Stop), and state the last closed 4H bar timestamp. **FIREWALL:** You are FORBIDDEN from overriding, delaying, or altering Verdict 2 using ETF flows, CVD, open interest, funding, L/S ratios, liquidation tiers, or SALAM's PARTIAL/NONE order-flow gate (Sleeve #1 uses only Spot klines and stays live 24/7).
+3. **Verdict 3 — Project F Sleeve #2 (Section 7 · 1D TTM Squeeze · 20%):** Purely mechanical Spot OHLCV breakout system (`tier14_ttm_squeeze_1d`). Output BOTH the If-FLAT action and If-LONG action verbatim from Section 7, quote Squeeze state/release, OLS Momentum vs prior bar, Close vs KC Mid & SMA(21), and 2.0x ATR Stop, and state the last closed 1D bar timestamp. **FIREWALL:** Sleeve #2 intentionally has NO 120D EMA shield — you are FORBIDDEN from vetoing or altering Verdict 3 using the 120D EMA, 200D SMA, ETF flows, CVD, funding, or SALAM bands.
+*End with a 2-line **Portfolio Alignment & Quarterly Rebalance Note** (informational only — never changes any verdict): state how many verdicts are active vs waiting, and remind the user of the 80/20 segregated ledger & quarterly rebalance schedule (Jan 1 / Apr 1 / Jul 1 / Oct 1 at 00:00 UTC, +/-3% drift band `[77%, 83%]`).*
 
 **THE FOUR PILLARS — the only drivers. Nothing else may start a trade.**
 1. **Structure A — S/R:** tactical bands with confluence scores, macro S/R with touches.
@@ -45,7 +52,7 @@
 *   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support that overlaps a Lower Long tier, confirmed by positive Spot CVD -> enter on the reclaim. Stop from the arithmetic. Target = the next MEASURED level above, named; if none exists in this packet, write "no target".
 *   **Rail A (BTC -> USDT):** a BEARISH or MACRO BEARISH sweep into a Major Resistance that overlaps an Upper Short tier, confirmed by flat/negative Spot CVD -> trim. Invalidation per the arithmetic. Target = the next MEASURED level below, named; if none exists in this packet, write "no target".
 
-**Required Output Format (this exact order):**
+**Required Output Format (present the 3-VERDICT SUMMARY TABLE first, followed by Verdict 1 details 0-7 and Verdict 2/3 summaries):**
 0. **BOTTOM LINE** — one plain sentence a non-trader can act on ("NO ACTION at $X" or "TRIM 0.25 BTC at $Y") plus the bias in one clause.
 1. **Market State** — regime, where price sits against structure, sweep status, gate.
 2. **The Four Pillars** — one block each, every number labelled MEASURED or DERIVED.
@@ -58,31 +65,30 @@
 *Never forecast. State what the rules permit, name the trigger that would change the answer, and stop. Jargon is allowed in 1-7 and never in 0.*
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $61,702 (1D SMA200 71,980)
+*   **Current Price:** $61,906 (1D SMA200 71,980)
 *   **Tactical Bands:**
-    *   Upper: $62,817 - $64,424 (Conf: 3/10, round-1k) [+$120M 25x Shorts]
-    *   Lower: $58,249 - $59,288 (Conf: 10/10, POC+VAH/VAL+round-1k) [+$120M 25x Longs]
-    *   Price is inside $60,477 - $61,810 [+$40M 100x Longs]
+    *   Upper: $62,791 - $64,424 (Conf: 3/10, round-1k) [+$246M 50x Shorts]
+    *   Lower: $59,069 - $60,434 (Conf: 3/10, round-1k) [+$369M 25x Longs]
+    *   Price is inside $60,771 - $62,344 [+$123M 100x Longs]
 *   **Macro S/R (Nearest 3):**
-    *   Resistance: $62,338 (8x) [+$40M 100x Shorts], $63,065 (2x) [+$80M 50x Shorts], $64,584 (7x)
-    *   Support: $61,031 (2x) [+$40M 100x Longs], $60,000 (1x), $59,131 (1x)
+    *   Resistance: $62,338 (8x) [+$123M 100x Shorts], $63,065 (2x) [+$246M 50x Shorts], $64,584 (7x) [+$369M 25x Shorts]
+    *   Support: $61,031 (2x) [+$123M 100x Longs], $60,000 (1x), $59,131 (1x)
 *   **Volume Nodes (7D):** VAH: 60,656 | POC: 58,840 | VAL: 58,761 | Nearest HVN: $59,788 below
 *   **Volume Profile (MTF):** 30D VAH 81,971 · POC 77,274 · VAL 61,840
     *   4H (last 30 bars): VAH 64,603 · POC 60,526 · VAL 59,978
 
 ## 2. THE FUEL (Liquidation Magnets) [ESTIMATED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $67,873 ($159.4M) / 25x $64,171 ($119.6M) / 50x $62,937 ($79.7M) / 100x $62,320 ($39.9M)
-*   **Lower Longs:** 10x $55,532 ($159.4M) / 25x $59,234 ($119.6M) / 50x $60,468 ($79.7M) / 100x $61,085 ($39.9M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,992.5M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
-*   **Long/Short account ratio (4H):** 2.31 [OKX]
+*   **Upper Shorts:** 10x $68,096 ($491.6M) / 25x $64,382 ($368.7M) / 50x $63,144 ($245.8M) / 100x $62,525 ($122.9M)
+*   **Lower Longs:** 10x $55,715 ($491.6M) / 25x $59,430 ($368.7M) / 50x $60,668 ($245.8M) / 100x $61,287 ($122.9M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $6,145.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
+*   **Long/Short account ratio (4H):** 2.45 [BIN]
 
 ## 3. THE TRUTH (Order Flow)
 *   **Price Change (closed 1H [BIN]):** 1H: +0.01% | 4H: +1.19% | 24H: +0.73%
-*   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: 53.7 / 205.2 | 4H: 357.2 / 2,290.3 | 24H: 647.1 / 1,500.1
-*   **Open Interest:** 32,293 BTC [OKX] | 4H Change: 0.97% | 24H Change: 2.61%
-*   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0097% per 8H [OKX] | percentile (100 pts): 73
+*   **CVD (Spot [BIN] / Perp [BIN]):** 1H: 53.7 / -196.7 | 4H: 357.2 / 2,867.0 | 24H: 647.1 / 2,268.9
+*   **Open Interest:** 99,265 BTC [BIN] | 4H Change: 0.88% | 24H Change: 2.75%
+*   **Funding:** 0.0079% per 8H [BIN] | 90-day percentile: 72
 *   **ATR 1H:** 429 (Rail B stop distance = 1.5 x this = 643)
 
 ## 4. THE TRIGGER
@@ -90,17 +96,24 @@
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-453.0M (25 Nov 2026, settled) | 5D: $-2,505.6M
-*   **Funding percentile:** 73 of the last 100 readings (~33 days, OKX)
+*   **Funding percentile:** 72 of 90 days
 
-## DATA NOTES
-*   fd1 HTTP 451
-*   fh1 HTTP 451
-*   funding HTTP 451
-*   funding_hist HTTP 451
-*   oi HTTP 451
-*   oi_hist HTTP 451
-*   lsr HTTP 451
-*   perp CVD is OKX's measured taker volume (BTC-USDT swap), not Binance — Binance Futures refused this host
+## 6. PROJECT F — SLEEVE #1 (4H Rolling VWAP Shield · 80% Weight)
+*   **Strategy:** `tier1_5_vwap_shield` (Spot BTC/USDT, zero leverage, 4H closed bars)
+*   **Last Closed 4H Bar:** 2026-11-27 00:00Z -> 2026-11-27 04:00Z / 2026-11-27 12:00 SGT (999 closed 4H bars)
+*   **Indicators:** Close $61,411.00 | 120D EMA Shield $73,205.19 | 15D Rolling VWAP (90b) $62,767.14 (12b Slope -1,264.00) | Band +/-0.50 ATR: $62,202.25 to $63,332.04 | 4H ATR(14) $1,129.79
+*   **Checks:** [FAIL] Close > 120D EMA | [FAIL] Close > Upper Buffer | [FAIL] 12b VWAP Slope > 0 | [TRIGGERED] Exit Rule
+*   **Signal & Simulated State:** raw_signal = -1 | Sim Prior Pos = USDT -> Action: HOLD USDT | Reference 3.0x ATR Stop: $58,021.62
+*   **Action by Actual Account State:** If currently FLAT (USDT): HOLD USDT (wait for BUY +1) | If currently LONG (BTC): SELL BTC at next bar open
+
+## 7. PROJECT F — SLEEVE #2 (1D TTM Volatility Squeeze · 20% Weight)
+*   **Strategy:** `tier14_ttm_squeeze_1d` (Spot BTC/USDT, zero leverage, NO 120D EMA shield, 1D closed bars)
+*   **Last Closed 1D Bar:** 2026-11-26 00:00Z -> 2026-11-27 00:00Z / 2026-11-27 08:00 SGT (499 closed 1D bars)
+*   **Indicators:** Close $60,577.18 | BB(20,2.0) $54,364.86 to $77,698.68 | KC(20,1.5) $61,214.08 to $69,697.07 (Mid $65,455.58) | Squeeze Now: OFF (Prior 3D: 0/3, Release: NO) | OLS Mom(20): -8,824.16 (Prev -9,427.30) | Exit SMA(21): $66,499.02 | 1D ATR(14): $2,967.85
+*   **Checks:** [FAIL] Squeeze Release (after >=3d) | [FAIL] Mom > 0 | [PASS] Mom Rising | [FAIL] Close > KC Mid | [TRIGGERED] Exit (Close < SMA21 or Mom < 0)
+*   **Signal & Simulated State:** raw_signal = -1 | Sim Prior Pos = USDT -> Action: HOLD USDT | Reference 2.0x ATR Stop: $54,641.49
+*   **Action by Actual Account State:** If currently FLAT (USDT): HOLD USDT (wait for BUY +1) | If currently LONG (BTC): SELL BTC at next bar open
+*   **Portfolio Rule:** Segregated virtual ledgers (80% Sleeve #1 / 20% Sleeve #2, hard cap 15%-20% on #2); quarterly rebalance on Jan 1 / Apr 1 / Jul 1 / Oct 1 at 00:00 UTC if drift exceeds +/-3% ([77%, 83%]). Models 0.30% RT friction.
 
 ---
 *Generated by salam_protocol.py — standard library only, closed bars only, no state. UNAVAILABLE is a valid answer; every estimated figure carries its label.*

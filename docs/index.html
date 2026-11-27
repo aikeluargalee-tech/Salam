@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SALAM ATM · BTC spot data packet</title>
+<title>SALAM PRO MAX ATM · BTC spot data packet</title>
 <style>
 :root {
   --fs: 14px;
@@ -906,6 +906,77 @@ details.drawer[open] > summary .sum-left::before {
   margin-bottom: 6px;
 }
 
+/* 3-Verdict Quick Strip & Project F Sleeve Cards */
+.verdicts-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.v-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 9px 10px;
+}
+
+.v-card.buy {
+  border: 2px solid var(--acc);
+  background: var(--up-bg);
+}
+
+.v-card.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+
+.v-card.bad {
+  border-color: var(--dn-line);
+  background: var(--dn-bg);
+}
+
+.v-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.v-card.buy .v-head {
+  color: var(--acc);
+}
+
+.v-card.warn .v-head {
+  color: var(--warn);
+}
+
+.v-card.bad .v-head {
+  color: var(--dn);
+}
+
+.v-body {
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.sleeve-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chip.bad {
+  border-color: var(--dn-line);
+  background: var(--dn-bg);
+  color: var(--dn);
+  font-weight: 700;
+}
+
 .glossary-list {
   display: grid;
   gap: 8px;
@@ -1021,7 +1092,7 @@ footer {
   .price-grid {
     grid-template-columns: 0.9fr 1.1fr;
   }
-  .checks-list {
+  .checks-list, .verdicts-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .subgrid {
@@ -1061,7 +1132,7 @@ footer {
   <div class="atm-chassis">
 
     <header class="atm-head">
-      <span class="brand">SALAM ATM // BTC-USDT SPOT <span class="ver" id="ver"></span></span>
+      <span class="brand">SALAM PRO MAX ATM // BTC-USDT SPOT <span class="ver" id="ver"></span></span>
       <span id="age">LOADING...</span>
       <span class="ts" id="ts">WAITING FOR TIMESTAMP</span>
       <span class="spacer"></span>
@@ -1072,12 +1143,27 @@ footer {
       <section class="screen" id="glanceScreen">
         <div class="screen-bar">
           <span>SCREEN 1 // 5-SECOND QUICK GLANCE</span>
-          <span class="tag">SHOULD YOU COPY TO AI NOW?</span>
+          <span class="tag">3 VERDICTS · SHOULD YOU COPY TO AI NOW?</span>
         </div>
         <div class="screen-body">
           <div id="glanceVerdict" class="verdict-box wait">
             <div class="verdict-main">CHECKING PACKET...</div>
             <div class="verdict-sub">Loading latest market snapshot and rules.</div>
+          </div>
+
+          <div class="verdicts-strip" id="threeVerdicts">
+            <div class="v-card" id="v1Card">
+              <div class="v-head"><span>VERDICT 1 // SALAM</span><span id="v1Badge">—</span></div>
+              <div class="v-body" id="v1Body">Checking...</div>
+            </div>
+            <div class="v-card" id="v2Card">
+              <div class="v-head"><span>VERDICT 2 // SLEEVE #1 (4H · 80%)</span><span id="v2Badge">—</span></div>
+              <div class="v-body" id="v2Body">Checking...</div>
+            </div>
+            <div class="v-card" id="v3Card">
+              <div class="v-head"><span>VERDICT 3 // SLEEVE #2 (1D · 20%)</span><span id="v3Badge">—</span></div>
+              <div class="v-body" id="v3Body">Checking...</div>
+            </div>
           </div>
 
           <div class="price-grid">
@@ -1149,7 +1235,7 @@ footer {
               <a class="chatlink" href="https://gemini.google.com/app" target="_blank" rel="noopener">[ GEMINI ]</a>
               <a class="chatlink" href="https://chat.deepseek.com/" target="_blank" rel="noopener">[ DEEPSEEK ]</a>
             </div>
-            <div class="step-line"><b>STEP 3:</b> Paste the packet and send (ask: <b>"Read this and tell me what the rules allow right now."</b>).</div>
+            <div class="step-line"><b>STEP 3:</b> Paste the packet and send (ask: <b>"Read this packet and give me the 3 verdicts (SALAM, Sleeve #1, and Sleeve #2) right now."</b>).</div>
           </div>
         </div>
       </section>
@@ -1173,6 +1259,30 @@ footer {
         <span class="drawers-title">SCREEN 4 // SUPPORTING DATA DRAWERS</span>
         <button id="toggleAll" type="button">[ + ] EXPAND ALL DETAILS</button>
       </div>
+
+      <!-- Drawer 0: Project F Systematic Sleeves (Open by default) -->
+      <details class="drawer" open>
+        <summary>
+          <span class="sum-left">PROJECT F // SYSTEMATIC SLEEVES #1 (80%) &amp; #2 (20%)</span>
+          <span class="sum-meta" id="sumSleeves">Loading sleeves...</span>
+        </summary>
+        <div class="drawer-body">
+          <div class="plain-hint"><b>In plain English:</b> Two strict rule-based Spot engines tested on 5.9 years of Bitcoin history. They use only closed Binance Spot candles and never stop if futures data goes down.</div>
+          <div class="subgrid">
+            <div class="subcard" id="sleeve1Box">
+              <div class="subcard-head"><span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span><span class="chip">—</span></div>
+              <div class="dimv">Loading Sleeve #1...</div>
+            </div>
+            <div class="subcard" id="sleeve2Box">
+              <div class="subcard-head"><span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span><span class="chip">—</span></div>
+              <div class="dimv">Loading Sleeve #2...</div>
+            </div>
+          </div>
+          <div class="note">
+            <b>80/20 Rebalance Rule:</b> Keep separate ledgers for Sleeve #1 (80%) and Sleeve #2 (20%, hard cap 15%–20%). Check weights every Jan 1, Apr 1, Jul 1, and Oct 1 at 00:00 UTC (08:00 SGT) and rebalance only if drift goes outside 77%–83% (+/-3%).
+          </div>
+        </div>
+      </details>
 
       <!-- Drawer 1 (Open by default) -->
       <details class="drawer" open>
@@ -1366,9 +1476,9 @@ function renderAlert() {
 
   if (hit) {
     lastAlert[hit.name] = {t: Date.now(), move: m.move};
-    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM ATM`;
-  } else if (document.title !== 'SALAM ATM · BTC spot data packet') {
-    document.title = 'SALAM ATM · BTC spot data packet';
+    document.title = `${arrow} $${Math.round(abs)} 5M · SALAM PRO MAX ATM`;
+  } else if (document.title !== 'SALAM PRO MAX ATM · BTC spot data packet') {
+    document.title = 'SALAM PRO MAX ATM · BTC spot data packet';
   }
 
   const last = ALERT_TIERS.map(t => lastAlert[t.name]).filter(Boolean).sort((a, b) => b.t - a.t)[0];
@@ -1456,16 +1566,30 @@ function renderGlance() {
   const VALID_STATES = ['FULL', 'MANUAL', 'PARTIAL', 'NONE'];
   const state = VALID_STATES.includes(d.exec_state) ? d.exec_state : 'UNKNOWN';
   const suspended = !(state === 'FULL' || state === 'MANUAL');
+  const s1 = d.sleeve1 || {};
+  const s2 = d.sleeve2 || {};
+  const s1Buy = s1.status === 'LIVE' && s1.state && s1.state.raw_signal === 1;
+  const s2Buy = s2.status === 'LIVE' && s2.state && s2.state.raw_signal === 1;
 
   if (suspended) {
+    if (s1Buy || s2Buy) {
+      const fired = [];
+      if (s1Buy) fired.push('Sleeve #1 (4H VWAP Shield) signaled BUY (+1)');
+      if (s2Buy) fired.push('Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)');
+      box.className = 'verdict-box active';
+      box.innerHTML = `<div class="verdict-main">DECISION: PROJECT F TRIGGERED (SALAM INCOMPLETE) — COPY TO AI FOR SLEEVES #1/#2</div>
+        <div class="verdict-sub">${fired.join(' · ')}. SALAM tactical rules stay suspended while futures flow is incomplete.</div>`;
+      screen.className = 'screen';
+      return;
+    }
     const why = state === 'PARTIAL'
-      ? `Futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}, so trade plans are paused.`
+      ? `Futures data is from yesterday${d.perp_dump ? ' (' + esc(d.perp_dump.date) + ')' : ''}, so SALAM trade plans are paused.`
       : state === 'NONE'
-        ? 'Futures buying/selling data is currently missing, so only price levels are shown.'
+        ? 'Futures buying/selling data is currently missing, so only SALAM price levels are shown.'
         : 'The packet arrived without a valid status flag and cannot be trusted.';
     box.className = state === 'PARTIAL' ? 'verdict-box wait' : 'verdict-box stop';
     box.innerHTML = `<div class="verdict-main">DECISION: WAIT — DATA IS INCOMPLETE (NO NEED TO COPY YET)</div>
-      <div class="verdict-sub">${why}</div>`;
+      <div class="verdict-sub">${why} Neither Project F sleeve triggered a BUY (+1).</div>`;
     screen.className = state === 'PARTIAL' ? 'screen warn' : 'screen bad';
     return;
   }
@@ -1488,6 +1612,8 @@ function renderGlance() {
   const nearEdge = (supDist !== null && supDist <= 1.5) || (resDist !== null && resDist <= 1.5);
 
   const reasons = [];
+  if (s1Buy) reasons.push('Sleeve #1 (4H VWAP Shield) signaled BUY (+1)');
+  if (s2Buy) reasons.push('Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)');
   if (liveHit) reasons.push(`5-minute move hit ${m.move >= 0 ? '+' : '-'}${money(Math.abs(m.move))}`);
   if (bullSweep) reasons.push(`Bullish sweep detected near ${fmt(sw.level)}`);
   if (bearSweep) reasons.push(`Bearish sweep detected near ${fmt(sw.level)}`);
@@ -1511,12 +1637,125 @@ function renderGlance() {
     if (supLo !== null && price !== null && price !== 0) {
       quietParts.push(`Buy floor is ${((supLo / price - 1) * 100).toFixed(1)}% lower at ${fmt(supLo)}`);
     }
-    quietParts.push('no dip-and-bounce trigger occurred');
+    quietParts.push('no dip-and-bounce trigger or Project F BUY occurred');
     box.className = 'verdict-box quiet';
     box.innerHTML = `<div class="verdict-main">DECISION: QUIET MARKET — NOTHING TRIGGERED YET</div>
       <div class="verdict-sub">${quietParts.join(' · ')}.</div>`;
     screen.className = 'screen';
   }
+}
+
+function sleeveChip(ok, label, okLabel = 'PASS', badLabel = 'FAIL', reverseStyle = false) {
+  const clsName = reverseStyle ? (ok ? 'bad' : 'ok') : (ok ? 'ok' : '');
+  const tag = ok ? okLabel : badLabel;
+  return `<span class="chip ${clsName}">[${tag}] ${esc(label)}</span>`;
+}
+
+function renderSleeves(d, state) {
+  const suspended = !(state === 'FULL' || state === 'MANUAL');
+  const price = isNum(d.price) ? Number(d.price) : null;
+  const resB = bandBounds(d.res_band);
+  const resHi = resB ? resB.lo : null;
+  const gap = (price !== null && resHi !== null && price !== 0) ? (resHi / price - 1) * 100 : null;
+  const sw = d.sweep || {};
+  const flag = String(sw.flag || '');
+  const swept = flag && flag !== 'NONE' && flag !== 'UNAVAILABLE';
+  const bullSweep = swept && /BULL/i.test(flag);
+  const bearSweep = swept && /BEAR/i.test(flag);
+
+  // Verdict 1 (SALAM Tactical)
+  const v1c = $('v1Card'), v1b = $('v1Badge'), v1t = $('v1Body');
+  if (suspended) {
+    v1c.className = 'v-card ' + (state === 'PARTIAL' ? 'warn' : 'bad');
+    v1b.textContent = state === 'PARTIAL' ? 'HALF DATA' : state === 'NONE' ? 'LOCKED' : 'ERROR';
+    v1t.innerHTML = '<b>SUSPENDED / WAIT</b><br><span class="dimv">Futures flow incomplete — SALAM plans withheld.</span>';
+  } else {
+    const activeV1 = bullSweep || bearSweep || (gap !== null && gap <= 0);
+    v1c.className = activeV1 ? 'v-card buy' : 'v-card';
+    v1b.textContent = bullSweep ? 'BUY ARMED' : (gap !== null && gap <= 0) ? 'SELL ZONE' : state;
+    const buyPart = bullSweep ? `BUY ARMED (${fmt(sw.level)})` : 'BUY: OFF';
+    const sellPart = (gap !== null && gap <= 0) ? 'SELL: IN ZONE'
+      : gap !== null ? `SELL: +${gap.toFixed(1)}%` : 'SELL: NO ZONE';
+    v1t.innerHTML = `<b>${buyPart} | ${sellPart}</b><br><span class="dimv">Rules + order flow (${state}).</span>`;
+  }
+
+  // Verdict 2 & Drawer Card (Sleeve #1 — 4H VWAP Shield)
+  const s1 = d.sleeve1 || {};
+  const v2c = $('v2Card'), v2b = $('v2Badge'), v2t = $('v2Body');
+  const s1Live = s1.status === 'LIVE' && s1.indicators && s1.conditions && s1.state && s1.last_closed_bar;
+  if (s1Live) {
+    const ind1 = s1.indicators, cond1 = s1.conditions, st1 = s1.state, bar1 = s1.last_closed_bar;
+    const sig1 = st1.raw_signal;
+    v2c.className = sig1 === 1 ? 'v-card buy' : 'v-card';
+    v2b.textContent = esc(st1.action || '—');
+    v2t.innerHTML = `If FLAT: <b>${esc(st1.if_flat || '—')}</b><br>If LONG: ${esc(st1.if_long || '—')}<br><span class="dimv">120D Shield: ${cond1.above_macro_shield ? 'OPEN' : 'CLOSED'} · ${esc(bar1.close_sgt || '—')}</span>`;
+
+    $('sleeve1Box').innerHTML = `
+      <div class="subcard-head">
+        <span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span>
+        <span class="chip ${sig1 === 1 ? 'ok' : ''}">${esc(st1.action || '—')} (${sig1 > 0 ? '+1' : sig1})</span>
+      </div>
+      <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind1.close_price, 2)}</span><span class="dimv">${esc(bar1.close_sgt || '')} (${isNum(s1.bars_analyzed) ? s1.bars_analyzed : '?'} bars)</span></div>
+      <div class="lvl"><span class="nm">SHIELD</span><span class="px">${money(ind1.macro_120d_ema, 2)}</span><span class="dimv">120-day EMA (${cond1.above_macro_shield ? 'price ABOVE' : 'price BELOW'})</span></div>
+      <div class="lvl"><span class="nm">VWAP90</span><span class="px">${money(ind1.rolling_15d_vwap, 2)}</span><span class="dimv">12-bar slope: ${signed(ind1.vwap_slope_12bar, 2)}</span></div>
+      <div class="lvl"><span class="nm">BAND</span><span class="px">${money(ind1.lower_buffer_price, 0)} - ${money(ind1.upper_buffer_price, 0)}</span><span class="dimv">+/-0.50 ATR(14) (${money(ind1.atr_14, 0)})</span></div>
+      <div class="lvl"><span class="nm">IF FLAT</span><span class="px">${esc(st1.if_flat || '—')}</span></div>
+      <div class="lvl"><span class="nm">IF LONG</span><span class="px">${esc(st1.if_long || '—')}</span></div>
+      <div class="lvl"><span class="nm">STOPS</span><span class="px">Ref ${money(st1.reference_3x_atr_sl, 0)}${isNum(st1.active_stop_loss) ? ' | Active ' + money(st1.active_stop_loss, 0) : ''}</span><span class="dimv">(3.0x ATR)</span></div>
+      <div class="sleeve-chips">
+        ${sleeveChip(cond1.above_macro_shield, 'Close > 120D EMA')}
+        ${sleeveChip(cond1.above_upper_buffer, 'Close > Upper Band')}
+        ${sleeveChip(cond1.vwap_slope_positive, 'Slope > 0')}
+        ${sleeveChip(cond1.exit_triggered, 'Exit Rule', 'TRIGGERED', 'CLEAR', true)}
+      </div>`;
+  } else {
+    v2c.className = 'v-card bad';
+    v2b.textContent = 'UNAVAILABLE';
+    v2t.textContent = s1.reason || 'Sleeve #1 spot data missing.';
+    $('sleeve1Box').innerHTML = `<div class="subcard-head"><span>SLEEVE #1 // 4H VWAP SHIELD (80%)</span><span class="chip bad">UNAVAILABLE</span></div>
+      <div class="dimv">${esc(s1.reason || 'Insufficient closed 4H Spot candles.')}</div>`;
+  }
+
+  // Verdict 3 & Drawer Card (Sleeve #2 — 1D TTM Squeeze)
+  const s2 = d.sleeve2 || {};
+  const v3c = $('v3Card'), v3b = $('v3Badge'), v3t = $('v3Body');
+  const s2Live = s2.status === 'LIVE' && s2.indicators && s2.conditions && s2.state && s2.last_closed_bar;
+  if (s2Live) {
+    const ind2 = s2.indicators, cond2 = s2.conditions, st2 = s2.state, bar2 = s2.last_closed_bar;
+    const sig2 = st2.raw_signal;
+    const sqText = cond2.squeeze_on_now ? 'ON' : 'OFF';
+    v3c.className = sig2 === 1 ? 'v-card buy' : 'v-card';
+    v3b.textContent = esc(st2.action || '—');
+    v3t.innerHTML = `If FLAT: <b>${esc(st2.if_flat || '—')}</b><br>If LONG: ${esc(st2.if_long || '—')}<br><span class="dimv">Squeeze: ${sqText} (${isNum(ind2.prior_3d_squeeze_bars) ? ind2.prior_3d_squeeze_bars : 0}/3d) · ${esc(bar2.close_sgt || '—')}</span>`;
+
+    $('sleeve2Box').innerHTML = `
+      <div class="subcard-head">
+        <span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span>
+        <span class="chip ${sig2 === 1 ? 'ok' : ''}">${esc(st2.action || '—')} (${sig2 > 0 ? '+1' : sig2})</span>
+      </div>
+      <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind2.close_price, 2)}</span><span class="dimv">${esc(bar2.close_sgt || '')} (${isNum(s2.bars_analyzed) ? s2.bars_analyzed : '?'} bars)</span></div>
+      <div class="lvl"><span class="nm">SQUEEZE</span><span class="px">${sqText} (Prior ${isNum(ind2.prior_3d_squeeze_bars) ? ind2.prior_3d_squeeze_bars : 0}/3d)</span><span class="dimv">BB ${money(ind2.bb_lower, 0)}-${money(ind2.bb_upper, 0)} vs KC ${money(ind2.kc_lower, 0)}-${money(ind2.kc_upper, 0)}</span></div>
+      <div class="lvl"><span class="nm">MOM(20)</span><span class="px">${signed(ind2.mom, 2)}</span><span class="dimv">Prev: ${signed(ind2.prev_mom, 2)} (${cond2.mom_rising ? 'rising' : 'falling'})</span></div>
+      <div class="lvl"><span class="nm">EXITS</span><span class="px">SMA21 ${money(ind2.sma_21, 0)}</span><span class="dimv">KC Mid ${money(ind2.kc_mid, 0)} · ATR14 ${money(ind2.atr_14, 0)}</span></div>
+      <div class="lvl"><span class="nm">IF FLAT</span><span class="px">${esc(st2.if_flat || '—')}</span></div>
+      <div class="lvl"><span class="nm">IF LONG</span><span class="px">${esc(st2.if_long || '—')}</span></div>
+      <div class="lvl"><span class="nm">STOPS</span><span class="px">Ref ${money(st2.reference_2x_atr_sl, 0)}${isNum(st2.active_stop_loss) ? ' | Active ' + money(st2.active_stop_loss, 0) : ''}</span><span class="dimv">(2.0x ATR · no 120D shield)</span></div>
+      <div class="sleeve-chips">
+        ${sleeveChip(cond2.squeeze_release, 'Squeeze Release')}
+        ${sleeveChip(cond2.mom_positive, 'Mom > 0')}
+        ${sleeveChip(cond2.mom_rising, 'Mom Rising')}
+        ${sleeveChip(cond2.above_kc_mid, 'Close > KC Mid')}
+        ${sleeveChip(cond2.exit_triggered, 'Exit Rule', 'TRIGGERED', 'CLEAR', true)}
+      </div>`;
+  } else {
+    v3c.className = 'v-card bad';
+    v3b.textContent = 'UNAVAILABLE';
+    v3t.textContent = s2.reason || 'Sleeve #2 daily data missing.';
+    $('sleeve2Box').innerHTML = `<div class="subcard-head"><span>SLEEVE #2 // 1D TTM SQUEEZE (20%)</span><span class="chip bad">UNAVAILABLE</span></div>
+      <div class="dimv">${esc(s2.reason || 'Insufficient closed 1D Spot candles.')}</div>`;
+  }
+
+  $('sumSleeves').textContent = `S1: ${s1Live ? s1.state.action : 'N/A'} | S2: ${s2Live ? s2.state.action : 'N/A'}`;
 }
 
 function stat(k, v, hint) {
@@ -1875,6 +2114,7 @@ function render(d) {
     ? probs.map(p => `<div>· ${esc(p)}</div>`).join('')
     : '<div>none</div>';
 
+  renderSleeves(d, state);
   paintAge();
   renderGlance();
 }

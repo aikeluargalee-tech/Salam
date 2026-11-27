@@ -1,24 +1,15 @@
 {
- "problems": [
-  "fd1 HTTP 451",
-  "fh1 HTTP 451",
-  "funding HTTP 451",
-  "funding_hist HTTP 451",
-  "oi HTTP 451",
-  "oi_hist HTTP 451",
-  "lsr HTTP 451",
-  "perp CVD is OKX's measured taker volume (BTC-USDT swap), not Binance \u2014 Binance Futures refused this host"
- ],
- "deriv_src": "OKX",
+ "problems": [],
+ "deriv_src": "BINANCE",
  "price_src": "TICKER",
- "oi_src": "OKX",
- "oi_hist_src": "OKX",
- "fund_src": "OKX",
- "fund_hist_src": "OKX",
- "lsr_src": "OKX",
- "price": 61702.5,
+ "oi_src": "BINANCE",
+ "oi_hist_src": "BINANCE",
+ "fund_src": "BINANCE",
+ "fund_hist_src": "BINANCE",
+ "lsr_src": "BINANCE",
+ "price": 61905.75,
  "atr1d": 2967.8452165560484,
- "sma200": 71980.10924999996,
+ "sma200": 71980.10925,
  "vp30": {
   "poc": 77273.825,
   "val": 61840.25,
@@ -430,7 +421,7 @@
    "touches": 8,
    "liq": [
     "Shorts",
-    39.85087591201516,
+    122.901206899125,
     100
    ]
   },
@@ -441,7 +432,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    79.70175182403032,
+    245.80241379825,
     50
    ]
   },
@@ -450,7 +441,11 @@
    "high": 65118.0,
    "center": 64584.05428571429,
    "touches": 7,
-   "liq": null
+   "liq": [
+    "Shorts",
+    368.70362069737496,
+    25
+   ]
   }
  ],
  "macro_sup": [
@@ -461,7 +456,7 @@
    "touches": 2,
    "liq": [
     "Longs",
-    39.85087591201516,
+    122.901206899125,
     100
    ]
   },
@@ -481,45 +476,43 @@
   }
  ],
  "sup_band": {
-  "low": 58249.137087102696,
-  "high": 59287.88291289731,
-  "touches": 1,
-  "center": 58768.51,
-  "score": 10,
+  "low": 59068.62708710269,
+  "high": 60434.37291289731,
+  "touches": 3,
+  "center": 59751.5,
+  "score": 3,
   "why": [
-   "POC",
-   "VAH/VAL",
    "round-1k"
   ],
   "liq": [
    "Longs",
-   119.55262773604547,
+   368.70362069737496,
    25
   ]
  },
  "res_band": {
-  "low": 62816.62708710269,
+  "low": 62790.96708710269,
   "high": 64424.38291289731,
-  "touches": 2,
-  "center": 63620.505000000005,
+  "touches": 15,
+  "center": 63607.675,
   "score": 3,
   "why": [
    "round-1k"
   ],
   "liq": [
    "Shorts",
-   119.55262773604547,
-   25
+   245.80241379825,
+   50
   ]
  },
  "inside_band": {
-  "low": 60476.62708710269,
-  "high": 61809.95291289731,
-  "touches": 2,
-  "center": 61143.29,
+  "low": 60771.207087102695,
+  "high": 62344.34291289731,
+  "touches": 7,
+  "center": 61557.775,
   "liq": [
    "Longs",
-   39.85087591201516,
+   122.901206899125,
    100
   ]
  },
@@ -532,77 +525,99 @@
   },
   {
    "low": 56781.00708710269,
-   "high": 57819.752912897304,
-   "touches": 1,
-   "center": 57300.38
+   "high": 58319.56291289731,
+   "touches": 2,
+   "center": 57550.285
+  },
+  {
+   "low": 57595.637087102696,
+   "high": 59019.472912897305,
+   "touches": 5,
+   "center": 58307.555
   },
   {
    "low": 58249.137087102696,
-   "high": 59287.88291289731,
-   "touches": 1,
-   "center": 58768.51,
-   "score": 10,
+   "high": 59622.0729128973,
+   "touches": 4,
+   "center": 58935.604999999996
+  },
+  {
+   "low": 59068.62708710269,
+   "high": 60434.37291289731,
+   "touches": 3,
+   "center": 59751.5,
+   "score": 3,
    "why": [
-    "POC",
-    "VAH/VAL",
     "round-1k"
    ],
    "liq": [
     "Longs",
-    119.55262773604547,
+    368.70362069737496,
     25
    ]
   },
   {
-   "low": 59395.62708710269,
-   "high": 60905.37291289731,
-   "touches": 2,
-   "center": 60150.5
+   "low": 59866.62708710269,
+   "high": 61515.37291289731,
+   "touches": 7,
+   "center": 60691.0
   },
   {
-   "low": 61103.00708710269,
-   "high": 62582.34291289731,
-   "touches": 5,
-   "center": 61842.675
+   "low": 61418.62708710269,
+   "high": 63056.932912897304,
+   "touches": 14,
+   "center": 62237.78
   },
   {
-   "low": 62816.62708710269,
+   "low": 62152.01708710269,
+   "high": 63802.63291289731,
+   "touches": 18,
+   "center": 62977.325
+  },
+  {
+   "low": 62790.96708710269,
    "high": 64424.38291289731,
-   "touches": 2,
-   "center": 63620.505000000005,
+   "touches": 15,
+   "center": 63607.675,
    "score": 3,
    "why": [
     "round-1k"
    ],
    "liq": [
     "Shorts",
-    119.55262773604547,
-    25
+    245.80241379825,
+    50
    ]
   },
   {
-   "low": 63561.4270871027,
-   "high": 65122.49291289731,
-   "touches": 2,
-   "center": 64341.96000000001
+   "low": 63479.62708710269,
+   "high": 65129.38291289731,
+   "touches": 23,
+   "center": 64304.505000000005
   },
   {
-   "low": 64927.62708710269,
-   "high": 66215.53291289731,
-   "touches": 2,
-   "center": 65571.58
+   "low": 64130.62708710269,
+   "high": 65711.91291289731,
+   "touches": 15,
+   "center": 64921.270000000004
   },
   {
-   "low": 65612.63708710269,
-   "high": 66651.3829128973,
-   "touches": 1,
-   "center": 66132.01
+   "low": 64841.54708710269,
+   "high": 66327.9629128973,
+   "touches": 13,
+   "center": 65584.755
   },
   {
-   "low": 67048.6270871027,
+   "low": 65533.2570871027,
+   "high": 66965.3029128973,
+   "touches": 4,
+   "center": 66249.28
+  },
+  {
+   "low": 66436.77708710269,
    "high": 68087.3729128973,
-   "touches": 1,
-   "center": 67568.0
+   "touches": 4,
+   "center": 67262.075
   },
   {
    "low": 69694.93708710269,
@@ -629,64 +644,64 @@
    "center": 75009.935
   },
   {
-   "low": 75048.80708710269,
+   "low": 75026.29708710269,
    "high": 76565.95291289731,
-   "touches": 5,
-   "center": 75807.38
+   "touches": 6,
+   "center": 75796.125
   },
   {
    "low": 75680.6270871027,
    "high": 77293.45291289731,
-   "touches": 10,
+   "touches": 14,
    "center": 76487.04000000001
   },
   {
-   "low": 76540.3770871027,
-   "high": 78139.3829128973,
+   "low": 76368.6270871027,
+   "high": 78025.0429128973,
    "touches": 6,
-   "center": 77339.88
+   "center": 77196.83499999999
   },
   {
-   "low": 77250.6270871027,
-   "high": 78804.3729128973,
-   "touches": 2,
-   "center": 78027.5
-  },
-  {
-   "low": 78045.0170871027,
-   "high": 79397.3829128973,
-   "touches": 3,
-   "center": 78721.2
-  },
-  {
-   "low": 78701.3670871027,
-   "high": 80319.3729128973,
-   "touches": 10,
-   "center": 79510.37
-  },
-  {
-   "low": 79370.6270871027,
-   "high": 81032.3729128973,
+   "low": 77028.5870871027,
+   "high": 78572.22291289731,
    "touches": 8,
-   "center": 80201.5
+   "center": 77800.405
   },
   {
-   "low": 80040.6170871027,
-   "high": 81553.06291289731,
+   "low": 77765.6270871027,
+   "high": 79397.3829128973,
+   "touches": 8,
+   "center": 78581.505
+  },
+  {
+   "low": 78654.74708710269,
+   "high": 80279.3729128973,
+   "touches": 15,
+   "center": 79467.06
+  },
+  {
+   "low": 79280.6270871027,
+   "high": 80916.5129128973,
    "touches": 9,
-   "center": 80796.84
+   "center": 80098.57
+  },
+  {
+   "low": 79993.6270871027,
+   "high": 81553.06291289731,
+   "touches": 10,
+   "center": 80773.345
   },
   {
    "low": 80676.63708710269,
    "high": 82307.9329128973,
-   "touches": 7,
+   "touches": 9,
    "center": 81492.285
   },
   {
    "low": 81303.6270871027,
-   "high": 82814.84291289731,
-   "touches": 7,
-   "center": 82059.235
+   "high": 82819.3729128973,
+   "touches": 8,
+   "center": 82061.5
   },
   {
    "low": 82043.6270871027,
@@ -742,20 +757,20 @@
   "24h": 647.1204500000001
  },
  "cvd_perp": {
-  "1h": 205.2131999999997,
-  "4h": 2290.2954999999997,
-  "24h": 1500.1283999999987
+  "1h": -196.6880000000001,
+  "4h": 2867.012999999998,
+  "24h": 2268.8819999999987
  },
- "perp_src": "OKX-RUBIK",
+ "perp_src": "BINANCE",
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32292.75630000013,
- "oi_4h_chg": 0.9686434243972863,
- "oi_24h_chg": 2.612810746917793,
- "funding": 0.00970707383649,
- "funding_pct90": 73.0,
- "ls_ratio": 2.3089301301757184,
+ "oi_btc": 99264.775,
+ "oi_4h_chg": 0.8779718251016977,
+ "oi_24h_chg": 2.7536632466330424,
+ "funding": 0.007921,
+ "funding_pct90": 71.85185185185185,
+ "ls_ratio": 2.453,
  "etf": {
   "latest_date": "25 Nov 2026",
   "one_day_m": -453.0,
@@ -764,55 +779,136 @@
   "prev_day_m": -453.0,
   "five_day_m": -2505.6,
   "five_day_days": 5,
-  "twenty_day_m": -6017.099999999999
+  "twenty_day_m": -6017.1
  },
- "oi_usd_m": 1992.543795600758,
+ "oi_usd_m": 6145.0603449562495,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 67872.75,
-   "usd_m": 159.40350364806065
+   "price": 68096.32500000001,
+   "usd_m": 491.6048275965
   },
   {
    "lev": 25,
-   "price": 64170.600000000006,
-   "usd_m": 119.55262773604547
+   "price": 64381.98,
+   "usd_m": 368.70362069737496
   },
   {
    "lev": 50,
-   "price": 62936.55,
-   "usd_m": 79.70175182403032
+   "price": 63143.865,
+   "usd_m": 245.80241379825
   },
   {
    "lev": 100,
-   "price": 62319.525,
-   "usd_m": 39.85087591201516
+   "price": 62524.8075,
+   "usd_m": 122.901206899125
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 55532.25,
-   "usd_m": 159.40350364806065
+   "price": 55715.175,
+   "usd_m": 491.6048275965
   },
   {
    "lev": 25,
-   "price": 59234.399999999994,
-   "usd_m": 119.55262773604547
+   "price": 59429.52,
+   "usd_m": 368.70362069737496
   },
   {
    "lev": 50,
-   "price": 60468.45,
-   "usd_m": 79.70175182403032
+   "price": 60667.635,
+   "usd_m": 245.80241379825
   },
   {
    "lev": 100,
-   "price": 61085.475,
-   "usd_m": 39.85087591201516
+   "price": 61286.6925,
+   "usd_m": 122.901206899125
   }
  ],
- "generated_at_utc": "2026-11-27T05:07:15Z",
- "generated_at_sgt": "2026-11-27T13:07:15+08:00",
+ "sleeve1": {
+  "status": "LIVE",
+  "strategy": "tier1_5_vwap_shield",
+  "timeframe": "4h",
+  "weight_pct": 80,
+  "bars_analyzed": 999,
+  "last_closed_bar": {
+   "open_utc": "2026-11-27 00:00Z",
+   "close_utc": "2026-11-27 04:00Z",
+   "close_sgt": "2026-11-27 12:00 SGT"
+  },
+  "indicators": {
+   "close_price": 61411.0,
+   "macro_120d_ema": 73205.18613241617,
+   "rolling_15d_vwap": 62767.14327855107,
+   "vwap_slope_12bar": -1264.0011679319068,
+   "atr_14": 1129.7921099079858,
+   "upper_buffer_price": 63332.03933350506,
+   "lower_buffer_price": 62202.24722359708
+  },
+  "conditions": {
+   "above_macro_shield": false,
+   "above_upper_buffer": false,
+   "below_lower_buffer": true,
+   "vwap_slope_positive": false,
+   "exit_triggered": true
+  },
+  "state": {
+   "raw_signal": -1,
+   "prior_position": "USDT",
+   "action": "HOLD USDT",
+   "active_stop_loss": null,
+   "if_flat": "HOLD USDT (wait for BUY +1)",
+   "if_long": "SELL BTC at next bar open",
+   "reference_3x_atr_sl": 58021.62367027604
+  }
+ },
+ "sleeve2": {
+  "status": "LIVE",
+  "strategy": "tier14_ttm_squeeze_1d",
+  "timeframe": "1d",
+  "weight_pct": 20,
+  "bars_analyzed": 499,
+  "last_closed_bar": {
+   "open_utc": "2026-11-26 00:00Z",
+   "close_utc": "2026-11-27 00:00Z",
+   "close_sgt": "2026-11-27 08:00 SGT"
+  },
+  "indicators": {
+   "close_price": 60577.18,
+   "bb_upper": 77698.67815299712,
+   "bb_mid": 66031.76950000001,
+   "bb_lower": 54364.86084700289,
+   "kc_upper": 69697.07046651223,
+   "kc_mid": 65455.57662668652,
+   "kc_lower": 61214.0827868608,
+   "prior_3d_squeeze_bars": 0,
+   "mom": -8824.15725,
+   "prev_mom": -9427.29933214286,
+   "sma_21": 66499.01857142858,
+   "atr_14": 2967.8452165560507
+  },
+  "conditions": {
+   "squeeze_on_now": false,
+   "had_squeeze_3d": false,
+   "squeeze_release": false,
+   "mom_positive": false,
+   "mom_rising": true,
+   "above_kc_mid": false,
+   "exit_triggered": true
+  },
+  "state": {
+   "raw_signal": -1,
+   "prior_position": "USDT",
+   "action": "HOLD USDT",
+   "active_stop_loss": null,
+   "if_flat": "HOLD USDT (wait for BUY +1)",
+   "if_long": "SELL BTC at next bar open",
+   "reference_2x_atr_sl": 54641.489566887896
+  }
+ },
+ "generated_at_utc": "2026-11-27T05:32:42Z",
+ "generated_at_sgt": "2026-11-27T13:32:42+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
