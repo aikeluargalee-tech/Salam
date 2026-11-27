@@ -92,6 +92,9 @@ def okx_perp_cvd(fetch=None, now_ms: float | None = None):
     bars = closed_bars(rows, now_ms)
     if len(bars) < 24:
         raise ValueError(f"only {len(bars)} closed taker-volume rows")
+    tail = bars[-24:]
+    if any(tail[i]["t"] - tail[i - 1]["t"] != 3_600_000 for i in range(1, 24)):
+        raise ValueError("gap in 24h taker-volume rows")
     return {"cvd_1h": cvd(bars, 1), "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24),
             "bars": len(bars)}
 
@@ -145,6 +148,7 @@ def perp_cvd_from_dump(days_back: int = 3, fetch=None):
             if why:
                 last_err = f"dump {d} unusable: {why}"
                 continue
+            bars.sort(key=lambda b: b["t"])
             return ({"date": d.isoformat(), "bars": len(bars),
                      "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24)}, None)
         except urllib.error.HTTPError as e:
@@ -153,7 +157,8 @@ def perp_cvd_from_dump(days_back: int = 3, fetch=None):
                 continue
             return None, f"dump {d} HTTP {e.code}"
         except Exception as e:                     # noqa: BLE001
-            return None, f"dump {d} {type(e).__name__}"
+            last_err = f"dump {d} {type(e).__name__}"
+            continue
     return None, last_err
 
 
@@ -337,6 +342,8 @@ def closed_bars(rows: list[list], now_ms: float, max_age_ms: float = 7_200_000) 
         t = int(r[0])
         if t + 3_600_000 <= now_ms:
             out.append({"t": t, "v": float(r[1]) + float(r[2]), "taker_buy": float(r[2])})
+    if len({b["t"] for b in out}) != len(out):
+        raise ValueError("duplicate taker-volume timestamps")
     if out and now_ms - (out[-1]["t"] + 3_600_000) > max_age_ms:
         # a 30-day-old archive is not a live reading: refuse rather than average history
         stale_min = int((now_ms - (out[-1]["t"] + 3_600_000)) / 60_000)
@@ -356,24 +363,29 @@ def sweep(h1: list[dict], support: dict | None, resistance: dict | None,
     def stamp(b):
         return datetime.fromtimestamp(b["open_time"] / 1000, timezone.utc).strftime("%Y-%m-%d %H:%MZ")
 
-    for b in reversed(h1[-6:]):
+    recent = h1[-6:]
+    for idx in range(len(recent) - 1, -1, -1):
+        b = recent[idx]
+        later = recent[idx + 1:]
         for c in (macro_sup or []):                       # macro support swept and reclaimed
             if c["touches"] < 2:
                 continue
             lv = c["center"]
-            if b["l"] < lv and b["c"] > lv:
+            if b["o"] >= lv and b["l"] < lv and b["c"] > lv and all(x["c"] > lv for x in later):
                 return {"flag": "MACRO BULLISH SWEEP", "level": lv, "at": stamp(b),
                         "touches": c["touches"]}
         for c in (macro_res or []):
             if c["touches"] < 2:
                 continue
             lv = c["center"]
-            if b["h"] > lv and b["c"] < lv:
+            if b["o"] <= lv and b["h"] > lv and b["c"] < lv and all(x["c"] < lv for x in later):
                 return {"flag": "MACRO BEARISH SWEEP", "level": lv, "at": stamp(b),
                         "touches": c["touches"]}
-        if support and b["l"] < support["low"] and b["c"] > support["low"]:
+        if (support and b["o"] >= support["low"] and b["l"] < support["low"]
+                and b["c"] > support["low"] and all(x["c"] > support["low"] for x in later)):
             return {"flag": "BULLISH SWEEP", "level": support["low"], "at": stamp(b)}
-        if resistance and b["h"] > resistance["high"] and b["c"] < resistance["high"]:
+        if (resistance and b["o"] <= resistance["high"] and b["h"] > resistance["high"]
+                and b["c"] < resistance["high"] and all(x["c"] < resistance["high"] for x in later)):
             return {"flag": "BEARISH SWEEP", "level": resistance["high"], "at": stamp(b)}
     return {"flag": "NONE", "level": None, "at": None}
 
@@ -566,49 +578,67 @@ def collect() -> tuple[dict, list[str]]:
     if raw.get("funding"):
         data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100
         data["mark"] = float(raw["funding"]["markPrice"])
+        data["fund_src"] = "BINANCE"
     elif okx_fund.get("fundingRate") not in (None, ""):
         data["funding"] = float(okx_fund["fundingRate"]) * 100
         data["mark"] = None
+        data["fund_src"] = "OKX"
     else:
         data["funding"] = data["mark"] = None
+        data["fund_src"] = None
 
     okx_oi = (okx_data("oi") or [{}])[0]
     if raw.get("oi"):
         data["oi_btc"] = float(raw["oi"]["openInterest"])
+        data["oi_src"] = "BINANCE"
     elif okx_oi.get("oiCcy") not in (None, ""):
         data["oi_btc"] = float(okx_oi["oiCcy"])
+        data["oi_src"] = "OKX"
     else:
         data["oi_btc"] = None
+        data["oi_src"] = None
 
     oi_series: list[float] = []
     oi_stamps: list[int] = []
     if raw.get("oi_hist"):
         oi_series = [float(r["sumOpenInterest"]) for r in raw["oi_hist"]]
         oi_stamps = [int(r["timestamp"]) for r in raw["oi_hist"]]
+        data["oi_hist_src"] = "BINANCE"
     elif okx_data("oi_hist"):
         rows = list(reversed(okx_data("oi_hist")[:25]))   # hourly, newest first -> oldest first
         oi_series = [float(r[1]) for r in rows]
         oi_stamps = [int(r[0]) for r in rows]
+        data["oi_hist_src"] = "OKX"
+    else:
+        data["oi_hist_src"] = None
 
     data["oi_4h_chg"] = oi_change(oi_series, oi_stamps, 4)
     data["oi_24h_chg"] = oi_change(oi_series, oi_stamps, 24)
-    fh = [float(r["fundingRate"]) * 100 for r in (raw.get("funding_hist") or [])]
-    if not fh:
+    if raw.get("funding_hist"):
+        fh = [float(r["fundingRate"]) * 100 for r in raw["funding_hist"]]
+        data["fund_hist_src"] = "BINANCE"
+    else:
         fh = [float(r["fundingRate"]) * 100 for r in okx_data("fund_hist")
               if r.get("fundingRate") not in (None, "")]
-    data["funding_pct90"] = percentile(fh, data["funding"]) if (fh and data["funding"] is not None) else None
+        data["fund_hist_src"] = "OKX" if fh else None
+    data["funding_pct90"] = (percentile(fh, data["funding"])
+                             if (fh and data["funding"] is not None
+                                 and data["fund_src"] == data["fund_hist_src"])
+                             else None)
     lsr = raw.get("lsr") or []
     if lsr:
         data["ls_ratio"] = float(lsr[0]["longShortRatio"])
+        data["lsr_src"] = "BINANCE"
     else:
         blsr = okx_data("lsr")
         data["ls_ratio"] = float(blsr[0][1]) if blsr else None
+        data["lsr_src"] = "OKX" if blsr else None
     data["etf"] = raw.get("etf")
     data["perp_dump"] = None
     data["perp_src"] = "BINANCE" if data["fh1"] else None
     if not data["fh1"]:
         try:
-            data["okx_perp"] = okx_perp_cvd()
+            data["okx_perp"] = okx_perp_cvd(now_ms=now_ms)
             data["perp_src"] = "OKX-RUBIK"
             problems.append("perp CVD is OKX's measured taker volume (BTC-USDT swap), "
                             "not Binance — Binance Futures refused this host")
@@ -649,6 +679,9 @@ def oi_change(series: list[float], stamps: list[int], hours: int) -> float | Non
 def analyse(d: dict) -> dict:
     out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE"),
                  "price_src": d.get("price_src")}
+    for _sk in ("oi_src", "oi_hist_src", "fund_src", "fund_hist_src", "lsr_src"):
+        if _sk in d:
+            out[_sk] = d[_sk]
     price = d["price"]
     out["price"] = price
     if not d["d1"] or price is None:
@@ -664,6 +697,13 @@ def analyse(d: dict) -> dict:
     out["vp4h"] = volume_profile(d["h4"][-30:]) if len(d["h4"]) >= 30 else None
     out["hvn7"] = hvn_nearest(out["vp7"], price)
     out["atr1h"] = atr_wilder(d["h1"], 14) if len(d["h1"]) > 16 else None
+    h1_closes = [b["c"] for b in d["h1"]]
+    h1_stamps = [b["close_time"] for b in d["h1"]]
+    out["px_chg"] = {
+        "1h": oi_change(h1_closes, h1_stamps, 1),
+        "4h": oi_change(h1_closes, h1_stamps, 4),
+        "24h": oi_change(h1_closes, h1_stamps, 24),
+    }
 
     highs, lows = pivots(d["d1"], MACRO_PIVOT_K)
     clusters = cluster(highs + lows, MACRO_CLUSTER_PCT)
@@ -689,7 +729,9 @@ def analyse(d: dict) -> dict:
     out["sup_band"], out["res_band"], out["inside_band"] = sup_band, res_band, inside
     out["bands"] = bands
 
-    out["sweep"] = sweep(d["h1"], sup_band, res_band, out["macro_sup"], out["macro_res"]) \
+    all_sup = [c for c in clusters if c["center"] <= price]
+    all_res = [c for c in clusters if c["center"] >= price]
+    out["sweep"] = sweep(d["h1"], sup_band, res_band, all_sup, all_res) \
         if d["h1"] else {"flag": "UNAVAILABLE"}
 
     out["cvd_spot"] = {"1h": cvd(d["h1"], 1), "4h": cvd(d["h1"], 4), "24h": cvd(d["h1"], 24)}
@@ -716,26 +758,32 @@ def analyse(d: dict) -> dict:
         out["liq_lower"] = [{"lev": lev, "price": price * (1 - 1 / lev), "usd_m": oi_usd_m * w}
                             for lev, w in LIQ_WEIGHTS]
     # ── layer 4: liquidation overlay on every level we publish ──
-    def overlay(target: float):
-        """One tag at most: the single nearest cluster, and only if it is 25x or higher."""
-        if not target:
+    def overlay_span(lo_px: float, hi_px: float):
+        """One tag at most: the single nearest cluster >= 25x within LIQ_OVERLAY_PCT of [lo_px, hi_px]."""
+        if not lo_px or not hi_px:
             return None
         cands = [("Shorts", c) for c in out.get("liq_upper") or []] + \
                 [("Longs", c) for c in out.get("liq_lower") or []]
-        if not cands:
+        hits = []
+        for s, c in cands:
+            if c["lev"] < LIQ_OVERLAY_MIN_LEV:
+                continue
+            px = c["price"]
+            dist = 0.0 if lo_px <= px <= hi_px else (
+                (lo_px - px) / lo_px if px < lo_px else (px - hi_px) / hi_px)
+            if dist <= LIQ_OVERLAY_PCT:
+                hits.append((s, c))
+        if not hits:
             return None
-        side, c = min(cands, key=lambda sc: abs(sc[1]["price"] - target))
-        if abs(c["price"] - target) / target > LIQ_OVERLAY_PCT:
-            return None
-        if c["lev"] < LIQ_OVERLAY_MIN_LEV:
-            return None
+        mid = (lo_px + hi_px) / 2
+        side, c = min(hits, key=lambda sc: abs(sc[1]["price"] - mid))
         return (side, c["usd_m"], c["lev"])
 
-    for b in (out.get("sup_band"), out.get("res_band")):
+    for b in (out.get("sup_band"), out.get("res_band"), out.get("inside_band")):
         if b:
-            b["liq"] = overlay(b["center"])
+            b["liq"] = overlay_span(b["low"], b["high"])
     for c in out.get("macro_res", []) + out.get("macro_sup", []):
-        c["liq"] = overlay(c["center"])
+        c["liq"] = overlay_span(c["center"], c["center"]) if c["touches"] >= 2 else None
     return out
 
 
@@ -798,7 +846,11 @@ def render(a: dict) -> str:
     up, lo = a.get("liq_upper") or [], a.get("liq_lower") or []
     hvn = a.get("hvn7") or {}
     V = tag(a)
-    PV = ("[OKX-RUBIK]" if a.get("perp_src") == "OKX-RUBIK" else "[BIN]")
+    def src_tag(key: str) -> str:
+        s = a.get(key)
+        return "[OKX]" if s == "OKX" else ("[BIN]" if s == "BINANCE" else V)
+    PV = {"OKX-RUBIK": "[OKX-RUBIK]", "BINANCE": "[BIN]",
+          "ARCHIVE": "[BIN-DUMP]"}.get(a.get("perp_src"), "[UNAVAILABLE]")
 
     L: list[str] = []
     L.append("# SALAM PROTOCOL DATA HUB v1.7")
@@ -853,16 +905,19 @@ def render(a: dict) -> str:
 
     # ── 1. Deep S/R matrix ──
     L.append("## 1. THE ANCHOR (Deep S/R Matrix)")
-    L.append(f"*   **Current Price:** ${p:,.0f} (1D SMA200 {f(a.get('sma200'), 0)})")
+    px_tag = f" {PT}" if a.get("price_src") == "CLOSE-1D" else ""
+    L.append(f"*   **Current Price:** ${p:,.0f}{px_tag} (1D SMA200 {f(a.get('sma200'), 0)})")
     L.append("*   **Tactical Bands:**")
     if rb:
+        why_r = f", {'+'.join(rb['why']) or 'pivot-only'}" if "why" in rb else ""
         L.append(f"    *   Upper: ${rb['low']:,.0f} - ${rb['high']:,.0f} "
-                 f"(Conf: {rb.get('score', 0)}/10){liq_txt(rb.get('liq'))}")
+                 f"(Conf: {rb.get('score', 0)}/10{why_r}){liq_txt(rb.get('liq'))}")
     else:
         L.append("    *   Upper: UNAVAILABLE")
     if sb:
+        why_s = f", {'+'.join(sb['why']) or 'pivot-only'}" if "why" in sb else ""
         L.append(f"    *   Lower: ${sb['low']:,.0f} - ${sb['high']:,.0f} "
-                 f"(Conf: {sb.get('score', 0)}/10){liq_txt(sb.get('liq'))}")
+                 f"(Conf: {sb.get('score', 0)}/10{why_s}){liq_txt(sb.get('liq'))}")
     else:
         L.append("    *   Lower: UNAVAILABLE")
     if inside:
@@ -909,25 +964,32 @@ def render(a: dict) -> str:
         L.append("*   **Upper Shorts:** UNAVAILABLE (no open interest)")
         L.append("*   **Lower Longs:** UNAVAILABLE (no open interest)")
     if a.get("ls_ratio") is not None:
-        L.append(f"*   **Long/Short account ratio (4H):** {a['ls_ratio']:.2f} {V}")
+        L.append(f"*   **Long/Short account ratio (4H):** {a['ls_ratio']:.2f} {src_tag('lsr_src')}")
+    else:
+        L.append("*   **Long/Short account ratio (4H):** UNAVAILABLE")
     L.append("")
 
     # ── 3. Order flow ──
     L.append("## 3. THE TRUTH (Order Flow)")
+    pxc = a.get("px_chg") or {}
+    pct_f = lambda v: "UNAVAILABLE" if v is None else f"{v:+.2f}%"
+    L.append(f"*   **Price Change (closed 1H [BIN]):** "
+             f"1H: {pct_f(pxc.get('1h'))} | 4H: {pct_f(pxc.get('4h'))} | 24H: {pct_f(pxc.get('24h'))}")
     cs, cp = a.get("cvd_spot") or {}, a.get("cvd_perp") or {}
     L.append(f"*   **CVD (Spot [BIN] / Perp {PV}):** "
              f"1H: {f(cs.get('1h'), 1)} / {f(cp.get('1h'), 1)}"
              f" | 4H: {f(cs.get('4h'), 1)} / {f(cp.get('4h'), 1)}"
              f" | 24H: {f(cs.get('24h'), 1)} / {f(cp.get('24h'), 1)}")
-    L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC {V}"
+    L.append(f"*   **Open Interest:** {f(a.get('oi_btc'), 0)} BTC {src_tag('oi_src')}"
              f" | 4H Change: {f(a.get('oi_4h_chg'), 2)}% | 24H Change: {f(a.get('oi_24h_chg'), 2)}%")
     if a.get("deriv_src") == "OKX":
         L.append("*   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and "
                  "Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the "
                  "funding percentile uses its last 100 readings (~33 days), not 90.")
-    L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H {V}"
+    fh_src = a.get("fund_hist_src") or a.get("deriv_src")
+    L.append(f"*   **Funding:** {f(a.get('funding'), 4)}% per 8H {src_tag('fund_src')}"
              + (f" | percentile (100 pts): {f(a.get('funding_pct90'), 0)}"
-                if a.get("deriv_src") == "OKX"
+                if fh_src == "OKX"
                 else f" | 90-day percentile: {f(a.get('funding_pct90'), 0)}"))
     if dump and not a.get("perp_cvd_ok"):
         L.append(f"*   **Perp CVD [BIN-DUMP {dump['date']}]:** 4H {f(dump.get('cvd_4h'), 1)}"
@@ -948,12 +1010,15 @@ def render(a: dict) -> str:
     L.append("## 4. THE TRIGGER")
     if sw.get("flag") == "NONE":
         L.append("*   **Sweep Status:** NONE (no closed 1H bar beyond a level that closed back inside)")
-    elif sw.get("flag") == "UNAVAILABLE":
-        L.append("*   **Sweep Status:** UNAVAILABLE (no 1H bars)")
-    else:
+    elif (sw.get("flag") in ("BULLISH SWEEP", "BEARISH SWEEP",
+                             "MACRO BULLISH SWEEP", "MACRO BEARISH SWEEP")
+          and isinstance(sw.get("level"), (int, float))
+          and math.isfinite(sw["level"]) and sw["level"] > 0):
         extra = f" ({sw['touches']}x level)" if sw.get("touches") else ""
-        L.append(f"*   **Sweep Status:** {sw.get('flag', 'UNAVAILABLE')} at "
-                 f"${(sw.get('level') or 0):,.0f}{extra} · {fmt_dual(sw.get('at'))}")
+        L.append(f"*   **Sweep Status:** {sw['flag']} at "
+                 f"${sw['level']:,.0f}{extra} · {fmt_dual(sw.get('at'))}")
+    else:
+        L.append("*   **Sweep Status:** UNAVAILABLE (no 1H bars)")
     L.append("")
 
     # ── 5. Macro veto ──
@@ -965,7 +1030,7 @@ def render(a: dict) -> str:
                  f" | 5D: ${etf['five_day_m']:,.1f}M")
     else:
         L.append("*   **ETF Net Flow:** UNAVAILABLE (Farside unreachable or no settled row)")
-    okx_src = a.get("deriv_src") == "OKX"
+    okx_src = fh_src == "OKX"
     L.append(f"*   **Funding percentile:** {f(a.get('funding_pct90'), 0)}"
              + (" of the last 100 readings (~33 days, OKX)" if okx_src else " of 90 days")
              + ("  <- tail" if ((a.get("funding_pct90") or 0) >= 95 and not okx_src) else ""))
@@ -981,7 +1046,8 @@ def render(a: dict) -> str:
     L.append("**Role:** elite spot-only BTC swing trader, Dual-Inventory (50/50 BTC/USDT), zero "
              "leverage. You do not decide anything: you describe what this packet's rules permit.")
     L.append("**Primary Directive:** use only numbers present in this packet. No external data, no "
-             "recall, no forecasting. A missing number is UNAVAILABLE, never zero.")
+             "recall, no forecasting. A missing number is UNAVAILABLE (never zero) — state what "
+             "its absence costs the verdict.")
     L.append("")
     L.append("**THE FOUR PILLARS — the only drivers. Nothing else may start a trade.**")
     L.append("1. **Structure A — S/R:** tactical bands with confluence scores, macro S/R with touches.")
@@ -994,8 +1060,9 @@ def render(a: dict) -> str:
              "date, funding percentile, long/short ratio.*")
     L.append("")
     L.append("**Structure tests (highest weight)**")
-    L.append("*   *Value-area test:* inside 7D value = balance; below 30D VAL = discount and that "
-             "level is the return-to-value line; above VAH = premium. Say which applies.")
+    L.append("*   *Value-area test:* evaluate 7D (inside = balance; above 7D VAH = breakout/premium; "
+             "below 7D VAL = breakdown/discount) and 30D (below 30D VAL = HTF discount and the "
+             "return-to-value line) separately.")
     L.append("*   *POC test:* price within 0.25% of any POC means the market is balanced on the "
              "defended price. That explains quiet tape; it is not a signal.")
     L.append("*   *Band quality:* an edge sitting beyond the nearest measured volume node is weaker "
@@ -1021,8 +1088,10 @@ def render(a: dict) -> str:
     L.append("*   Read spot vs perp CVD in 1H, 4H and 24H. Compute perp:spot 24H ratio; above 3x means "
              "futures-led, i.e. positioning rather than accumulation.")
     L.append("*   OI rising while price is flat and spot CVD is negative = distribution. Say it.")
-    L.append("*   No sweep flag = that rail is NOT armed, whatever the band score. Give its level, "
-             "direction and time.")
+    L.append("*   No sweep flag = that rail is NOT armed, whatever the band score. When a sweep is "
+             "present, state its level, direction and time.")
+    L.append("*   If ## DATA NOTES lists HTTP 451s, state that perp data is OKX, not Binance — "
+             "measured, different venue.")
     L.append("*   If the gate is PARTIAL or NONE, plans are withheld — do not invent levels. An "
              "unknown state reads as NONE.")
     L.append("")
@@ -1038,6 +1107,9 @@ def render(a: dict) -> str:
         L.append('    *   `python3 salam_protocol.py --manual "perp_cvd_24h=+2663,at=04:05Z"`')
         L.append("*   An adjective does not unlock it. `perp_cvd=falling` will print under [MANUAL] "
                  "and leave execution suspended.")
+        L.append("")
+        L.append("*Never forecast. State what the rules permit, name the trigger that would change the "
+                 "answer, and stop.*")
     else:
         L.append("**Binding Arithmetic (not optional, never adjusted)**")
         L.append(f"*   **Rail B stop loss = Entry - (1.5 x ATR 1H).** ATR 1H is printed in section 3; "
@@ -1245,6 +1317,153 @@ def selftest() -> int:
 
     check("a suspended gate prints no binding arithmetic", "Binding Arithmetic" not in part_md)
     check("the banner names the state token", "state: FULL" in render(full))
+
+    # ── audit regressions (F1-F7: must fail red before fix, pass green after) ──
+    _f1_dump = [{"open_time": i * 3600_000, "o": 60500.0, "h": 60550.0, "l": 59400.0,
+                 "c": 59500.0, "v": 10.0, "close_time": (i + 1) * 3600_000 - 1, "taker_buy": 4.0}
+                for i in range(6)]
+    check("breakdown candle through support is not a bearish sweep",
+          sweep(_f1_dump, None, None, [], [{"center": 60000.0, "touches": 3}])["flag"] == "NONE")
+    _f1_brk = [{"open_time": i * 3600_000, "o": 59500.0, "h": 60600.0, "l": 59450.0,
+                "c": 60500.0, "v": 10.0, "close_time": (i + 1) * 3600_000 - 1, "taker_buy": 6.0}
+               for i in range(6)]
+    check("breakout candle through resistance is not a bullish sweep",
+          sweep(_f1_brk, None, None, [{"center": 60000.0, "touches": 3}], [])["flag"] == "NONE")
+    _f1_broken = _f1_brk[:4] + [
+        {"open_time": 4 * 3600_000, "o": 60200.0, "h": 60250.0, "l": 59800.0, "c": 60100.0,
+         "v": 10.0, "close_time": 5 * 3600_000 - 1, "taker_buy": 6.0},
+        {"open_time": 5 * 3600_000, "o": 60100.0, "h": 60120.0, "l": 59700.0, "c": 59750.0,
+         "v": 10.0, "close_time": 6 * 3600_000 - 1, "taker_buy": 3.0},
+    ]
+    check("a sweep broken by a later closed bar is invalidated",
+          sweep(_f1_broken, None, None, [{"center": 60000.0, "touches": 3}], [])["flag"] == "NONE")
+    _f1_d1 = [{"open_time": i * 86400_000,
+               "o": (60000.0 if i in (5, 15, 22) else 63000.0) + 200.0,
+               "h": (60000.0 if i in (5, 15, 22) else 63000.0) + 400.0,
+               "l": (60000.0 if i in (5, 15, 22) else 63000.0),
+               "c": (60000.0 if i in (5, 15, 22) else 63000.0) + 200.0,
+               "v": 100.0, "close_time": (i + 1) * 86400_000 - 1, "taker_buy": 50.0}
+              for i in range(30)]
+    _f1_tight = [{"open_time": i * 3600_000, "o": 60200.0, "h": 60250.0, "l": 60100.0,
+                  "c": 60150.0, "v": 10.0, "close_time": (i + 1) * 3600_000 - 1, "taker_buy": 5.0}
+                 for i in range(5)] + [
+        {"open_time": 5 * 3600_000, "o": 60200.0, "h": 60250.0, "l": 59800.0, "c": 60080.0,
+         "v": 10.0, "close_time": 6 * 3600_000 - 1, "taker_buy": 6.0}]
+    _f1_a = analyse({"problems": [], "deriv_src": "BINANCE", "price_src": "TICKER",
+                     "price": 60080.0, "d1": _f1_d1, "h4": [], "h1": _f1_tight, "fh1": [],
+                     "oi_btc": None, "oi_4h_chg": None, "oi_24h_chg": None, "funding": None,
+                     "funding_pct90": None, "ls_ratio": None, "etf": None})
+    check("a reclaim closing within 0.25% of macro support still registers",
+          _f1_a["sweep"]["flag"] == "MACRO BULLISH SWEEP")
+
+    _nosw = render({"price": 60000.0, "problems": []})
+    check("missing sweep dict never prints $0",
+          "at $0" not in _nosw and "Sweep Status:** UNAVAILABLE" in _nosw)
+    _nullsw = render(dict(base, exec_state="FULL",
+                          sweep={"flag": "BULLISH SWEEP", "level": None, "at": None}))
+    check("sweep with null level never prints $0",
+          "at $0" not in _nullsw and "Sweep Status:** UNAVAILABLE" in _nullsw)
+
+    _dup_okx = [[str(1_700_000_000_000), "1", "2"] for _ in range(25)]
+    try:
+        okx_perp_cvd(fetch=lambda _u: {"data": _dup_okx},
+                     now_ms=1_700_000_000_000 + 3600_000 + 60_000)
+        _dup_blocked = False
+    except ValueError:
+        _dup_blocked = True
+    check("okx_perp_cvd refuses 24 copies of one hour", _dup_blocked)
+    _gap_okx = [[str(1_700_000_000_000 + (h if h < 12 else h + 3) * 3600_000), "1", "2"]
+                for h in range(24, -1, -1)]
+    try:
+        okx_perp_cvd(fetch=lambda _u: {"data": _gap_okx},
+                     now_ms=1_700_000_000_000 + 27 * 3600_000 + 60_000)
+        _gap_blocked = False
+    except ValueError:
+        _gap_blocked = True
+    check("okx_perp_cvd refuses a gapped 24h window", _gap_blocked)
+
+    _f4_d1 = [{"open_time": i * 86400_000,
+               "o": (60000.0 if i == 15 else 63000.0) + 1500.0,
+               "h": (60000.0 if i == 15 else 63000.0) + 3000.0,
+               "l": (60000.0 if i == 15 else 63000.0),
+               "c": (60000.0 if i == 15 else 63000.0) + 1500.0,
+               "v": 100.0, "close_time": (i + 1) * 86400_000 - 1, "taker_buy": 50.0}
+              for i in range(30)]
+    _f4_h4 = []
+    for i in range(40):
+        _lo = 58500.0 if i == 10 else (59000.0 if i == 16 else (
+            59700.0 if i == 22 else (60600.0 if i == 28 else 62000.0)))
+        _hi = 60600.0 if i == 28 else _lo + 800.0
+        _f4_h4.append({"open_time": i * 14400_000, "o": _lo + 200.0, "h": _hi, "l": _lo,
+                       "c": _lo + 200.0, "v": 50.0, "close_time": (i + 1) * 14400_000 - 1,
+                       "taker_buy": 25.0})
+    _f4_a = analyse({"problems": [], "deriv_src": "OKX", "price_src": "TICKER",
+                     "price": 60693.04, "d1": _f4_d1, "h4": _f4_h4, "h1": [], "fh1": [],
+                     "oi_btc": 31843.0, "oi_4h_chg": None, "oi_24h_chg": None,
+                     "funding": None, "funding_pct90": None, "ls_ratio": None, "etf": None})
+    check("liquidation tier inside a wide tactical band is tagged",
+          _f4_a["sup_band"] is not None and _f4_a["sup_band"]["liq"] is not None)
+    check("inside_band carries its liquidation overlay",
+          _f4_a["inside_band"] is not None and _f4_a["inside_band"].get("liq") is not None)
+    check("1-touch macro pivot is not tagged with liquidation fuel",
+          bool(_f4_a["macro_sup"]) and _f4_a["macro_sup"][0]["touches"] == 1
+          and _f4_a["macro_sup"][0]["liq"] is None)
+
+    check("missing ls_ratio prints UNAVAILABLE",
+          "Long/Short account ratio (4H):** UNAVAILABLE"
+          in render(dict(base, exec_state="FULL", ls_ratio=None)))
+    check("CLOSE-1D fallback tags Section 1 Current Price",
+          "**Current Price:** $1,000 [BIN-CLOSE 1D]"
+          in render(dict(base, exec_state="FULL", price_src="CLOSE-1D")))
+    check("NONE perp_src does not label Perp CVD as [BIN]",
+          "Perp [BIN]" not in render(dict(base, exec_state="NONE", perp_src=None,
+                                          cvd_perp={"1h": None, "4h": None, "24h": None})))
+    _mixed_md = render(dict(base, exec_state="FULL", deriv_src="OKX", oi_btc=98000.0,
+                            oi_src="BINANCE", funding=0.01, fund_src="BINANCE",
+                            fund_hist_src="OKX", funding_pct90=None, ls_ratio=2.1,
+                            lsr_src="OKX"))
+    check("mixed Binance/OKX metrics render per-field venue tags",
+          "98,000 BTC [BIN]" in _mixed_md and "2.10 [OKX]" in _mixed_md)
+
+    import io as _aio, zipfile as _azip, datetime as _adt
+    def _az(rows):
+        buf = _aio.BytesIO()
+        with _azip.ZipFile(buf, "w") as z:
+            z.writestr("BTCUSDT-1h.csv", "\n".join(rows))
+        return buf.getvalue()
+    _ad1 = _adt.datetime.now(timezone.utc).date() - _adt.timedelta(days=1)
+    _ad2 = _adt.datetime.now(timezone.utc).date() - _adt.timedelta(days=2)
+    _ab1 = int(_adt.datetime(_ad1.year, _ad1.month, _ad1.day, tzinfo=timezone.utc).timestamp() * 1000)
+    _ab2 = int(_adt.datetime(_ad2.year, _ad2.month, _ad2.day, tzinfo=timezone.utc).timestamp() * 1000)
+    _rev_rows = [f"{_ab1 + h * 3600000},1,1,1,1,1.0,0,0,1,{1.0 if h >= 20 else 0.5},0,0"
+                 for h in range(23, -1, -1)]
+    _d_rev, _ = perp_cvd_from_dump(1, fetch=lambda _u: _az(_rev_rows))
+    check("archive 4H CVD sorts rows chronologically before slicing",
+          _d_rev is not None and abs(_d_rev["cvd_4h"] - 4.0) < 1e-9)
+    _d2_rows = [f"{_ab2 + h * 3600000},1,1,1,1,1.0,0,0,1,0.75,0,0" for h in range(24)]
+    _d_fb, _ = perp_cvd_from_dump(
+        2, fetch=lambda u: b"not-a-zip" if _ad1.isoformat() in u else _az(_d2_rows))
+    check("corrupt yesterday archive falls back to prior day",
+          _d_fb is not None and _d_fb["date"] == _ad2.isoformat())
+
+    _band_md = render(dict(base, exec_state="FULL",
+                           res_band={"low": 1050.0, "high": 1100.0, "score": 3,
+                                     "why": ["round-1k"], "liq": None}))
+    check("tactical band prints confluence reason", "round-1k" in _band_md)
+    _f7_h1 = [{"open_time": h * 3600_000, "o": 100.0, "h": 105.0, "l": 99.0,
+               "c": (100.0 if h < 24 else 102.0), "v": 10.0,
+               "close_time": (h + 1) * 3600_000 - 1, "taker_buy": 5.0} for h in range(25)]
+    _f7_a = analyse({"problems": [], "deriv_src": "BINANCE", "price_src": "TICKER",
+                     "price": 102.0, "d1": _f1_d1, "h4": [], "h1": _f7_h1, "fh1": [],
+                     "oi_btc": None, "oi_4h_chg": None, "oi_24h_chg": None,
+                     "funding": None, "funding_pct90": None, "ls_ratio": None, "etf": None})
+    _chg_md = render(dict(_f7_a, exec_state="FULL", cvd_spot=_flow, cvd_perp=_flow))
+    check("packet prints closed-bar 1H/4H/24H price change",
+          "Price Change" in _chg_md and "+2.00%" in _chg_md)
+    check("suspended packet keeps the Never forecast rule", "Never forecast." in part_md)
+    _full_md = render(full)
+    check("embedded prompt names HTTP 451 venue rule and separates no-sweep from sweep details",
+          "HTTP 451" in _full_md and "When a sweep is present" in _full_md)
 
     import datetime as _dt
     _day = _dt.date(2026, 11, 24)
