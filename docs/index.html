@@ -33,9 +33,9 @@
   --warn: #8a4b08;
   --warn-bg: #fff8e1;
   --warn-line: #d29922;
-  --acc: #0043ce;
-  --acc-bright: #0f62fe;
-  --acc-soft: #d6e4ff;
+  --acc: #2c313a;
+  --acc-bright: #434b57;
+  --acc-soft: #d5dae2;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
 }
 
@@ -82,10 +82,10 @@ a:hover {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  background: var(--acc);
+  background: linear-gradient(135deg, #23272e 0%, #3d4450 52%, #20242b 100%);
   color: #ffffff;
   border: 1px solid var(--line-dark);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.25), 3px 3px 0 var(--shadow);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.18), 3px 3px 0 var(--shadow);
   padding: 6px 10px;
   margin-bottom: 10px;
   font-size: 11px;
@@ -365,9 +365,9 @@ header.topbar {
 }
 
 .badge.fresh {
-  background: var(--acc-soft);
-  border-color: var(--acc-bright);
-  color: var(--acc);
+  background: linear-gradient(135deg, #3a414d 0%, #242930 100%);
+  border-color: var(--line-dark);
+  color: #eef1f6;
 }
 
 .up { color: var(--up); }
@@ -405,8 +405,8 @@ button, .btn, .chatlink {
 
 button:hover, .btn:hover, .chatlink:hover {
   background: var(--acc-soft);
-  color: var(--acc);
-  border-color: var(--acc-bright);
+  color: var(--text);
+  border-color: var(--line-dark);
   text-decoration: none;
 }
 
@@ -416,14 +416,15 @@ button:active, .btn:active, .chatlink:active {
 }
 
 .btn-primary {
-  background: var(--acc);
+  background: linear-gradient(180deg, #434b57 0%, #262b33 100%);
   color: #ffffff;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.25), inset -1px -1px 0 #002375, 2px 2px 0 var(--shadow);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.22), inset -1px -1px 0 #111418, 2px 2px 0 var(--shadow);
 }
 
 .btn-primary:hover {
-  background: var(--acc-bright);
+  background: linear-gradient(180deg, #525b69 0%, #313742 100%);
   color: #ffffff;
+  border-color: var(--line-dark);
 }
 
 #copyState {
@@ -804,10 +805,15 @@ details.drawer[open] > summary .sum-left::before {
 .plain-hint {
   margin-bottom: 10px;
   padding: 7px 10px;
-  background: var(--acc-soft);
-  border: 1px solid var(--acc);
+  background: linear-gradient(135deg, #272c34 0%, #3d4450 55%, #23272e 100%);
+  border: 1px solid var(--line-dark);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.14);
   font-size: 11px;
-  color: var(--text);
+  color: #eef1f6;
+}
+
+.plain-hint b {
+  color: #ffffff;
 }
 
 .subcard {
@@ -918,7 +924,7 @@ details.drawer[open] > summary .sum-left::before {
 .bar i {
   display: block;
   height: 100%;
-  background: var(--acc-bright);
+  background: linear-gradient(90deg, #2c313a 0%, #4b5463 100%);
 }
 
 .bar.alt i {
