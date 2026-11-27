@@ -37,7 +37,7 @@ MACRO_LOOKBACK = 500       # 1D bars for macro S/R
 MACRO_PIVOT_K = 2          # fractal width for macro pivots
 MACRO_CLUSTER_PCT = 0.01   # 1% clustering width
 LIQ_WEIGHTS = ((10, 0.08), (25, 0.06), (50, 0.04), (100, 0.02))   # [MODELED] 20% of OI in total
-LIQ_OVERLAY_PCT = 0.0025   # a liq cluster "overlaps" a level when within 0.25%
+LIQ_OVERLAY_PCT = 0.005     # a liq cluster "overlaps" a level when within 0.5% (matches v1.7)
 MANUAL_MAX_AGE_H = 2
 LIQ_OVERLAY_MIN_LEV = 25   # low-leverage tiers are not explosive enough to tag
 RISK_PCT = 0.0075          # binding arithmetic handed to the execution prompt
@@ -86,8 +86,9 @@ def okx_perp_cvd():
     rows = (get_json(url) or {}).get("data") or []
     if len(rows) < 24:
         raise ValueError(f"only {len(rows)} taker-volume rows")
-    bars = [{"v": float(r[1]) + float(r[2]), "taker_buy": float(r[2])}
-            for r in reversed(rows)]                    # oldest -> newest
+    bars = closed_bars(rows, datetime.now(timezone.utc).timestamp() * 1000)
+    if len(bars) < 24:
+        raise ValueError(f"only {len(bars)} closed taker-volume rows")
     return {"cvd_1h": cvd(bars, 1), "cvd_4h": cvd(bars, 4), "cvd_24h": cvd(bars, 24),
             "bars": len(bars)}
 
@@ -309,6 +310,21 @@ def confluence(band: dict, vp: dict | None) -> tuple[int, list[str]]:
     return score, why
 
 
+def closed_bars(rows: list[list], now_ms: float) -> list[dict]:
+    """Taker-volume rows older than one hour, oldest first.
+
+    OKX publishes the CURRENT, still-forming hour as its newest row. Summing it would make cvd_1h a
+    partial hour and cvd_24h twenty-three closed hours plus a fragment, while the packet footer
+    promises closed bars only. A bar counts as closed when its open time plus one hour has passed.
+    """
+    out = []
+    for r in reversed(rows):                                  # OKX sends newest first
+        t = int(r[0])
+        if t + 3_600_000 <= now_ms:
+            out.append({"t": t, "v": float(r[1]) + float(r[2]), "taker_buy": float(r[2])})
+    return out
+
+
 def cvd(bars: list[dict], n_bars: int) -> float | None:
     if len(bars) < n_bars:
         return None
@@ -356,7 +372,8 @@ def parse_manual(s: str | None) -> tuple[dict, bool]:
             parts[k.strip()] = v.strip()
     ok = False
     try:
-        float(parts.get("perp_cvd_24h", ""))
+        if not math.isfinite(float(parts.get("perp_cvd_24h", ""))):
+            raise ValueError("non-finite manual reading")
         at_raw = (parts.get("at") or "").strip().upper()
         if at_raw.endswith("Z"):
             when = None
@@ -368,12 +385,15 @@ def parse_manual(s: str | None) -> tuple[dict, bool]:
                     continue
             if when is not None:
                 now = datetime.now(timezone.utc)
-                if when.year == 1900:                      # time-only: anchor to today
+                time_only = when.year == 1900
+                if time_only:                              # time-only: anchor to today
                     when = when.replace(year=now.year, month=now.month, day=now.day)
                 when = when.replace(tzinfo=timezone.utc)
-                if when > now + timedelta(minutes=5):      # 23:50Z typed just after midnight
-                    when -= timedelta(days=1)
-                ok = (now - when) <= timedelta(hours=MANUAL_MAX_AGE_H)
+                if time_only and when > now + timedelta(minutes=5):
+                    when -= timedelta(days=1)              # 23:50Z typed just after midnight
+                age = now - when
+                # a future stamp is never evidence: the gate needs an age between 0 and the ceiling
+                ok = timedelta(0) <= age <= timedelta(hours=MANUAL_MAX_AGE_H)
     except (TypeError, ValueError):
         ok = False
     return parts, ok
@@ -594,7 +614,7 @@ def oi_change(series: list[float], stamps: list[int], hours: int) -> float | Non
     the window and reports a different interval as "4H". If no sample sits within 30 minutes of
     the requested horizon, the change is unavailable rather than approximate.
     """
-    if not series or not stamps or len(series) != len(stamps):
+    if not series or not stamps or len(series) != len(stamps) or len(stamps) < 2:
         return None
     target = stamps[-1] - hours * 3600_000
     idx = min(range(len(stamps) - 1), key=lambda i: abs(stamps[i] - target))
@@ -762,29 +782,41 @@ def render(a: dict) -> str:
     PT = "[BIN-CLOSE 1D]" if a.get("price_src") == "CLOSE-1D" else "[BIN]"
     L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}")
     dump = a.get("perp_dump")
-    state = a.get("exec_state", "FULL")
+    # A whitelist, not a default: a missing or unrecognised state is NONE. The old default was
+    # "FULL", so a packet with no state at all printed plans under a healthy banner.
+    raw_state = a.get("exec_state")
+    state = raw_state if raw_state in ("FULL", "MANUAL", "PARTIAL", "NONE") else "NONE"
+    # FULL and MANUAL also require BOTH halves of the flow: the trigger cannot be confirmed with
+    # spot alone, so a missing spot series demotes the state rather than passing quietly.
+    if state in ("FULL", "MANUAL") and not (a.get("cvd_spot") and a.get("cvd_perp")):
+        state = "NONE"
+    state_tag = f" (state: {state}"
+    if raw_state not in (None, "FULL", "MANUAL", "PARTIAL", "NONE"):
+        state_tag += f", packet said {raw_state!r}"
+    state_tag += ")"
     if state == "FULL" and a.get("perp_src") == "OKX-RUBIK":
-        L.append("> ✅ **LIVE DATA — plans allowed.** Spot comes from Binance; futures flow is "
+        L.append(f"> ✅ **LIVE DATA — plans allowed**{state_tag}. Spot comes from Binance; "
+                 "futures flow is "
                  "OKX's measured taker volume, not Binance's (this host is blocked). "
                  "Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint "
                  "publishes real taker buy/sell per hour.")
     elif state == "FULL":
-        L.append("> ✅ **LIVE DATA — plans allowed.** Spot and futures flow are both measured "
-                 "now, not estimated.")
+        L.append(f"> ✅ **LIVE DATA — plans allowed**{state_tag}. Spot and futures flow are both "
+                 f"measured now, not estimated.")
     elif state == "MANUAL":
-        L.append(f"> ✅ **HAND-ENTERED DATA — plans allowed.** Futures flow was typed in at "
+        L.append(f"> ✅ **HAND-ENTERED DATA — plans allowed**{state_tag}. Futures flow was typed in at "
                  f"{a.get('manual_at')}. "
                  f"Human-supplied from a screenshot, not machine-verified. "
                  f"Perp CVD 24H = {a['manual'].get('perp_cvd_24h')} BTC.")
     elif dump:
-        L.append(f"> ⚠️ **PARTIAL ORDER FLOW — perp CVD is Binance's archive for {dump['date']} "
+        L.append(f"> ⚠️ **PARTIAL ORDER FLOW**{state_tag} — perp CVD is Binance's archive for {dump['date']} "
                  f"(T+1), not live.** Live perp klines are blocked on this host. Intraday perp "
                  f"reads are one day old; spot and levels are live.")
     else:
         why = ("CI host: Binance Futures refused this runner (HTTP 451)"
                if a.get("deriv_src") == "OKX" else
                "this run produced no usable perp klines")
-        L.append(f"> ⚠️ **PERP CVD UNAVAILABLE — {why}.** This packet is a levels map, "
+        L.append(f"> ⚠️ **PERP CVD UNAVAILABLE**{state_tag} — {why}. This packet is a levels map, "
                  f"not an execution packet. Run locally before acting.")
     L.append("")
 
@@ -840,7 +872,8 @@ def render(a: dict) -> str:
         L.append(f"    *Levels are exact leverage arithmetic. The $ per tier is OI "
                  f"${a['oi_usd_m']:,.1f}M x the weights above, i.e. an assumed "
                  f"{sum(w for _, w in LIQ_WEIGHTS):.0%} of open interest across these four tiers "
-                 f"(the rest assumed cross-margin or lower leverage) — not observed liquidation data.*")
+                 f"(the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within "
+             f"{LIQ_OVERLAY_PCT:.1%} of it.*")
     else:
         L.append("*   **Upper Shorts:** UNAVAILABLE (no open interest)")
         L.append("*   **Lower Longs:** UNAVAILABLE (no open interest)")
@@ -949,6 +982,8 @@ def render(a: dict) -> str:
     L.append("*   Convert to coins: notional / price = BTC of forced orders, and as % of open interest.")
     L.append("*   Fuel is symmetric by assumption: say so, and never infer direction from it. Only "
              "the terrain around it is asymmetric. Name the exhaust point.")
+    L.append("*   Every DERIVED figure carries `estimated`; every measured figure carries its venue. "
+             "A number without its label is not usable.")
     L.append("")
     L.append("**Trigger tests (confirmation only, only at an anchor)**")
     L.append("*   Read spot vs perp CVD in 1H, 4H and 24H. Compute perp:spot 24H ratio; above 3x means "
@@ -958,17 +993,6 @@ def render(a: dict) -> str:
              "direction and time.")
     L.append("*   If the gate is PARTIAL or NONE, plans are withheld — do not invent levels. An "
              "unknown state reads as NONE.")
-    L.append("")
-    L.append("**Binding Arithmetic (not optional, never adjusted)**")
-    L.append(f"*   **Rail B stop loss = Entry - (1.5 x ATR 1H).** ATR 1H is printed in section 3; "
-             f"print the ATR and the dollar stop, do not invent one.")
-    L.append(f"*   **Risk per trade = {RISK_PCT:.2%} of total portfolio value.** Position size = "
-             f"(portfolio x {RISK_PCT:.2%}) / (entry - stop).")
-    L.append(f"*   **If that size exceeds {MAX_POS_PCT_OF_USDT:.0%} of the USDT inventory, SKIP** — and "
-             f"report the conflict: \"risk budget asks X BTC, the cap allows Y BTC, so this rail is "
-             f"vetoed.\" Do not silently resize; do not drop the rule.")
-    L.append("*   **Rail A invalidation = a DAILY close above (band high + 1 x ATR 1H).** Print the "
-             "number. A 1H close is noise, not invalidation.")
     L.append("")
     if state in ("PARTIAL", "NONE"):
         L.append("## ❌ EXECUTION SUSPENDED")
@@ -983,6 +1007,17 @@ def render(a: dict) -> str:
         L.append("*   An adjective does not unlock it. `perp_cvd=falling` will print under [MANUAL] "
                  "and leave execution suspended.")
     else:
+        L.append("**Binding Arithmetic (not optional, never adjusted)**")
+        L.append(f"*   **Rail B stop loss = Entry - (1.5 x ATR 1H).** ATR 1H is printed in section 3; "
+                 f"print the ATR and the dollar stop, do not invent one.")
+        L.append(f"*   **Risk per trade = {RISK_PCT:.2%} of total portfolio value.** Position size = "
+                 f"(portfolio x {RISK_PCT:.2%}) / (entry - stop).")
+        L.append(f"*   **If that size exceeds {MAX_POS_PCT_OF_USDT:.0%} of the USDT inventory, SKIP** — "
+                 f"and report the conflict: \"risk budget asks X BTC, the cap allows Y BTC, so this "
+                 f"rail is vetoed.\" Do not silently resize; do not drop the rule.")
+        L.append("*   **Rail A invalidation = a DAILY close above (band high + 1 x ATR 1H).** Print the "
+                 "number. A 1H close is noise, not invalidation.")
+        L.append("")
         L.append("**Execution Rules:**")
         L.append("*   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support "
                  "that overlaps a Lower Long tier, confirmed by positive Spot CVD -> enter on the "
@@ -990,7 +1025,8 @@ def render(a: dict) -> str:
                  "if none exists in this packet, write \"no target\".")
         L.append("*   **Rail A (BTC -> USDT):** a BEARISH or MACRO BEARISH sweep into a Major Resistance "
                  "that overlaps an Upper Short tier, confirmed by flat/negative Spot CVD -> trim. "
-                 "Invalidation per the arithmetic. Target = the next MEASURED level below, named.")
+                 "Invalidation per the arithmetic. Target = the next MEASURED level below, named; "
+                 "if none exists in this packet, write \"no target\".")
         L.append("")
         L.append("**Required Output Format (this exact order):**")
         L.append("0. **BOTTOM LINE** — one plain sentence a non-trader can act on "
@@ -1064,7 +1100,8 @@ def selftest() -> int:
     hi, lo_ = pivots(bars, 2)
     check("pivots found", len(hi) >= 1 and len(lo_) >= 1, f"{len(hi)} highs / {len(lo_)} lows")
 
-    base = {"price": 1000.0, "problems": [], "cvd_spot": {}, "cvd_perp": {},
+    _flow = {"1h": 1.0, "4h": 2.0, "24h": 3.0}
+    base = {"price": 1000.0, "problems": [], "cvd_spot": dict(_flow), "cvd_perp": dict(_flow),
             "sweep": {"flag": "NONE"}, "deriv_src": "BINANCE"}
     _now = datetime.now(timezone.utc)
     fresh = (_now - timedelta(minutes=4)).strftime("%H:%M") + "Z"
@@ -1083,6 +1120,48 @@ def selftest() -> int:
     man_md = render(dict(base, perp_cvd_ok=False, exec_state="MANUAL", manual_at=fresh,
                          manual={"perp_cvd_24h": "+2663", "at": fresh}))
     check("MANUAL state unlocks the rails", "Execution Rules" in man_md and "MANUAL" in man_md)
+
+    # ── v1.8 gate regressions (each failed on the pre-fix code) ──
+    flows = {"cvd_spot": {"1h": 1.0, "4h": 2.0, "24h": 3.0},
+             "cvd_perp": {"1h": 1.0, "4h": 2.0, "24h": 3.0}}
+
+    missing_state = render(dict(base, perp_cvd_ok=True, **flows))
+    check("a packet with no exec_state never prints plans",
+          "Execution Rules" not in missing_state and "state: NONE" in missing_state)
+
+    garbage = render(dict(base, perp_cvd_ok=True, exec_state="GARBAGE", **flows))
+    check("an unknown exec_state reads as NONE, not as healthy",
+          "Execution Rules" not in garbage and "state: NONE" in garbage)
+    check("an unknown exec_state says what the packet claimed", "GARBAGE" in garbage)
+
+    for bad in ("perp_cvd_24h=+1,at=2030-01-01T00:00Z", "perp_cvd_24h=+1,at=2099-06-01 12:00Z"):
+        check(f"future stamp is rejected ({bad.split('at=')[1]})", parse_manual(bad)[1] is False)
+
+    _recent = (_now - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%MZ")
+    for val in ("nan", "inf", "-inf"):
+        check(f"non-finite manual value is rejected ({val})",
+              parse_manual(f"perp_cvd_24h={val},at={_recent}")[1] is False)
+    check("a finite manual value still unlocks",
+          parse_manual(f"perp_cvd_24h=+2663,at={_recent}")[1] is True)
+
+    no_spot = render(dict(base, perp_cvd_ok=True, exec_state="FULL",
+                          cvd_perp=flows["cvd_perp"], cvd_spot={}))
+    check("FULL without spot flow is demoted to NONE",
+          "Execution Rules" not in no_spot and "state: NONE" in no_spot)
+    check("the banner stops claiming both halves are measured", "both measured" not in no_spot)
+
+    check("oi_change with one sample returns None, not an exception",
+          oi_change([100.0], [0], 4) is None)
+
+    _t0 = 1_700_000_000_000
+    # OKX sends newest first: hour 25 is the still-forming one, so it comes first in the feed
+    _open_rows = [[str(_t0 + h * 3600_000), "1", "2"] for h in range(25, -1, -1)]
+    _closed = closed_bars(_open_rows, _t0 + 25 * 3600_000 + 600_000)        # 10 min into hour 25
+    check("the still-forming hour is dropped from perp CVD", len(_closed) == 25)
+    check("dropped bar is the newest one", _closed[-1]["t"] == _t0 + 24 * 3600_000)
+
+    check("a suspended gate prints no binding arithmetic", "Binding Arithmetic" not in part_md)
+    check("the banner names the state token", "state: FULL" in render(full))
 
     import datetime as _dt
     _day = _dt.date(2026, 11, 24)
