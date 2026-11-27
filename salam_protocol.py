@@ -604,6 +604,7 @@ def _f_simulate_spot(
     initial_btc_alloc: float = 0.5,
     fee_rate: float = 0.001,
     slippage_rate: float = 0.0005,
+    step_hours: int = 4,
 ) -> dict:
     """Deterministic 4-state spot simulator matching ctc_backtest_lab/engine.py."""
     open_0 = bars[0]["o"]
@@ -613,6 +614,11 @@ def _f_simulate_spot(
     active_sl: float | None = None
     prev_signal = 0
     prev_sl: float | None = None
+    last_transition: dict | None = None
+    exposed_weight = 0.0
+
+    def _stamp_ms(ms: int) -> str:
+        return datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%d %H:%MZ")
 
     for i, b in enumerate(bars):
         o_i, l_i = b["o"], b["l"]
@@ -623,11 +629,25 @@ def _f_simulate_spot(
                 btc_qty += net_spent / fill_price
                 cash_usdt = 0.0
                 active_sl = prev_sl
+                last_transition = {
+                    "type": "BUY",
+                    "bar_idx": i,
+                    "time_utc": _stamp_ms(b["open_time"]),
+                    "event_ms": b["open_time"],
+                    "price": round(o_i, 2),
+                }
             elif prev_signal == -1 and btc_qty > 0.0:
                 fill_price = o_i * (1.0 - slippage_rate)
                 cash_usdt += (btc_qty * fill_price) * (1.0 - fee_rate)
                 btc_qty = 0.0
                 active_sl = None
+                last_transition = {
+                    "type": "SELL",
+                    "bar_idx": i,
+                    "time_utc": _stamp_ms(b["open_time"]),
+                    "event_ms": b["open_time"],
+                    "price": round(o_i, 2),
+                }
             elif btc_qty > 0.0 and prev_signal == 0 and prev_sl is not None:
                 active_sl = prev_sl
 
@@ -637,6 +657,19 @@ def _f_simulate_spot(
             cash_usdt += (btc_qty * fill_price) * (1.0 - fee_rate)
             btc_qty = 0.0
             active_sl = None
+            close_ev = b["open_time"] + step_hours * 3_600_000
+            last_transition = {
+                "type": "STOP_LOSS",
+                "bar_idx": i,
+                "time_utc": _stamp_ms(close_ev),
+                "event_ms": close_ev,
+                "price": round(raw_exit, 2),
+            }
+
+        if btc_qty > 0.0 and cash_usdt == 0.0:
+            exposed_weight += 1.0
+        elif btc_qty > 0.0 and cash_usdt > 0.0:
+            exposed_weight += initial_btc_alloc
 
         prev_signal = signals[i]
         cand_sl = sls[i]
@@ -663,11 +696,35 @@ def _f_simulate_spot(
 
     prior_pos = ("BTC" if holding_btc and not holding_usdt
                  else ("50/50" if holding_btc and holding_usdt else "USDT"))
+
+    end_ms = bars[-1]["open_time"] + step_hours * 3_600_000
+    if last_transition is not None:
+        t_idx = last_transition["bar_idx"]
+        trans_out = {
+            "type": last_transition["type"],
+            "time_utc": last_transition["time_utc"],
+            "price": last_transition["price"],
+            "bars_ago": (len(bars) - 1) - t_idx,
+            "days_ago": round(max(0.0, (end_ms - last_transition["event_ms"]) / 86_400_000), 1),
+        }
+    else:
+        trans_out = None
+    stopped_on_last_bar = bool(
+        last_transition is not None
+        and last_transition["type"] == "STOP_LOSS"
+        and last_transition["bar_idx"] == len(bars) - 1
+    )
+    flipped_on_last_bar = bool(action in ("BUY BTC", "SELL BTC") or stopped_on_last_bar)
+    exposure_pct = round(exposed_weight / len(bars) * 100.0, 1) if bars else 0.0
+
     return {
         "raw_signal": last_signal,
         "prior_position": prior_pos,
         "action": action,
         "active_stop_loss": active_stop_loss,
+        "flipped_on_last_bar": flipped_on_last_bar,
+        "last_transition": trans_out,
+        "exposure_pct": exposure_pct,
         "if_flat": "BUY BTC at next bar open" if last_signal == 1 else "HOLD USDT (wait for BUY +1)",
         "if_long": "SELL BTC at next bar open" if last_signal == -1 else "HOLD BTC (keep entry stop-loss active)",
     }
@@ -764,8 +821,18 @@ def sleeve1_vwap_shield(h4: list[dict], d1: list[dict] | None = None) -> dict:
     upper = rv + 0.50 * at       # type: ignore[operator]
     lower = rv - 0.50 * at       # type: ignore[operator]
     ref_sl = c - 3.0 * at        # type: ignore[operator]
-    sim = _f_simulate_spot(h4, sigs, sls)
+    sim = _f_simulate_spot(h4, sigs, sls, step_hours=4)
     sim["reference_3x_atr_sl"] = ref_sl
+    trig_px = max(me, upper)
+    readiness = {
+        "gates_passed": int(c > me) + int(c > upper) + int(slp > 0.0),  # type: ignore[operator]
+        "gates_total": 3,
+        "shield_dist_pct": round((c / me - 1.0) * 100.0, 2) if me > 0.0 else None,  # type: ignore[operator]
+        "upper_buf_dist_pct": round((c / upper - 1.0) * 100.0, 2) if upper > 0.0 else None,  # type: ignore[operator]
+        "lower_buf_dist_pct": round((c / lower - 1.0) * 100.0, 2) if lower > 0.0 else None,  # type: ignore[operator]
+        "price_hurdle": round(trig_px, 2),
+        "rally_to_hurdle_pct": round(max(0.0, (trig_px / c - 1.0) * 100.0), 2) if c > 0.0 else None,  # type: ignore[operator]
+    }
     return {
         "status": "LIVE",
         "strategy": "tier1_5_vwap_shield",
@@ -789,6 +856,7 @@ def sleeve1_vwap_shield(h4: list[dict], d1: list[dict] | None = None) -> dict:
             "vwap_slope_positive": bool(slp > 0.0),              # type: ignore[operator]
             "exit_triggered": bool((c < me) or (c < lower)),     # type: ignore[operator]
         },
+        "readiness": readiness,
         "state": sim,
     }
 
@@ -861,6 +929,13 @@ def _sleeve2_signals(
                     "exit": ex,
                 }
 
+    sq_streak = 0
+    for val in reversed(sq_on):
+        if val == 1.0:
+            sq_streak += 1
+        else:
+            break
+
     last = {
         "close": c1[-1] if c1 else None,
         "bb_upper": bb_up[-1] if bb_up else None,
@@ -873,6 +948,7 @@ def _sleeve2_signals(
         "prev_mom": mom[-2] if len(mom) >= 2 else None,
         "sma_21": sma21[-1] if sma21 else None,
         "atr_14": atr14[-1] if atr14 else None,
+        "squeeze_streak": sq_streak,
         **last_flags,
     }
     return sigs, sls, last
@@ -891,8 +967,26 @@ def sleeve2_ttm_squeeze(d1: list[dict]) -> dict:
     c = last["close"]
     at = last["atr_14"]
     ref_sl = c - 2.0 * at
-    sim = _f_simulate_spot(d1, sigs, sls)
+    sim = _f_simulate_spot(d1, sigs, sls, step_hours=24)
     sim["reference_2x_atr_sl"] = ref_sl
+    bb_w = last["bb_upper"] - last["bb_lower"]
+    kc_w = last["kc_upper"] - last["kc_lower"]
+    comp_ratio = round(bb_w / kc_w, 3) if kc_w > 0 else None
+    conds_ok = (
+        int(bool(last["release"]))
+        + int(bool(last["mom"] > 0.0))
+        + int(bool(last["mom"] > last["prev_mom"]))
+        + int(bool(c > last["kc_mid"]))
+        + int(not bool(last["exit"]))
+    )
+    readiness = {
+        "gates_passed": conds_ok,
+        "gates_total": 5,
+        "compression_ratio": comp_ratio,
+        "squeeze_streak_days": int(last["squeeze_streak"]),
+        "kc_mid_dist_pct": round((c / last["kc_mid"] - 1.0) * 100.0, 2) if last["kc_mid"] > 0 else None,
+        "sma21_dist_pct": round((c / last["sma_21"] - 1.0) * 100.0, 2) if last["sma_21"] > 0 else None,
+    }
     return {
         "status": "LIVE",
         "strategy": "tier14_ttm_squeeze_1d",
@@ -923,6 +1017,7 @@ def sleeve2_ttm_squeeze(d1: list[dict]) -> dict:
             "above_kc_mid": bool(c > last["kc_mid"]),
             "exit_triggered": bool(last["exit"]),
         },
+        "readiness": readiness,
         "state": sim,
     }
 
@@ -948,10 +1043,13 @@ def collect() -> tuple[dict, list[str]]:
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {k: pool.submit(safe, (lambda u=u: get_json(u)), k) for k, u in jobs.items()}
         futures["etf"] = pool.submit(safe, etf_flows, "etf")
+        futures["okx_px"] = pool.submit(
+            safe, (lambda u=f"{OKX}/api/v5/market/ticker?instId=BTC-USDT": get_json(u)), "okx_px"
+        )
         for k, f in futures.items():
             val, err = f.result()
             raw[k] = val
-            if err:
+            if err and k != "okx_px":
                 problems.append(err)
 
     # Measured from a US GitHub runner: fapi.binance.com = HTTP 451, api.bybit.com = HTTP 403,
@@ -992,6 +1090,35 @@ def collect() -> tuple[dict, list[str]]:
     else:
         data["price"] = None
         data["price_src"] = None
+
+    bin_px = float(raw["px"]["price"]) if raw.get("px") and raw["px"].get("price") not in (None, "") else None
+    okx_px_row = ((raw.get("okx_px") or {}).get("data") or [{}])[0]
+    try:
+        okx_px = float(okx_px_row["last"]) if okx_px_row.get("last") not in (None, "") else None
+    except (TypeError, ValueError):
+        okx_px = None
+    if (bin_px is not None and okx_px is not None and math.isfinite(bin_px) and math.isfinite(okx_px)
+            and bin_px > 0 and okx_px > 0):
+        spread_pct = abs(bin_px - okx_px) / bin_px * 100.0
+        spot_ok = spread_pct <= 0.50
+        data["spot_check"] = {
+            "bin_price": bin_px,
+            "okx_price": okx_px,
+            "spread_pct": round(spread_pct, 4),
+            "ok": spot_ok,
+        }
+        if not spot_ok:
+            problems.append(
+                f"spot price divergence BIN (${bin_px:,.2f}) vs OKX (${okx_px:,.2f}) "
+                f"= {spread_pct:.3f}% (> 0.50%)"
+            )
+    else:
+        data["spot_check"] = {
+            "bin_price": bin_px,
+            "okx_price": okx_px,
+            "spread_pct": None,
+            "ok": None,
+        }
     okx_fund = (okx_data("fund") or [{}])[0]
     if raw.get("funding"):
         data["funding"] = float(raw["funding"]["lastFundingRate"]) * 100
@@ -1094,9 +1221,96 @@ def oi_change(series: list[float], stamps: list[int], hours: int) -> float | Non
     return (b / a - 1) * 100 if a else None
 
 
+def compute_salam_diagnostics(out: dict) -> tuple[dict, dict | None]:
+    """Compute Macro Weather regime summary and Rail B sizing diagnostic (no rule changes)."""
+    price = out.get("price")
+    sma200 = out.get("sma200")
+    etf = out.get("etf") or {}
+    fp = out.get("funding_pct90")
+
+    above_sma200 = (bool(price > sma200)
+                    if (price is not None and sma200 is not None
+                        and math.isfinite(price) and math.isfinite(sma200) and sma200 > 0)
+                    else None)
+    sma200_dist_pct = (round((price / sma200 - 1.0) * 100.0, 2)
+                       if above_sma200 is not None else None)
+    etf_5d = etf.get("five_day_m")
+    etf_1d = etf.get("one_day_m")
+    crowded_long = bool(fp is not None and math.isfinite(fp) and fp >= 90.0)
+
+    if above_sma200 is None and etf_5d is None:
+        regime = "UNAVAILABLE"
+    elif above_sma200 is False and (etf_5d is None or etf_5d <= 0.0):
+        regime = "HEADWIND"
+    elif above_sma200 is True and (etf_5d is not None and etf_5d > 0.0) and not crowded_long:
+        regime = "TAILWIND"
+    else:
+        regime = "MIXED"
+
+    notes = [
+        f"Price {sma200_dist_pct:+.1f}% vs 200D SMA" if sma200_dist_pct is not None else "200D SMA UNAVAILABLE",
+        f"5D ETF {etf_5d:+,.1f}M" if etf_5d is not None else "ETF flow UNAVAILABLE",
+        (f"Funding pctile {fp:.0f}" + (" (crowded)" if crowded_long else ""))
+        if (fp is not None and math.isfinite(fp)) else "Funding pct UNAVAILABLE",
+    ]
+    macro_weather = {
+        "regime": regime,
+        "above_sma200": above_sma200,
+        "sma200_dist_pct": sma200_dist_pct,
+        "etf_5d_m": etf_5d,
+        "etf_1d_m": etf_1d,
+        "funding_pct90": fp,
+        "crowded_long": crowded_long,
+        "summary": " · ".join(notes),
+    }
+
+    sup_b = out.get("sup_band")
+    m_sup = out.get("macro_sup") or []
+    if sup_b and sup_b.get("high"):
+        ref_px = float(sup_b["high"])
+        ref_src = "Tactical Floor High"
+    elif m_sup and m_sup[0].get("center"):
+        ref_px = float(m_sup[0]["center"])
+        ref_src = "Nearest Macro Support"
+    elif price is not None and math.isfinite(price) and price > 0:
+        ref_px = float(price)
+        ref_src = "Current Spot"
+    else:
+        ref_px = None
+        ref_src = "UNAVAILABLE"
+
+    atr1h = out.get("atr1h")
+    if (atr1h is not None and math.isfinite(atr1h) and atr1h > 0
+            and ref_px is not None and math.isfinite(ref_px) and ref_px > 0):
+        stop_dist = 1.5 * float(atr1h)
+        stop_px = ref_px - stop_dist
+        stop_pct = (stop_dist / ref_px) * 100.0
+        implied_port_pct = (RISK_PCT / (stop_dist / ref_px)) * 100.0
+        cap_50_50 = MAX_POS_PCT_OF_USDT * 50.0
+        cap_100_usdt = MAX_POS_PCT_OF_USDT * 100.0
+        rail_b_sizing = {
+            "ref_entry": round(ref_px, 2),
+            "ref_source": ref_src,
+            "atr1h": round(float(atr1h), 2),
+            "stop_dist": round(stop_dist, 2),
+            "stop_price": round(stop_px, 2),
+            "stop_pct": round(stop_pct, 3),
+            "implied_port_pct": round(implied_port_pct, 2),
+            "cap_port_pct_50_50": cap_50_50,
+            "cap_port_pct_100_usdt": cap_100_usdt,
+            "required_usdt_share_pct": round(implied_port_pct / MAX_POS_PCT_OF_USDT, 1),
+            "vetoed_at_50_50": bool(implied_port_pct > cap_50_50),
+            "vetoed_at_100_usdt": bool(implied_port_pct > cap_100_usdt),
+        }
+    else:
+        rail_b_sizing = None
+
+    return macro_weather, rail_b_sizing
+
+
 def analyse(d: dict) -> dict:
     out: dict = {"problems": d["problems"], "deriv_src": d.get("deriv_src", "BINANCE"),
-                 "price_src": d.get("price_src")}
+                 "price_src": d.get("price_src"), "spot_check": d.get("spot_check")}
     for _sk in ("oi_src", "oi_hist_src", "fund_src", "fund_hist_src", "lsr_src"):
         if _sk in d:
             out[_sk] = d[_sk]
@@ -1204,6 +1418,7 @@ def analyse(d: dict) -> dict:
         c["liq"] = overlay_span(c["center"], c["center"]) if c["touches"] >= 2 else None
     out["sleeve1"] = sleeve1_vwap_shield(d.get("h4") or [], d.get("d1") or [])
     out["sleeve2"] = sleeve2_ttm_squeeze(d.get("d1") or [])
+    out["macro_weather"], out["rail_b_sizing"] = compute_salam_diagnostics(out)
     return out
 
 
@@ -1275,7 +1490,12 @@ def render(a: dict) -> str:
     L: list[str] = []
     L.append("# SALAM PRO MAX DATA HUB v1.7")
     PT = "[BIN-CLOSE 1D]" if a.get("price_src") == "CLOSE-1D" else "[BIN]"
-    L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}")
+    sc = a.get("spot_check") or {}
+    sc_txt = ""
+    if sc.get("ok") is not None and sc.get("okx_price") is not None and sc.get("spread_pct") is not None:
+        sc_tag = "OK" if sc["ok"] else "WARN >0.50%"
+        sc_txt = f" | **OKX Spot:** ${sc['okx_price']:,.2f} (spread {sc['spread_pct']:.3f}% [{sc_tag}])"
+    L.append(f"**Timestamp:** {now} | **Spot Price:** ${p:,.2f} {PT}{sc_txt}")
     dump = a.get("perp_dump")
     # A whitelist, not a default: a missing or unrecognised state is NONE. The old default was
     # "FULL", so a packet with no state at all printed plans under a healthy banner.
@@ -1454,9 +1674,20 @@ def render(a: dict) -> str:
     L.append(f"*   **Funding percentile:** {f(a.get('funding_pct90'), 0)}"
              + (" of the last 100 readings (~33 days, OKX)" if okx_src else " of 90 days")
              + ("  <- tail" if ((a.get("funding_pct90") or 0) >= 95 and not okx_src) else ""))
+    mw = a.get("macro_weather")
+    if mw:
+        L.append(f"*   **Macro Weather (Veto Summary, never a trigger):** {mw['regime']} ({mw['summary']})")
     L.append("")
 
     sig_fmt = lambda s: f"{s:+d}" if s else "0"
+    _pct_s = lambda v: "UNAVAILABLE" if v is None else f"{v:+.2f}%"
+    def _trans_txt(st: dict) -> str:
+        lt = st.get("last_transition")
+        if not lt:
+            return "None in window"
+        return (f"{lt['type']} @ ${lt['price']:,.2f} on {lt['time_utc']} "
+                f"({lt['days_ago']:.1f}d / {lt['bars_ago']} bars ago)")
+
     s1 = a.get("sleeve1") or {}
     L.append("## 6. PROJECT F — SLEEVE #1 (4H Rolling VWAP Shield · 80% Weight)")
     if s1.get("status") == "LIVE":
@@ -1477,9 +1708,20 @@ def render(a: dict) -> str:
                  f"[{'PASS' if cond1['above_upper_buffer'] else 'FAIL'}] Close > Upper Buffer | "
                  f"[{'PASS' if cond1['vwap_slope_positive'] else 'FAIL'}] 12b VWAP Slope > 0 | "
                  f"[{'TRIGGERED' if cond1['exit_triggered'] else 'CLEAR'}] Exit Rule")
+        r1 = s1.get("readiness")
+        if r1:
+            hurdle_txt = (f" | Clear-Both Hurdle: ${r1['price_hurdle']:,.2f} (+{r1['rally_to_hurdle_pct']:.2f}% needed)"
+                          if r1.get("price_hurdle") is not None and r1.get("rally_to_hurdle_pct") is not None else "")
+            L.append(f"*   **Readiness Radar:** {r1['gates_passed']}/{r1['gates_total']} Buy Gates Passed | "
+                     f"vs 120D EMA: {_pct_s(r1.get('shield_dist_pct'))} | "
+                     f"vs Upper Buffer: {_pct_s(r1.get('upper_buf_dist_pct'))}{hurdle_txt}")
         L.append(f"*   **Signal & Simulated State:** raw_signal = {sig_fmt(st1['raw_signal'])} | "
                  f"Sim Prior Pos = {st1['prior_position']} -> Action: {st1['action']} | "
                  f"Reference 3.0x ATR Stop: ${st1['reference_3x_atr_sl']:,.2f}{sl1_line}")
+        if "flipped_on_last_bar" in st1 or "last_transition" in st1:
+            flip1 = " **[NEW SIGNAL ON LATEST BAR]**" if st1.get("flipped_on_last_bar") else ""
+            exp1 = f"{st1['exposure_pct']:.1f}%" if st1.get("exposure_pct") is not None else "UNAVAILABLE"
+            L.append(f"*   **Transition Memory:** Last Flip: {_trans_txt(st1)} | Window BTC Exposure: {exp1}{flip1}")
         L.append(f"*   **Action by Actual Account State:** If currently FLAT (USDT): {st1['if_flat']} | "
                  f"If currently LONG (BTC): {st1['if_long']}")
     else:
@@ -1511,9 +1753,21 @@ def render(a: dict) -> str:
                  f"[{'PASS' if cond2['mom_rising'] else 'FAIL'}] Mom Rising | "
                  f"[{'PASS' if cond2['above_kc_mid'] else 'FAIL'}] Close > KC Mid | "
                  f"[{'TRIGGERED' if cond2['exit_triggered'] else 'CLEAR'}] Exit (Close < SMA21 or Mom < 0)")
+        r2 = s2.get("readiness")
+        if r2:
+            cr = r2.get("compression_ratio")
+            cr_txt = (f"{cr:.2f}x ({'COILED <1.00' if cr < 1.0 else 'WIDE >=1.00'})"
+                      if cr is not None else "UNAVAILABLE")
+            L.append(f"*   **Readiness Radar:** {r2['gates_passed']}/{r2['gates_total']} Buy Gates Passed | "
+                     f"BB/KC Compression: {cr_txt} | Active Squeeze Streak: {r2.get('squeeze_streak_days', 0)}d | "
+                     f"vs KC Mid: {_pct_s(r2.get('kc_mid_dist_pct'))} | vs SMA21: {_pct_s(r2.get('sma21_dist_pct'))}")
         L.append(f"*   **Signal & Simulated State:** raw_signal = {sig_fmt(st2['raw_signal'])} | "
                  f"Sim Prior Pos = {st2['prior_position']} -> Action: {st2['action']} | "
                  f"Reference 2.0x ATR Stop: ${st2['reference_2x_atr_sl']:,.2f}{sl2_line}")
+        if "flipped_on_last_bar" in st2 or "last_transition" in st2:
+            flip2 = " **[NEW SIGNAL ON LATEST BAR]**" if st2.get("flipped_on_last_bar") else ""
+            exp2 = f"{st2['exposure_pct']:.1f}%" if st2.get("exposure_pct") is not None else "UNAVAILABLE"
+            L.append(f"*   **Transition Memory:** Last Flip: {_trans_txt(st2)} | Window BTC Exposure: {exp2}{flip2}")
         L.append(f"*   **Action by Actual Account State:** If currently FLAT (USDT): {st2['if_flat']} | "
                  f"If currently LONG (BTC): {st2['if_long']}")
         L.append("*   **Portfolio Rule:** Segregated virtual ledgers (80% Sleeve #1 / 20% Sleeve #2, "
@@ -1543,18 +1797,21 @@ def render(a: dict) -> str:
     L.append("Start every response with a **3-VERDICT SUMMARY TABLE** covering all three systems, "
              "then present the detail sections. Each verdict is strictly walled off from the other two:")
     L.append("1. **Verdict 1 — SALAM Tactical (Sections 1-5):** Governed ONLY by the SALAM gate banner, "
-             "Four Pillars, and SALAM rules below. Never use Project F to trigger or cancel SALAM. If "
-             "SALAM's gate is PARTIAL or NONE, Verdict 1 MUST remain SUSPENDED / WAIT even if Sleeves #1 or #2 fire.")
+             "Four Pillars, and SALAM rules below. Quote the Macro Weather summary (and live "
+             "Sizing Check when active). Never use Project F to trigger or cancel SALAM. If SALAM's gate "
+             "is PARTIAL or NONE, Verdict 1 MUST remain SUSPENDED / WAIT even if Sleeves #1 or #2 fire.")
     L.append("2. **Verdict 2 — Project F Sleeve #1 (Section 6 · 4H VWAP Shield · 80%):** Purely mechanical "
              "Spot OHLCV system (`tier1_5_vwap_shield`). Output BOTH the If-FLAT action and If-LONG action "
              "verbatim from Section 6, quote its key numbers (Close vs 120D EMA Shield, 15D Rolling VWAP, "
-             "Upper/Lower Buffers, 3.0x ATR Stop), and state the last closed 4H bar timestamp. **FIREWALL:** "
+             "Upper/Lower Buffers, 3.0x ATR Stop, Readiness Radar, Last Transition, and flag any "
+             "`[NEW SIGNAL ON LATEST BAR]`), and state the last closed 4H bar timestamp. **FIREWALL:** "
              "You are FORBIDDEN from overriding, delaying, or altering Verdict 2 using ETF flows, CVD, open "
              "interest, funding, L/S ratios, liquidation tiers, or SALAM's PARTIAL/NONE order-flow gate "
              "(Sleeve #1 uses only Spot klines and stays live 24/7).")
     L.append("3. **Verdict 3 — Project F Sleeve #2 (Section 7 · 1D TTM Squeeze · 20%):** Purely mechanical "
              "Spot OHLCV breakout system (`tier14_ttm_squeeze_1d`). Output BOTH the If-FLAT action and If-LONG "
-             "action verbatim from Section 7, quote Squeeze state/release, OLS Momentum vs prior bar, Close vs "
+             "action verbatim from Section 7, quote Squeeze state/release, BB/KC Compression Ratio, Readiness Radar, "
+             "Last Transition (and flag any `[NEW SIGNAL ON LATEST BAR]`), OLS Momentum vs prior bar, Close vs "
              "KC Mid & SMA(21), and 2.0x ATR Stop, and state the last closed 1D bar timestamp. **FIREWALL:** "
              "Sleeve #2 intentionally has NO 120D EMA shield — you are FORBIDDEN from vetoing or altering "
              "Verdict 3 using the 120D EMA, 200D SMA, ETF flows, CVD, funding, or SALAM bands.")
@@ -1635,6 +1892,15 @@ def render(a: dict) -> str:
                  f"rail is vetoed.\" Do not silently resize; do not drop the rule.")
         L.append("*   **Rail A invalidation = a DAILY close above (band high + 1 x ATR 1H).** Print the "
                  "number. A 1H close is noise, not invalidation.")
+        rbs = a.get("rail_b_sizing")
+        if rbs:
+            v50 = "VETOED — EXCEEDS 30% USDT CAP" if rbs["vetoed_at_50_50"] else "FITS CAP"
+            v100 = "VETOED — EXCEEDS 30% USDT CAP" if rbs["vetoed_at_100_usdt"] else "FITS CAP"
+            L.append(f"*   **Pre-Computed Sizing Check (at {rbs['ref_source']} ${rbs['ref_entry']:,.0f}):** "
+                     f"1.5x ATR stop = ${rbs['stop_dist']:,.0f} ({rbs['stop_pct']:.2f}%, stop ${rbs['stop_price']:,.0f}) "
+                     f"-> {RISK_PCT:.2%} risk requires **{rbs['implied_port_pct']:.1f}%** of total portfolio. "
+                     f"At 50/50 BTC/USDT (cap {rbs['cap_port_pct_50_50']:.1f}% of portfolio): **{v50}**; "
+                     f"at 100% USDT (cap {rbs['cap_port_pct_100_usdt']:.1f}%): **{v100}**.")
         L.append("")
         L.append("**Execution Rules:**")
         L.append("*   **Rail B (USDT -> BTC):** a BULLISH or MACRO BULLISH sweep into a Major Support "
@@ -2159,6 +2425,60 @@ def selftest() -> int:
           and "PROJECT F — SLEEVE #2" in _pm_part
           and "Execution Rules" not in _pm_part
           and "Binding Arithmetic" not in _pm_part)
+
+    # ── Enhancements #1-#4 checks ──
+    check("Sleeve #1 readiness reports 3/3 gates passed on bull breakout and >0 shield distance",
+          _res1.get("readiness", {}).get("gates_passed") == 3
+          and (_res1.get("readiness", {}).get("shield_dist_pct") or 0) > 0)
+    check("Sleeve #1 bear fixture reports <0 shield distance and >0 rally hurdle",
+          (_res1_bear.get("readiness", {}).get("shield_dist_pct") or 0) < 0
+          and (_res1_bear.get("readiness", {}).get("rally_to_hurdle_pct") or 0) > 0
+          and _res1_bear["state"].get("last_transition") is not None)
+    _res2_sq = sleeve2_ttm_squeeze(_s2_bars[:64])
+    check("Sleeve #2 mid-squeeze reports compression_ratio < 1.0 and >=3d streak",
+          _res2_sq.get("status") == "LIVE"
+          and (_res2_sq["readiness"]["compression_ratio"] or 9.0) < 1.0
+          and _res2_sq["readiness"]["squeeze_streak_days"] >= 3)
+    check("Sleeve #2 breakout sets flipped_on_last_bar and 5/5 gates",
+          _res2.get("readiness", {}).get("gates_passed") == 5
+          and _res2["state"].get("flipped_on_last_bar") is True
+          and "Readiness Radar:" in _pm_full
+          and "[NEW SIGNAL ON LATEST BAR]" in _pm_full)
+
+    _mw_hw, _rbs_tight = compute_salam_diagnostics({
+        "price": 70000.0, "sma200": 90000.0, "atr1h": 300.0,
+        "etf": {"five_day_m": -250.0, "one_day_m": -50.0},
+        "funding_pct90": 40.0,
+        "sup_band": {"low": 68000.0, "high": 69000.0}, "macro_sup": [],
+    })
+    _mw_tw, _rbs_wide = compute_salam_diagnostics({
+        "price": 95000.0, "sma200": 80000.0, "atr1h": 3500.0,
+        "etf": {"five_day_m": 400.0, "one_day_m": 120.0},
+        "funding_pct90": 35.0,
+        "sup_band": None, "macro_sup": [{"center": 90000.0}],
+    })
+    check("Macro Weather classifies HEADWIND vs TAILWIND cleanly",
+          _mw_hw["regime"] == "HEADWIND" and _mw_tw["regime"] == "TAILWIND")
+    check("Pre-computed Rail B sizing flags tight ATR cash-cap conflict and passes wide ATR",
+          _rbs_tight is not None and _rbs_tight["vetoed_at_50_50"] is True
+          and _rbs_tight["vetoed_at_100_usdt"] is True
+          and _rbs_wide is not None and _rbs_wide["vetoed_at_50_50"] is False)
+
+    _sc_full = render(dict(full, macro_weather=_mw_hw, rail_b_sizing=_rbs_tight,
+                           spot_check={"bin_price": 1000.0, "okx_price": 1000.2,
+                                       "spread_pct": 0.02, "ok": True}))
+    _sc_part = render(dict(part, macro_weather=_mw_hw, rail_b_sizing=_rbs_tight,
+                           spot_check={"bin_price": 1000.0, "okx_price": 1008.0,
+                                       "spread_pct": 0.80, "ok": False}))
+    check("FULL renders spot cross-check, Macro Weather, and Pre-Computed Sizing Check",
+          "spread 0.020% [OK]" in _sc_full
+          and "Macro Weather" in _sc_full and "HEADWIND" in _sc_full
+          and "Pre-Computed Sizing Check" in _sc_full)
+    check("PARTIAL withholds Pre-Computed Sizing Check and Binding Arithmetic even when populated",
+          "spread 0.800% [WARN >0.50%]" in _sc_part
+          and "Pre-Computed Sizing Check" not in _sc_part
+          and "Binding Arithmetic" not in _sc_part
+          and "Execution Rules" not in _sc_part)
 
     print("live")
     try:

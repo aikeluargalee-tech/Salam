@@ -1,24 +1,21 @@
 {
- "problems": [
-  "fd1 HTTP 451",
-  "fh1 HTTP 451",
-  "funding HTTP 451",
-  "funding_hist HTTP 451",
-  "oi HTTP 451",
-  "oi_hist HTTP 451",
-  "lsr HTTP 451",
-  "perp CVD is OKX's measured taker volume (BTC-USDT swap), not Binance \u2014 Binance Futures refused this host"
- ],
- "deriv_src": "OKX",
+ "problems": [],
+ "deriv_src": "BINANCE",
  "price_src": "TICKER",
- "oi_src": "OKX",
- "oi_hist_src": "OKX",
- "fund_src": "OKX",
- "fund_hist_src": "OKX",
- "lsr_src": "OKX",
- "price": 61757.14,
+ "spot_check": {
+  "bin_price": 61839.73,
+  "okx_price": 61844.1,
+  "spread_pct": 0.0071,
+  "ok": true
+ },
+ "oi_src": "BINANCE",
+ "oi_hist_src": "BINANCE",
+ "fund_src": "BINANCE",
+ "fund_hist_src": "BINANCE",
+ "lsr_src": "BINANCE",
+ "price": 61839.73,
  "atr1d": 2967.8452165560484,
- "sma200": 71980.10924999996,
+ "sma200": 71980.10925,
  "vp30": {
   "poc": 77273.825,
   "val": 61840.25,
@@ -430,7 +427,7 @@
    "touches": 8,
    "liq": [
     "Shorts",
-    40.428350636387485,
+    123.05804986835439,
     100
    ]
   },
@@ -441,7 +438,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    80.85670127277497,
+    246.11609973670878,
     50
    ]
   },
@@ -450,7 +447,11 @@
    "high": 65118.0,
    "center": 64584.05428571429,
    "touches": 7,
-   "liq": null
+   "liq": [
+    "Shorts",
+    369.1741496050632,
+    25
+   ]
   }
  ],
  "macro_sup": [
@@ -461,7 +462,7 @@
    "touches": 2,
    "liq": [
     "Longs",
-    40.428350636387485,
+    123.05804986835439,
     100
    ]
   },
@@ -491,7 +492,7 @@
   ],
   "liq": [
    "Longs",
-   121.28505190916245,
+   369.1741496050632,
    25
   ]
  },
@@ -506,7 +507,7 @@
   ],
   "liq": [
    "Shorts",
-   80.85670127277497,
+   246.11609973670878,
    50
   ]
  },
@@ -517,7 +518,7 @@
   "center": 61557.775,
   "liq": [
    "Longs",
-   40.428350636387485,
+   123.05804986835439,
    100
   ]
  },
@@ -557,7 +558,7 @@
    ],
    "liq": [
     "Longs",
-    121.28505190916245,
+    369.1741496050632,
     25
    ]
   },
@@ -590,7 +591,7 @@
    ],
    "liq": [
     "Shorts",
-    80.85670127277497,
+    246.11609973670878,
     50
    ]
   },
@@ -762,20 +763,20 @@
   "24h": 507.24484
  },
  "cvd_perp": {
-  "1h": -144.42650000000003,
-  "4h": 555.8600999999999,
-  "24h": 2368.1245999999996
+  "1h": -653.0249999999996,
+  "4h": 39.48000000000047,
+  "24h": 3459.472999999999
  },
- "perp_src": "OKX-RUBIK",
+ "perp_src": "BINANCE",
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32731.721900000135,
- "oi_4h_chg": 2.423060854958181,
- "oi_24h_chg": 4.972291754191094,
- "funding": 0.007844674014079999,
- "funding_pct90": 64.0,
- "ls_ratio": 2.2799655933280976,
+ "oi_btc": 99497.564,
+ "oi_4h_chg": 0.8779718251016977,
+ "oi_24h_chg": 2.7536632466330424,
+ "funding": 0.005541,
+ "funding_pct90": 52.96296296296296,
+ "ls_ratio": 2.453,
  "etf": {
   "latest_date": "25 Nov 2026",
   "one_day_m": -453.0,
@@ -784,51 +785,51 @@
   "prev_day_m": -453.0,
   "five_day_m": -2505.6,
   "five_day_days": 5,
-  "twenty_day_m": -6017.099999999999
+  "twenty_day_m": -6017.1
  },
- "oi_usd_m": 2021.4175318193743,
+ "oi_usd_m": 6152.90249341772,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 67932.854,
-   "usd_m": 161.71340254554994
+   "price": 68023.70300000001,
+   "usd_m": 492.23219947341755
   },
   {
    "lev": 25,
-   "price": 64227.4256,
-   "usd_m": 121.28505190916245
+   "price": 64313.319200000005,
+   "usd_m": 369.1741496050632
   },
   {
    "lev": 50,
-   "price": 62992.2828,
-   "usd_m": 80.85670127277497
+   "price": 63076.524600000004,
+   "usd_m": 246.11609973670878
   },
   {
    "lev": 100,
-   "price": 62374.7114,
-   "usd_m": 40.428350636387485
+   "price": 62458.12730000001,
+   "usd_m": 123.05804986835439
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 55581.426,
-   "usd_m": 161.71340254554994
+   "price": 55655.757000000005,
+   "usd_m": 492.23219947341755
   },
   {
    "lev": 25,
-   "price": 59286.8544,
-   "usd_m": 121.28505190916245
+   "price": 59366.1408,
+   "usd_m": 369.1741496050632
   },
   {
    "lev": 50,
-   "price": 60521.9972,
-   "usd_m": 80.85670127277497
+   "price": 60602.9354,
+   "usd_m": 246.11609973670878
   },
   {
    "lev": 100,
-   "price": 61139.5686,
-   "usd_m": 40.428350636387485
+   "price": 61221.3327,
+   "usd_m": 123.05804986835439
   }
  ],
  "sleeve1": {
@@ -845,11 +846,11 @@
   "indicators": {
    "close_price": 61411.0,
    "macro_120d_ema": 73205.18613241617,
-   "rolling_15d_vwap": 62767.14327855108,
-   "vwap_slope_12bar": -1264.0011679318923,
+   "rolling_15d_vwap": 62767.14327855107,
+   "vwap_slope_12bar": -1264.0011679319068,
    "atr_14": 1129.7921099079858,
-   "upper_buffer_price": 63332.03933350507,
-   "lower_buffer_price": 62202.247223597085
+   "upper_buffer_price": 63332.03933350506,
+   "lower_buffer_price": 62202.24722359708
   },
   "conditions": {
    "above_macro_shield": false,
@@ -858,11 +859,29 @@
    "vwap_slope_positive": false,
    "exit_triggered": true
   },
+  "readiness": {
+   "gates_passed": 0,
+   "gates_total": 3,
+   "shield_dist_pct": -16.11,
+   "upper_buf_dist_pct": -3.03,
+   "lower_buf_dist_pct": -1.27,
+   "price_hurdle": 73205.19,
+   "rally_to_hurdle_pct": 19.21
+  },
   "state": {
    "raw_signal": -1,
    "prior_position": "USDT",
    "action": "HOLD USDT",
    "active_stop_loss": null,
+   "flipped_on_last_bar": false,
+   "last_transition": {
+    "type": "SELL",
+    "time_utc": "2026-10-11 04:00Z",
+    "price": 82820.0,
+    "bars_ago": 281,
+    "days_ago": 47.0
+   },
+   "exposure_pct": 35.9,
    "if_flat": "HOLD USDT (wait for BUY +1)",
    "if_long": "SELL BTC at next bar open",
    "reference_3x_atr_sl": 58021.62367027604
@@ -881,16 +900,16 @@
   },
   "indicators": {
    "close_price": 60577.18,
-   "bb_upper": 77698.6781529971,
-   "bb_mid": 66031.7695,
-   "bb_lower": 54364.86084700288,
+   "bb_upper": 77698.67815299712,
+   "bb_mid": 66031.76950000001,
+   "bb_lower": 54364.86084700289,
    "kc_upper": 69697.07046651223,
    "kc_mid": 65455.57662668652,
    "kc_lower": 61214.0827868608,
    "prior_3d_squeeze_bars": 0,
    "mom": -8824.15725,
    "prev_mom": -9427.29933214286,
-   "sma_21": 66499.01857142856,
+   "sma_21": 66499.01857142858,
    "atr_14": 2967.8452165560507
   },
   "conditions": {
@@ -902,18 +921,59 @@
    "above_kc_mid": false,
    "exit_triggered": true
   },
+  "readiness": {
+   "gates_passed": 1,
+   "gates_total": 5,
+   "compression_ratio": 2.751,
+   "squeeze_streak_days": 0,
+   "kc_mid_dist_pct": -7.45,
+   "sma21_dist_pct": -8.91
+  },
   "state": {
    "raw_signal": -1,
    "prior_position": "USDT",
    "action": "HOLD USDT",
    "active_stop_loss": null,
+   "flipped_on_last_bar": false,
+   "last_transition": {
+    "type": "SELL",
+    "time_utc": "2026-09-10 00:00Z",
+    "price": 78306.43,
+    "bars_ago": 77,
+    "days_ago": 78.0
+   },
+   "exposure_pct": 20.0,
    "if_flat": "HOLD USDT (wait for BUY +1)",
    "if_long": "SELL BTC at next bar open",
    "reference_2x_atr_sl": 54641.489566887896
   }
  },
- "generated_at_utc": "2026-11-27T07:07:14Z",
- "generated_at_sgt": "2026-11-27T15:07:14+08:00",
+ "macro_weather": {
+  "regime": "HEADWIND",
+  "above_sma200": false,
+  "sma200_dist_pct": -14.09,
+  "etf_5d_m": -2505.6,
+  "etf_1d_m": -453.0,
+  "funding_pct90": 52.96296296296296,
+  "crowded_long": false,
+  "summary": "Price -14.1% vs 200D SMA \u00b7 5D ETF -2,505.6M \u00b7 Funding pctile 53"
+ },
+ "rail_b_sizing": {
+  "ref_entry": 60434.37,
+  "ref_source": "Tactical Floor High",
+  "atr1h": 434.76,
+  "stop_dist": 652.14,
+  "stop_price": 59782.23,
+  "stop_pct": 1.079,
+  "implied_port_pct": 69.5,
+  "cap_port_pct_50_50": 15.0,
+  "cap_port_pct_100_usdt": 30.0,
+  "required_usdt_share_pct": 231.7,
+  "vetoed_at_50_50": true,
+  "vetoed_at_100_usdt": true
+ },
+ "generated_at_utc": "2026-11-27T07:20:28Z",
+ "generated_at_sgt": "2026-11-27T15:20:28+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,

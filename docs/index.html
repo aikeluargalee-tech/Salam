@@ -1065,6 +1065,7 @@ footer.ws-foot {
       <div class="page-head-row">
         <h1>BTC 1.0x Spot Workstation (3 Verdicts)</h1>
         <span class="badge fresh">SPOT ONLY · NO LEVERAGE</span>
+        <span class="badge" id="spotCheck" title="Binance vs OKX Spot price cross-check">SPOT CHECK —</span>
       </div>
       <div class="page-purpose">Start with the 3-Verdict summary below, then click Copy to send the packet to an AI for full analysis.</div>
     </div>
@@ -1465,14 +1466,20 @@ function renderGlance() {
   const suspended = !(state === 'FULL' || state === 'MANUAL');
   const s1 = d.sleeve1 || {};
   const s2 = d.sleeve2 || {};
-  const s1Buy = s1.status === 'LIVE' && s1.state && s1.state.raw_signal === 1;
-  const s2Buy = s2.status === 'LIVE' && s2.state && s2.state.raw_signal === 1;
+  const s1Live = s1.status === 'LIVE' && s1.state;
+  const s2Live = s2.status === 'LIVE' && s2.state;
+  const s1Buy = s1Live && s1.state.raw_signal === 1;
+  const s2Buy = s2Live && s2.state.raw_signal === 1;
+  const s1Flip = s1Live && Boolean(s1.state.flipped_on_last_bar);
+  const s2Flip = s2Live && Boolean(s2.state.flipped_on_last_bar);
 
   if (suspended) {
-    if (s1Buy || s2Buy) {
+    if (s1Buy || s2Buy || s1Flip || s2Flip) {
       const fired = [];
-      if (s1Buy) fired.push('Sleeve #1 (4H VWAP Shield) signaled BUY (+1)');
-      if (s2Buy) fired.push('Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)');
+      if (s1Buy) fired.push(`Sleeve #1 (4H VWAP Shield) signaled BUY (+1)${s1Flip ? ' [NEW FLIP]' : ''}`);
+      else if (s1Flip) fired.push(`Sleeve #1 new ${s1.state.last_transition && s1.state.last_transition.type === 'STOP_LOSS' ? 'STOP-LOSS' : esc(s1.state.action)} on latest bar`);
+      if (s2Buy) fired.push(`Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)${s2Flip ? ' [NEW FLIP]' : ''}`);
+      else if (s2Flip) fired.push(`Sleeve #2 new ${s2.state.last_transition && s2.state.last_transition.type === 'STOP_LOSS' ? 'STOP-LOSS' : esc(s2.state.action)} on latest bar`);
       box.className = 'verdict-box active';
       box.innerHTML = `<div class="verdict-main">DECISION: PROJECT F TRIGGERED (SALAM INCOMPLETE) — COPY TO AI FOR SLEEVES #1/#2</div>
         <div class="verdict-sub">${fired.join(' · ')}. SALAM tactical rules stay suspended while futures flow is incomplete.</div>`;
@@ -1485,7 +1492,7 @@ function renderGlance() {
         : 'The packet arrived without a valid status flag and cannot be trusted.';
     box.className = state === 'PARTIAL' ? 'verdict-box wait' : 'verdict-box stop';
     box.innerHTML = `<div class="verdict-main">DECISION: WAIT — DATA IS INCOMPLETE (NO NEED TO COPY YET)</div>
-      <div class="verdict-sub">${why} Neither Project F sleeve triggered a BUY (+1).</div>`;
+      <div class="verdict-sub">${why} Neither Project F sleeve triggered a new flip on the latest bar.</div>`;
     return;
   }
 
@@ -1507,8 +1514,10 @@ function renderGlance() {
   const nearEdge = (supDist !== null && supDist <= 1.5) || (resDist !== null && resDist <= 1.5);
 
   const reasons = [];
-  if (s1Buy) reasons.push('Sleeve #1 (4H VWAP Shield) signaled BUY (+1)');
-  if (s2Buy) reasons.push('Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)');
+  if (s1Buy) reasons.push(`Sleeve #1 (4H VWAP Shield) signaled BUY (+1)${s1Flip ? ' [NEW FLIP]' : ''}`);
+  else if (s1Flip) reasons.push(`Sleeve #1 new ${s1.state.last_transition && s1.state.last_transition.type === 'STOP_LOSS' ? 'STOP-LOSS' : esc(s1.state.action)} on latest bar`);
+  if (s2Buy) reasons.push(`Sleeve #2 (1D TTM Squeeze) signaled BUY (+1)${s2Flip ? ' [NEW FLIP]' : ''}`);
+  else if (s2Flip) reasons.push(`Sleeve #2 new ${s2.state.last_transition && s2.state.last_transition.type === 'STOP_LOSS' ? 'STOP-LOSS' : esc(s2.state.action)} on latest bar`);
   if (liveHit) reasons.push(`5-minute move hit ${m.move >= 0 ? '+' : '-'}${money(Math.abs(m.move))}`);
   if (bullSweep) reasons.push(`Bullish sweep detected near ${fmt(sw.level)}`);
   if (bearSweep) reasons.push(`Bearish sweep detected near ${fmt(sw.level)}`);
@@ -1558,10 +1567,14 @@ function renderSleeves(d, state) {
 
   // Verdict 1 (SALAM Tactical)
   const v1c = $('v1Card'), v1b = $('v1Badge'), v1t = $('v1Body');
+  const mw = d.macro_weather || {};
+  const mwReg = mw.regime || 'UNAVAILABLE';
+  const mwCls = mwReg === 'TAILWIND' ? 'ok' : mwReg === 'HEADWIND' ? 'bad' : mwReg === 'MIXED' ? 'short' : '';
+  const mwChip = mw.regime ? `<span class="chip ${mwCls}">WEATHER: ${esc(mwReg)}</span>` : '';
   if (suspended) {
     v1c.className = 'v-card ' + (state === 'PARTIAL' ? 'warn' : 'bad');
     v1b.textContent = state === 'PARTIAL' ? 'HALF DATA' : state === 'NONE' ? 'LOCKED' : 'ERROR';
-    v1t.innerHTML = '<b>SUSPENDED / WAIT</b><br><span class="dimv">Futures flow incomplete — SALAM plans withheld.</span>';
+    v1t.innerHTML = `<b>SUSPENDED / WAIT</b><br><span class="dimv">Futures flow incomplete — SALAM plans withheld.</span>${mwChip ? '<div class="sleeve-chips">' + mwChip + '</div>' : ''}`;
   } else {
     const activeV1 = bullSweep || bearSweep || (gap !== null && gap <= 0);
     v1c.className = activeV1 ? 'v-card buy' : 'v-card';
@@ -1569,7 +1582,11 @@ function renderSleeves(d, state) {
     const buyPart = bullSweep ? `BUY ARMED (${fmt(sw.level)})` : 'BUY: OFF';
     const sellPart = (gap !== null && gap <= 0) ? 'SELL: IN ZONE'
       : gap !== null ? `SELL: +${gap.toFixed(1)}%` : 'SELL: NO ZONE';
-    v1t.innerHTML = `<b>${buyPart} | ${sellPart}</b><br><span class="dimv">Rules + order flow (${state}).</span>`;
+    const rbs = d.rail_b_sizing;
+    const rbsChip = (rbs && isNum(rbs.implied_port_pct))
+      ? `<span class="chip ${rbs.vetoed_at_50_50 ? 'short' : 'ok'}">${rbs.vetoed_at_50_50 ? 'SIZING: CAP VETO (' + fmt(rbs.implied_port_pct, 0) + '%)' : 'SIZING: OK (' + fmt(rbs.implied_port_pct, 1) + '%)'}</span>`
+      : '';
+    v1t.innerHTML = `<b>${buyPart} | ${sellPart}</b><br><span class="dimv">Rules + order flow (${state}).</span>${(mwChip || rbsChip) ? '<div class="sleeve-chips">' + mwChip + rbsChip + '</div>' : ''}`;
   }
 
   // Verdict 2 & Drawer Card (Sleeve #1 — 4H VWAP Shield)
@@ -1578,20 +1595,36 @@ function renderSleeves(d, state) {
   const s1Live = s1.status === 'LIVE' && s1.indicators && s1.conditions && s1.state && s1.last_closed_bar;
   if (s1Live) {
     const ind1 = s1.indicators, cond1 = s1.conditions, st1 = s1.state, bar1 = s1.last_closed_bar;
+    const r1 = s1.readiness || null;
+    const lt1 = st1.last_transition || null;
+    const flip1 = Boolean(st1.flipped_on_last_bar);
     const sig1 = st1.raw_signal;
-    v2c.className = sig1 === 1 ? 'v-card buy' : 'v-card';
+    v2c.className = sig1 === 1 ? 'v-card buy' : flip1 ? 'v-card warn' : 'v-card';
     v2b.textContent = esc(st1.action || '—');
-    v2t.innerHTML = `If FLAT: <b>${esc(st1.if_flat || '—')}</b><br>If LONG: ${esc(st1.if_long || '—')}<br><span class="dimv">120D Shield: ${cond1.above_macro_shield ? 'OPEN' : 'CLOSED'} · ${esc(bar1.close_sgt || '—')}</span>`;
+    const flipBadge1 = flip1
+      ? `<div style="margin-bottom:4px"><span class="chip ${sig1 === 1 ? 'ok' : 'bad'}">* NEW SIGNAL THIS BAR</span></div>`
+      : '';
+    const readyLine1 = r1
+      ? `Gates ${r1.gates_passed}/${r1.gates_total} · Shield ${signed(r1.shield_dist_pct, 1)}%`
+      : `120D Shield: ${cond1.above_macro_shield ? 'OPEN' : 'CLOSED'}`;
+    const lastLine1 = lt1 ? ` · Last: ${esc(lt1.type)} ${fmt(lt1.days_ago, 1)}d ago` : '';
+    v2t.innerHTML = `${flipBadge1}If FLAT: <b>${esc(st1.if_flat || '—')}</b><br>If LONG: ${esc(st1.if_long || '—')}<br><span class="dimv">${readyLine1}${lastLine1}<br>${esc(bar1.close_sgt || '—')}</span>`;
 
     $('sleeve1Box').innerHTML = `
       <div class="subcard-head">
         <span>Sleeve #1 · 4H VWAP Shield (80%)</span>
-        <span class="chip ${sig1 === 1 ? 'ok' : ''}">${esc(st1.action || '—')} (${sig1 > 0 ? '+1' : sig1})</span>
+        <span>${flip1 ? `<span class="chip ${sig1 === 1 ? 'ok' : 'bad'}">* NEW FLIP</span> ` : ''}<span class="chip ${sig1 === 1 ? 'ok' : ''}">${esc(st1.action || '—')} (${sig1 > 0 ? '+1' : sig1})</span></span>
       </div>
       <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind1.close_price, 2)}</span><span class="dimv">${esc(bar1.close_sgt || '')} (${isNum(s1.bars_analyzed) ? s1.bars_analyzed : '?'} bars)</span></div>
       <div class="lvl"><span class="nm">SHIELD</span><span class="px">${money(ind1.macro_120d_ema, 2)}</span><span class="dimv">120-day EMA (${cond1.above_macro_shield ? 'price ABOVE' : 'price BELOW'})</span></div>
       <div class="lvl"><span class="nm">VWAP90</span><span class="px">${money(ind1.rolling_15d_vwap, 2)}</span><span class="dimv">12-bar slope: ${signed(ind1.vwap_slope_12bar, 2)}</span></div>
       <div class="lvl"><span class="nm">BAND</span><span class="px">${money(ind1.lower_buffer_price, 0)} - ${money(ind1.upper_buffer_price, 0)}</span><span class="dimv">+/-0.50 ATR(14) (${money(ind1.atr_14, 0)})</span></div>
+      ${r1 ? `<div class="lvl"><span class="nm">READINESS</span>
+        <span class="bar" title="${r1.gates_passed}/${r1.gates_total} buy gates passed"><i style="width:${Math.round((r1.gates_passed / Math.max(1, r1.gates_total)) * 100)}%"></i></span>
+        <span class="chip ${r1.gates_passed === r1.gates_total ? 'ok' : ''}">${r1.gates_passed}/${r1.gates_total} gates</span>
+        <span class="dimv">Shield ${signed(r1.shield_dist_pct, 2)}% · Upper ${signed(r1.upper_buf_dist_pct, 2)}%${isNum(r1.price_hurdle) ? ' · Hurdle ' + money(r1.price_hurdle, 0) : ''}</span>
+      </div>` : ''}
+      <div class="lvl"><span class="nm">HISTORY</span><span class="px">${lt1 ? esc(lt1.type) + ' @ ' + money(lt1.price, 0) : 'No flips'}</span><span class="dimv">${lt1 ? fmt(lt1.days_ago, 1) + 'd (' + lt1.bars_ago + 'b) ago' : 'in window'}${isNum(st1.exposure_pct) ? ' · Exposed ' + fmt(st1.exposure_pct, 1) + '%' : ''}</span>${flip1 ? `<span class="chip ${sig1 === 1 ? 'ok' : 'bad'}">NEW ON LAST BAR</span>` : ''}</div>
       <div class="lvl"><span class="nm">IF FLAT</span><span class="px">${esc(st1.if_flat || '—')}</span></div>
       <div class="lvl"><span class="nm">IF LONG</span><span class="px">${esc(st1.if_long || '—')}</span></div>
       <div class="lvl"><span class="nm">STOPS</span><span class="px">Ref ${money(st1.reference_3x_atr_sl, 0)}${isNum(st1.active_stop_loss) ? ' | Active ' + money(st1.active_stop_loss, 0) : ''}</span><span class="dimv">(3.0x ATR)</span></div>
@@ -1615,21 +1648,38 @@ function renderSleeves(d, state) {
   const s2Live = s2.status === 'LIVE' && s2.indicators && s2.conditions && s2.state && s2.last_closed_bar;
   if (s2Live) {
     const ind2 = s2.indicators, cond2 = s2.conditions, st2 = s2.state, bar2 = s2.last_closed_bar;
+    const r2 = s2.readiness || null;
+    const lt2 = st2.last_transition || null;
+    const flip2 = Boolean(st2.flipped_on_last_bar);
     const sig2 = st2.raw_signal;
     const sqText = cond2.squeeze_on_now ? 'ON' : 'OFF';
-    v3c.className = sig2 === 1 ? 'v-card buy' : 'v-card';
+    v3c.className = sig2 === 1 ? 'v-card buy' : flip2 ? 'v-card warn' : 'v-card';
     v3b.textContent = esc(st2.action || '—');
-    v3t.innerHTML = `If FLAT: <b>${esc(st2.if_flat || '—')}</b><br>If LONG: ${esc(st2.if_long || '—')}<br><span class="dimv">Squeeze: ${sqText} (${isNum(ind2.prior_3d_squeeze_bars) ? ind2.prior_3d_squeeze_bars : 0}/3d) · ${esc(bar2.close_sgt || '—')}</span>`;
+    const flipBadge2 = flip2
+      ? `<div style="margin-bottom:4px"><span class="chip ${sig2 === 1 ? 'ok' : 'bad'}">* NEW SIGNAL THIS BAR</span></div>`
+      : '';
+    const coilStr = r2 && isNum(r2.compression_ratio) ? Number(r2.compression_ratio).toFixed(2) + 'x' : null;
+    const readyLine2 = r2
+      ? `Gates ${r2.gates_passed}/${r2.gates_total}${coilStr ? ' · Coil ' + coilStr : ''}`
+      : `Squeeze: ${sqText} (${isNum(ind2.prior_3d_squeeze_bars) ? ind2.prior_3d_squeeze_bars : 0}/3d)`;
+    const lastLine2 = lt2 ? ` · Last: ${esc(lt2.type)} ${fmt(lt2.days_ago, 1)}d ago` : '';
+    v3t.innerHTML = `${flipBadge2}If FLAT: <b>${esc(st2.if_flat || '—')}</b><br>If LONG: ${esc(st2.if_long || '—')}<br><span class="dimv">${readyLine2}${lastLine2}<br>${esc(bar2.close_sgt || '—')}</span>`;
 
     $('sleeve2Box').innerHTML = `
       <div class="subcard-head">
         <span>Sleeve #2 · 1D TTM Squeeze (20%)</span>
-        <span class="chip ${sig2 === 1 ? 'ok' : ''}">${esc(st2.action || '—')} (${sig2 > 0 ? '+1' : sig2})</span>
+        <span>${flip2 ? `<span class="chip ${sig2 === 1 ? 'ok' : 'bad'}">* NEW FLIP</span> ` : ''}<span class="chip ${sig2 === 1 ? 'ok' : ''}">${esc(st2.action || '—')} (${sig2 > 0 ? '+1' : sig2})</span></span>
       </div>
       <div class="lvl"><span class="nm">CLOSE</span><span class="px">${money(ind2.close_price, 2)}</span><span class="dimv">${esc(bar2.close_sgt || '')} (${isNum(s2.bars_analyzed) ? s2.bars_analyzed : '?'} bars)</span></div>
       <div class="lvl"><span class="nm">SQUEEZE</span><span class="px">${sqText} (Prior ${isNum(ind2.prior_3d_squeeze_bars) ? ind2.prior_3d_squeeze_bars : 0}/3d)</span><span class="dimv">BB ${money(ind2.bb_lower, 0)}-${money(ind2.bb_upper, 0)} vs KC ${money(ind2.kc_lower, 0)}-${money(ind2.kc_upper, 0)}</span></div>
       <div class="lvl"><span class="nm">MOM(20)</span><span class="px">${signed(ind2.mom, 2)}</span><span class="dimv">Prev: ${signed(ind2.prev_mom, 2)} (${cond2.mom_rising ? 'rising' : 'falling'})</span></div>
       <div class="lvl"><span class="nm">EXITS</span><span class="px">SMA21 ${money(ind2.sma_21, 0)}</span><span class="dimv">KC Mid ${money(ind2.kc_mid, 0)} · ATR14 ${money(ind2.atr_14, 0)}</span></div>
+      ${r2 ? `<div class="lvl"><span class="nm">READINESS</span>
+        <span class="bar" title="${r2.gates_passed}/${r2.gates_total} buy gates passed"><i style="width:${Math.round((r2.gates_passed / Math.max(1, r2.gates_total)) * 100)}%"></i></span>
+        <span class="chip ${r2.gates_passed === r2.gates_total ? 'ok' : ''}">${r2.gates_passed}/${r2.gates_total} gates</span>
+        <span class="dimv">${coilStr ? 'BB/KC ' + coilStr + (Number(r2.compression_ratio) < 1 ? ' (COILED)' : '') : 'Ratio —'} · Streak ${isNum(r2.squeeze_streak_days) ? r2.squeeze_streak_days : 0}d · KC Mid ${signed(r2.kc_mid_dist_pct, 2)}%</span>
+      </div>` : ''}
+      <div class="lvl"><span class="nm">HISTORY</span><span class="px">${lt2 ? esc(lt2.type) + ' @ ' + money(lt2.price, 0) : 'No flips'}</span><span class="dimv">${lt2 ? fmt(lt2.days_ago, 1) + 'd (' + lt2.bars_ago + 'b) ago' : 'in window'}${isNum(st2.exposure_pct) ? ' · Exposed ' + fmt(st2.exposure_pct, 1) + '%' : ''}</span>${flip2 ? `<span class="chip ${sig2 === 1 ? 'ok' : 'bad'}">NEW ON LAST BAR</span>` : ''}</div>
       <div class="lvl"><span class="nm">IF FLAT</span><span class="px">${esc(st2.if_flat || '—')}</span></div>
       <div class="lvl"><span class="nm">IF LONG</span><span class="px">${esc(st2.if_long || '—')}</span></div>
       <div class="lvl"><span class="nm">STOPS</span><span class="px">Ref ${money(st2.reference_2x_atr_sl, 0)}${isNum(st2.active_stop_loss) ? ' | Active ' + money(st2.active_stop_loss, 0) : ''}</span><span class="dimv">(2.0x ATR · no 120D shield)</span></div>
@@ -1742,6 +1792,22 @@ function render(d) {
     ? `${generated.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${sgtTime(generated)} SGT`
     : 'PACKET TIMESTAMP MISSING';
 
+  const sc = d.spot_check || {};
+  const scEl = $('spotCheck');
+  if (scEl) {
+    if (sc.ok !== null && sc.ok !== undefined && isNum(sc.spread_pct)) {
+      scEl.className = 'badge ' + (sc.ok ? 'up' : 'dn');
+      scEl.textContent = sc.ok
+        ? `BIN/OKX ${Number(sc.spread_pct).toFixed(3)}% OK`
+        : `BIN/OKX DIV ${Number(sc.spread_pct).toFixed(2)}% WARN`;
+      scEl.title = `Binance ${money(sc.bin_price, 2)} vs OKX ${money(sc.okx_price, 2)}`;
+    } else {
+      scEl.className = 'badge';
+      scEl.textContent = 'SPOT: BIN ONLY';
+      scEl.title = 'OKX spot ticker cross-check unavailable';
+    }
+  }
+
   // Strict 4-state whitelist; anything else renders as UNKNOWN
   const VALID_STATES = ['FULL', 'MANUAL', 'PARTIAL', 'NONE'];
   const state = VALID_STATES.includes(d.exec_state) ? d.exec_state : 'UNKNOWN';
@@ -1820,6 +1886,12 @@ function render(d) {
           : `<b>UP</b> — price is ${Math.abs((price / sma200 - 1) * 100).toFixed(1)}% above its 200-day average (${fmt(sma200)}).`
     }</span></div>`);
 
+    if (d.macro_weather && d.macro_weather.regime) {
+      const mw = d.macro_weather;
+      const wCls = mw.regime === 'TAILWIND' ? 'up' : mw.regime === 'HEADWIND' ? 'dn' : 'warn-txt';
+      rows.push(`<div class="rrow"><span class="rkey">WEATHER</span><span class="rval"><b class="${wCls}">${esc(mw.regime)}</b> — ${esc(mw.summary || '')}. <span class="dimv">(Background filter only: can caution or block a buy, never starts one.)</span></span></div>`);
+    }
+
     rows.push(`<div class="rrow"><span class="rkey">SELL ZONE</span><span class="rval">${
       resB
         ? `<b>Consider selling some BTC</b> between <b>${fmt(resB.lo)}-${fmt(resB.hi)}</b>${bearSweep ? ' (backed by the recent failed push up)' : ''}. Cancel if a daily candle closes above <b>${isNum(inval) ? fmt(inval) : '—'}</b>.`
@@ -1863,8 +1935,12 @@ function render(d) {
     }
 
     const stopPct = (isNum(stopD) && price !== null && price !== 0) ? ` (${(stopD / price * 100).toFixed(2)}%)` : '';
+    const rbs = d.rail_b_sizing;
+    const rbsHtml = (rbs && isNum(rbs.implied_port_pct))
+      ? `<br><span class="dimv">Pre-computed at ${esc(rbs.ref_source)} (${money(rbs.ref_entry, 0)}, stop ${money(rbs.stop_price, 0)}): 0.75% risk asks <b>${fmt(rbs.implied_port_pct, 1)}%</b> of total portfolio -> 50/50 account (15% cap): <b class="${rbs.vetoed_at_50_50 ? 'dn' : 'up'}">${rbs.vetoed_at_50_50 ? 'VETOED BY 30% CASH CAP' : 'FITS'}</b> | 100%-USDT account (30% cap): <b class="${rbs.vetoed_at_100_usdt ? 'dn' : 'up'}">${rbs.vetoed_at_100_usdt ? 'VETOED BY 30% CASH CAP' : 'FITS'}</b>.</span>`
+      : '';
     rows.push(`<div class="rrow"><span class="rkey">SAFETY RULES</span><span class="rval">Stop loss distance: <b>${isNum(stopD) ? money(stopD) + stopPct : 'UNAVAILABLE'}</b> below entry.
-      Never risk more than <b>0.75%</b> of your total portfolio on one trade. Skip the trade if it would use over <b>30%</b> of your cash.</span></div>`);
+      Never risk more than <b>0.75%</b> of your total portfolio on one trade. Skip the trade if it would use over <b>30%</b> of your cash.${rbsHtml}</span></div>`);
 
     box.innerHTML = rows.join('');
   })();
