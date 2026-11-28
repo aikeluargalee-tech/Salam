@@ -1,5 +1,5 @@
 # SALAM PRO MAX DATA HUB v1.7
-**Timestamp:** 2026-11-28 03:07:14 UTC / 2026-11-28 11:07:14 SGT (UTC+8) | **Spot Price:** $59,974.97 [BIN] | **OKX Spot:** $59,980.10 (spread 0.009% [OK])
+**Timestamp:** 2026-11-28 03:37:17 UTC / 2026-11-28 11:37:17 SGT (UTC+8) | **Spot Price:** $59,976.57 [BIN] | **OKX Spot:** $59,978.40 (spread 0.003% [OK])
 > ✅ **LIVE DATA — plans allowed** (state: FULL). Spot comes from Binance; futures flow is OKX's measured taker volume, not Binance's (this host is blocked). Live, not modelled: Binance Futures refuses this host, but OKX's rubik endpoint publishes real taker buy/sell per hour.
 
 ### AI EXECUTION PROTOCOL: SALAM PRO MAX v1.7 (3-VERDICT EDITION)
@@ -66,7 +66,7 @@ Start every response with a **3-VERDICT SUMMARY TABLE** covering all three syste
 *Never forecast. State what the rules permit, name the trigger that would change the answer, and stop. Jargon is allowed in 1-7 and never in 0.*
 
 ## 1. THE ANCHOR (Deep S/R Matrix)
-*   **Current Price:** $59,975 (1D SMA200 71,871)
+*   **Current Price:** $59,977 (1D SMA200 71,871)
 *   **Tactical Bands:**
     *   Upper: $60,765 - $62,350 (Conf: 3/10, round-1k) [+$77M 50x Shorts]
     *   Lower: $57,590 - $59,026 (Conf: 10/10, POC+VAH/VAL+round-1k) [+$77M 50x Longs]
@@ -80,17 +80,17 @@ Start every response with a **3-VERDICT SUMMARY TABLE** covering all three syste
 
 ## 2. THE FUEL (Liquidation Magnets) [ESTIMATED]
 *   **OI weighting (assumed):** 10x 8% / 25x 6% / 50x 4% / 100x 2% of open interest (= 20% in total; the rest assumed cross-margin or lower leverage)
-*   **Upper Shorts:** 10x $65,972 ($154.1M) / 25x $62,374 ($115.6M) / 50x $61,174 ($77.1M) / 100x $60,575 ($38.5M)
-*   **Lower Longs:** 10x $53,977 ($154.1M) / 25x $57,576 ($115.6M) / 50x $58,775 ($77.1M) / 100x $59,375 ($38.5M)
-    *Levels are exact leverage arithmetic. The $ per tier is OI $1,926.6M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
-*   **Long/Short account ratio (4H):** 2.84 [OKX]
+*   **Upper Shorts:** 10x $65,974 ($154.0M) / 25x $62,376 ($115.5M) / 50x $61,176 ($77.0M) / 100x $60,576 ($38.5M)
+*   **Lower Longs:** 10x $53,979 ($154.0M) / 25x $57,578 ($115.5M) / 50x $58,777 ($77.0M) / 100x $59,377 ($38.5M)
+    *Levels are exact leverage arithmetic. The $ per tier is OI $1,925.1M x the weights above, i.e. an assumed 20% of open interest across these four tiers (the rest assumed cross-margin or lower leverage) — not observed liquidation data. A tier is tagged as overlapping a level when it sits within 0.5% of it.*
+*   **Long/Short account ratio (4H):** 2.82 [OKX]
 
 ## 3. THE TRUTH (Order Flow)
 *   **Price Change (closed 1H [BIN]):** 1H: -0.36% | 4H: +0.39% | 24H: -2.20%
 *   **CVD (Spot [BIN] / Perp [OKX-RUBIK]):** 1H: -28.4 / -276.5 | 4H: 173.4 / 358.2 | 24H: -360.9 / -3,579.8
-*   **Open Interest:** 32,124 BTC [OKX] | 4H Change: -0.06% | 24H Change: -0.77%
+*   **Open Interest:** 32,098 BTC [OKX] | 4H Change: 0.16% | 24H Change: -1.76%
 *   **Derivatives source:** [OKX fallback] Binance Futures answers HTTP 451 and Bybit HTTP 403 from this host. OI, funding and L/S are OKX's BTC-USDT swap; the funding percentile uses its last 100 readings (~33 days), not 90.
-*   **Funding:** 0.0063% per 8H [OKX] | percentile (100 pts): 55
+*   **Funding:** 0.0068% per 8H [OKX] | percentile (100 pts): 61
 *   **ATR 1H:** 431 (Rail B stop distance = 1.5 x this = 646)
 
 ## 4. THE TRIGGER
@@ -98,8 +98,8 @@ Start every response with a **3-VERDICT SUMMARY TABLE** covering all three syste
 
 ## 5. MACRO VETO INPUTS
 *   **ETF Net Flow:** 1D: $-61.8M (27 Nov 2026, settled) | 5D: $-1,985.1M
-*   **Funding percentile:** 55 of the last 100 readings (~33 days, OKX)
-*   **Macro Weather (Veto Summary, never a trigger):** HEADWIND (Price -16.6% vs 200D SMA · 5D ETF -1,985.1M · Funding pctile 55)
+*   **Funding percentile:** 61 of the last 100 readings (~33 days, OKX)
+*   **Macro Weather (Veto Summary, never a trigger):** HEADWIND (Price -16.6% vs 200D SMA · 5D ETF -1,985.1M · Funding pctile 61)
 
 ## 6. PROJECT F — SLEEVE #1 (4H Rolling VWAP Shield · 80% Weight)
 *   **Strategy:** `tier1_5_vwap_shield` (Spot BTC/USDT, zero leverage, 4H closed bars)
