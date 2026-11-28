@@ -12,9 +12,9 @@
  "deriv_src": "OKX",
  "price_src": "TICKER",
  "spot_check": {
-  "bin_price": 59739.81,
-  "okx_price": 59744.5,
-  "spread_pct": 0.0079,
+  "bin_price": 59626.01,
+  "okx_price": 59623.6,
+  "spread_pct": 0.004,
   "ok": true
  },
  "oi_src": "OKX",
@@ -22,7 +22,7 @@
  "fund_src": "OKX",
  "fund_hist_src": "OKX",
  "lsr_src": "OKX",
- "price": 59739.81,
+ "price": 59626.01,
  "atr1d": 3002.751986802045,
  "sma200": 71870.99649999996,
  "vp30": {
@@ -443,7 +443,7 @@
    "touches": 2,
    "liq": [
     "Shorts",
-    77.07908124108381,
+    76.83714627149918,
     50
    ]
   },
@@ -452,11 +452,7 @@
    "high": 62742.47,
    "center": 62337.948749999996,
    "touches": 8,
-   "liq": [
-    "Shorts",
-    115.6186218616257,
-    25
-   ]
+   "liq": null
   }
  ],
  "macro_sup": [
@@ -483,45 +479,40 @@
   }
  ],
  "sup_band": {
-  "low": 57589.52840230965,
-  "high": 59025.581597690354,
-  "touches": 5,
-  "center": 58307.555,
-  "score": 10,
-  "why": [
-   "POC",
-   "VAH/VAL",
-   "round-1k"
-  ],
-  "liq": [
-   "Longs",
-   77.07908124108381,
-   50
-  ]
- },
- "res_band": {
-  "low": 60765.098402309646,
-  "high": 62350.45159769036,
-  "touches": 7,
-  "center": 61557.775,
+  "low": 54604.518402309644,
+  "high": 55655.481597690356,
+  "touches": 1,
+  "center": 55130.0,
   "score": 3,
   "why": [
    "round-1k"
   ],
+  "liq": null
+ },
+ "res_band": {
+  "low": 59860.518402309644,
+  "high": 61521.481597690356,
+  "touches": 7,
+  "center": 60691.0,
+  "score": 6,
+  "why": [
+   "VAH/VAL",
+   "round-1k"
+  ],
   "liq": [
    "Shorts",
-   115.6186218616257,
-   25
+   76.83714627149918,
+   50
   ]
  },
  "inside_band": {
-  "low": 59062.518402309644,
-  "high": 60440.481597690356,
-  "touches": 3,
-  "center": 59751.5,
+  "low": 58243.02840230965,
+  "high": 59628.18159769035,
+  "touches": 5,
+  "center": 58935.604999999996,
   "liq": [
-   "Shorts",
-   38.539540620541906,
+   "Longs",
+   38.41857313574959,
    100
   ]
  },
@@ -530,7 +521,12 @@
    "low": 54604.518402309644,
    "high": 55655.481597690356,
    "touches": 1,
-   "center": 55130.0
+   "center": 55130.0,
+   "score": 3,
+   "why": [
+    "round-1k"
+   ],
+   "liq": null
   },
   {
    "low": 56774.89840230964,
@@ -542,45 +538,35 @@
    "low": 57589.52840230965,
    "high": 59025.581597690354,
    "touches": 5,
-   "center": 58307.555,
-   "score": 10,
-   "why": [
-    "POC",
-    "VAH/VAL",
-    "round-1k"
-   ],
-   "liq": [
-    "Longs",
-    77.07908124108381,
-    50
-   ]
+   "center": 58307.555
   },
   {
-   "low": 58243.02840230965,
-   "high": 59628.18159769035,
-   "touches": 5,
-   "center": 58935.604999999996
+   "low": 59062.518402309644,
+   "high": 60440.481597690356,
+   "touches": 3,
+   "center": 59751.5
   },
   {
    "low": 59860.518402309644,
    "high": 61521.481597690356,
    "touches": 7,
-   "center": 60691.0
+   "center": 60691.0,
+   "score": 6,
+   "why": [
+    "VAH/VAL",
+    "round-1k"
+   ],
+   "liq": [
+    "Shorts",
+    76.83714627149918,
+    50
+   ]
   },
   {
    "low": 60765.098402309646,
    "high": 62350.45159769036,
    "touches": 7,
-   "center": 61557.775,
-   "score": 3,
-   "why": [
-    "round-1k"
-   ],
-   "liq": [
-    "Shorts",
-    115.6186218616257,
-    25
-   ]
+   "center": 61557.775
   },
   {
    "low": 61412.518402309644,
@@ -776,12 +762,12 @@
  "spot_cvd_ok": true,
  "perp_cvd_ok": true,
  "perp_dump": null,
- "oi_btc": 32256.162700000135,
- "oi_4h_chg": 0.1897286423896638,
- "oi_24h_chg": -3.1807602021694303,
- "funding": 0.00350122341711,
+ "oi_btc": 32216.28710000014,
+ "oi_4h_chg": -0.25004010209660477,
+ "oi_24h_chg": -2.290788063164595,
+ "funding": 0.00340730084317,
  "funding_pct90": 36.0,
- "ls_ratio": 2.722742231910074,
+ "ls_ratio": 2.7046216525909266,
  "etf": {
   "latest_date": "27 Nov 2026",
   "one_day_m": -389.0,
@@ -792,49 +778,49 @@
   "five_day_days": 5,
   "twenty_day_m": -6423.299999999999
  },
- "oi_usd_m": 1926.977031027095,
+ "oi_usd_m": 1920.9286567874794,
  "liq_upper": [
   {
    "lev": 10,
-   "price": 65713.791,
-   "usd_m": 154.15816248216763
+   "price": 65588.611,
+   "usd_m": 153.67429254299836
   },
   {
    "lev": 25,
-   "price": 62129.4024,
-   "usd_m": 115.6186218616257
+   "price": 62011.05040000001,
+   "usd_m": 115.25571940724876
   },
   {
    "lev": 50,
-   "price": 60934.6062,
-   "usd_m": 77.07908124108381
+   "price": 60818.5302,
+   "usd_m": 76.83714627149918
   },
   {
    "lev": 100,
-   "price": 60337.208099999996,
-   "usd_m": 38.539540620541906
+   "price": 60222.2701,
+   "usd_m": 38.41857313574959
   }
  ],
  "liq_lower": [
   {
    "lev": 10,
-   "price": 53765.829,
-   "usd_m": 154.15816248216763
+   "price": 53663.409,
+   "usd_m": 153.67429254299836
   },
   {
    "lev": 25,
-   "price": 57350.217599999996,
-   "usd_m": 115.6186218616257
+   "price": 57240.9696,
+   "usd_m": 115.25571940724876
   },
   {
    "lev": 50,
-   "price": 58545.01379999999,
-   "usd_m": 77.07908124108381
+   "price": 58433.4898,
+   "usd_m": 76.83714627149918
   },
   {
    "lev": 100,
-   "price": 59142.4119,
-   "usd_m": 38.539540620541906
+   "price": 59029.7499,
+   "usd_m": 38.41857313574959
   }
  ],
  "sleeve1": {
@@ -956,29 +942,29 @@
  "macro_weather": {
   "regime": "HEADWIND",
   "above_sma200": false,
-  "sma200_dist_pct": -16.88,
+  "sma200_dist_pct": -17.04,
   "etf_5d_m": -2312.3,
   "etf_1d_m": -389.0,
   "funding_pct90": 36.0,
   "crowded_long": false,
-  "summary": "Price -16.9% vs 200D SMA \u00b7 5D ETF -2,312.3M \u00b7 Funding pctile 36"
+  "summary": "Price -17.0% vs 200D SMA \u00b7 5D ETF -2,312.3M \u00b7 Funding pctile 36"
  },
  "rail_b_sizing": {
-  "ref_entry": 59025.58,
+  "ref_entry": 55655.48,
   "ref_source": "Tactical Floor High",
   "atr1h": 405.39,
   "stop_dist": 608.09,
-  "stop_price": 58417.49,
-  "stop_pct": 1.03,
-  "implied_port_pct": 72.8,
+  "stop_price": 55047.39,
+  "stop_pct": 1.093,
+  "implied_port_pct": 68.64,
   "cap_port_pct_50_50": 15.0,
   "cap_port_pct_100_usdt": 30.0,
-  "required_usdt_share_pct": 242.7,
+  "required_usdt_share_pct": 228.8,
   "vetoed_at_50_50": true,
   "vetoed_at_100_usdt": true
  },
- "generated_at_utc": "2026-11-28T08:07:14Z",
- "generated_at_sgt": "2026-11-28T16:07:14+08:00",
+ "generated_at_utc": "2026-11-28T08:37:18Z",
+ "generated_at_sgt": "2026-11-28T16:37:18+08:00",
  "manual": null,
  "manual_ok": false,
  "manual_at": null,
